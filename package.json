@@ -1,0 +1,50 @@
+{
+  "name": "relaks",
+  "description": "Asychronous Raact component",
+  "author": "Chung Leong",
+  "version": "0.0.1",
+  "main": "./lib/relaks.js",
+  "preferGlobal": false,
+  "repository": "git://github.com/chung-leong/relaks.git",
+  "homepage": "https://github.com/chung-leong/relaks",
+  "bugs": {
+    "url": "http://github.com/chung-leong/relaks/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "react"
+  ],
+  "tags": [
+    "react"
+  ],
+  "scripts": {
+    "test": "./node_modules/karma/bin/karma start --single-run",
+    "test:start": "./node_modules/karma/bin/karma start"
+  },
+  "devDependencies": {
+    "babel-core": "^6.24.1",
+    "babel-loader": "^7.0.0",
+    "babel-preset-env": "^1.4.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "bluebird": "^3.5.0",
+    "chai": "^3.5.0",
+    "enzyme": "^2.8.2",
+    "karma": "^1.7.0",
+    "karma-babel-preprocessor": "^6.0.1",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^2.1.1",
+    "karma-mocha": "^1.3.0",
+    "karma-sourcemap-loader": "^0.3.7",
+    "karma-webpack": "^2.0.3",
+    "lodash": "^4.17.4",
+    "mocha": "^3.4.1",
+    "react": "~15.4.0",
+    "react-addons-test-utils": "~15.4.0",
+    "react-dom": "~15.4.0",
+    "webpack": "^2.5.1"
+  },
+  "peerDependencies": {
+    "react": "*"
+  }
+}
