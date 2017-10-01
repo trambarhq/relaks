@@ -3,7 +3,7 @@ var React = require('react');
 var Chai = require('chai'), expect = Chai.expect;
 var Enzyme = require('enzyme');
 var Echo = require('./lib/echo');
-var Relaks = require('../relaks.js');
+var Relaks = require('../index');
 
 console.log(Relaks.Component)
 

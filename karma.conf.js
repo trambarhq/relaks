@@ -43,7 +43,7 @@ module.exports = function(config) {
             },
             resolve: {
                 extensions: [ '.js', '.jsx' ],
-                modules: [ './', 'node_modules' ].map((folder) => {
+                modules: [ 'node_modules' ].map((folder) => {
                     return Path.resolve(`./${folder}`);
                 })
             },
