@@ -1,6 +1,6 @@
 {
   "name": "relaks",
-  "description": "Asychronous Raact component",
+  "description": "Asychronous React component",
   "author": "Chung Leong",
   "version": "0.0.1",
   "main": "./index.js",
@@ -38,7 +38,7 @@
     "karma-sourcemap-loader": "^0.3.7",
     "karma-webpack": "^2.0.3",
     "lodash": "^4.17.4",
-    "mocha": "^3.4.1",
+    "mocha": "^3.5.3",
     "react": "~15.4.0",
     "react-addons-test-utils": "~15.4.0",
     "react-dom": "~15.4.0",
