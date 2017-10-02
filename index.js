@@ -70,11 +70,12 @@ RelaksComponent.prototype.render = function() {
 
     if (isPromise(promise)) {
         // set up handlers for the promise returned
-        var resolve = (element) => {
+        var _this = this;
+        var resolve = function(element) {
             if (meanwhile !== relaks.meanwhile) {
                 // a new rendering cycle has started
                 meanwhile.cancel();
-            } else if (!this.relaks) {
+            } else if (!_this.relaks) {
                 // component has been unmounted
                 meanwhile.cancel();
             } else {
@@ -84,10 +85,10 @@ RelaksComponent.prototype.render = function() {
                 relaks.promisedElementExpected = true;
                 relaks.progressElement = null;
                 relaks.meanwhile = null;
-                this.forceUpdate();
+                _this.forceUpdate();
             }
         };
-        var reject = (err) => {
+        var reject = function(err) {
             if (err instanceof AsyncRenderingInterrupted) {
                 // the rendering cycle was interrupted--do nothing
             } else {
