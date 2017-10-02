@@ -285,7 +285,7 @@ Meanwhile.prototype.update = function() {
 
     if (this.onProgress) {
         var elapsed = getTime() - this.startTime;
-        this.onProgress({ type: 'progress', target: this, elapsed });
+        this.onProgress({ type: 'progress', target: this, elapsed: elapsed });
     }
 
     // tell render() that it isn't triggered in the normal fashion
@@ -313,7 +313,7 @@ Meanwhile.prototype.finish = function() {
     this.clear();
     if (this.onComplete) {
         var elapsed = getTime() - this.startTime;
-        this.onComplete({ type: 'complete', target: this, elapsed });
+        this.onComplete({ type: 'complete', target: this, elapsed: elapsed });
     }
 };
 
