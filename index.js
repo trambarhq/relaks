@@ -52,10 +52,12 @@ RelaksComponent.prototype.render = function() {
 
     // create new meanwhile object
     var meanwhile = relaks.meanwhile = new Meanwhile(this);
+    var prevProps = relaks.prevProps;
+    var prevState = relaks.prevState;
 
     // call user-defined renderAsync() in a try-catch block to catch potential errors
     try {
-        var promise = this.renderAsync(meanwhile);
+        var promise = this.renderAsync(meanwhile, prevProps, prevState);
 
         // from here on, any call to Meanwhile.show() is asynchronous
         meanwhile.synchronous = false;
@@ -134,10 +136,11 @@ RelaksComponent.prototype.render = function() {
  * @return {Boolean}
  */
 RelaksComponent.prototype.shouldComponentUpdate = function(nextProps, nextState) {
-    if (!compare(this.props, nextProps)) {
-        return true;
-    }
-    if (!compare(this.state, nextState)) {
+    if (!compare(this.props, nextProps) || !compare(this.state, nextState)) {
+        // save expiring props and state so they can be passed to renderAsync()
+        var relaks = this.relaks;
+        relaks.prevProps = this.props;
+        relaks.prevState = this.state;
         return true;
     }
     return false;
@@ -153,7 +156,9 @@ RelaksComponent.prototype.componentWillMount = function() {
         promisedElement: null,
         promisedElementExpected: false,
         meanwhile: null,
-    }
+        prevProps: {},
+        prevState: (this.state) ? {} : undefined,
+    };
 };
 
 /**
@@ -201,6 +206,8 @@ Meanwhile.prototype.check = function() {
  *
  * @param  {ReactElement} element
  * @param  {Number} delay
+ *
+ * @return {Boolean}
  */
 Meanwhile.prototype.show = function(element, delay) {
     var relaks = this.component.relaks;
@@ -215,6 +222,7 @@ Meanwhile.prototype.show = function(element, delay) {
     if (this.showingProgress) {
         // if so, show the new progress immediately
         this.update();
+        return true;
     } else {
         if (this.updateTimeout) {
             // we've already schedule the displaying of progress
@@ -230,7 +238,7 @@ Meanwhile.prototype.show = function(element, delay) {
                 }
             } else {
                 // nothing to do--just wait for the initial timeout to fire
-                return;
+                return false;
             }
         }
 
@@ -243,9 +251,11 @@ Meanwhile.prototype.show = function(element, delay) {
                     _this.update();
                 }, delay);
             }
+            return false;
         } else if (delay <= 0) {
             // caller wants it to be shown immediately
             this.update();
+            return true;
         } else {
             // when no delay is given, then progress is shown only
             // if the component would be blank otherwise--this is assuming
@@ -255,6 +265,7 @@ Meanwhile.prototype.show = function(element, delay) {
             // if the component was rendered before, then nothing happens
             // until all promises resolve--or if a call to show() is made
             // and a delay is given
+            return !!relaks.promisedElement;
         }
     }
 };
