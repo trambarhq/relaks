@@ -429,8 +429,8 @@ function chain(f, g) {
         return g;
     }
     return function() {
-        f();
-        g();
+        f.call(this);
+        g.call(this);
     };
 }
 
