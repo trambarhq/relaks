@@ -38,8 +38,8 @@ RelaksComponent.prototype.render = function() {
     // normal rerendering--we need to call renderAsync()
     //
     // first cancel any unfinished rendering cycle
-    if (relaks.meanwhile) {
-        var previously = relaks.meanwhile;
+    var previously = relaks.meanwhile;
+    if (previously) {
         relaks.meanwhile = null;
         // use a try block, in case user-supplied onCancel handler attached
         // to the meanwhile object throws
@@ -50,14 +50,18 @@ RelaksComponent.prototype.render = function() {
         }
     }
 
+    relaks.previous = relaks.current;
+    relaks.current = {
+        props: this.props,
+        state: this.state || {},
+    };
+
     // create new meanwhile object
-    var meanwhile = relaks.meanwhile = new Meanwhile(this);
-    var prevProps = relaks.prevProps;
-    var prevState = relaks.prevState;
+    var meanwhile = relaks.meanwhile = new Meanwhile(this, previously);
 
     // call user-defined renderAsync() in a try-catch block to catch potential errors
     try {
-        var promise = this.renderAsync(meanwhile, prevProps, prevState);
+        var promise = this.renderAsync(meanwhile);
 
         // from here on, any call to Meanwhile.show() is asynchronous
         meanwhile.synchronous = false;
@@ -137,10 +141,6 @@ RelaksComponent.prototype.render = function() {
  */
 RelaksComponent.prototype.shouldComponentUpdate = function(nextProps, nextState) {
     if (!compare(this.props, nextProps) || !compare(this.state, nextState)) {
-        // save expiring props and state so they can be passed to renderAsync()
-        var relaks = this.relaks;
-        relaks.prevProps = this.props;
-        relaks.prevState = this.state;
         return true;
     }
     return false;
@@ -156,8 +156,11 @@ RelaksComponent.prototype.componentWillMount = function() {
         promisedElement: null,
         promisedElementExpected: false,
         meanwhile: null,
-        prevProps: {},
-        prevState: (this.state) ? {} : undefined,
+        previous: null,
+        current: {
+            props: {},
+            state: {},
+        },
     };
 };
 
@@ -175,13 +178,17 @@ RelaksComponent.prototype.componentWillUnmount = function() {
     }
 };
 
-function Meanwhile(component) {
+function Meanwhile(component, previously) {
+    var relaks = component.relaks;
     this.component = component;
     this.synchronous = true;
     this.showingProgress = false;
+    this.canceled = false;
+    this.prior = (previously) ? previously.prior : relaks.previous;
+    this.previous = relaks.previous;
+    this.current = relaks.current;
     this.updateTimeout = 0;
     this.startTime = getTime();
-    this.canceled = false;
     this.onCancel = null;
     this.onComplete = null;
     this.onProgress = null;
