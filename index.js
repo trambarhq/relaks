@@ -125,6 +125,7 @@ RelaksComponent.prototype.render = function() {
         // we'll display that; clear the timeout function if progress was
         // set to show on a delay
         meanwhile.clear();
+        meanwhile.showingProgress = true;
         return relaks.progressElement;
     }
     // umm, we got nothing
@@ -255,7 +256,12 @@ Meanwhile.prototype.show = function(element, delay) {
                 // it to be bypassed by fast-resolving promises
                 var _this = this;
                 this.updateTimeout = setTimeout(function() {
-                    _this.update();
+                    // if the timeout is 0, then clearTimeout() was called on it
+                    // this function might still run on occasion afterward, due to
+                    // the way timeouts are scheduled
+                    if (_this.updateTimeout !== 0) {
+                        _this.update();
+                    }
                 }, delay);
             }
             return false;
@@ -292,12 +298,6 @@ Meanwhile.prototype.update = function() {
     if (this.synchronous) {
         // no need to force update since we're still inside
         // render() and it can simply return the progress element
-        return;
-    }
-    // if the timeout is 0, then clearTimeout() was called on it
-    // this function might still run on occasion afterward, due to
-    // the way timeouts are schedule
-    if (!this.updateTimeout) {
         return;
     }
 
