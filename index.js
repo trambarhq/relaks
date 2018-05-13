@@ -43,6 +43,10 @@ RelaksComponent.prototype.render = function() {
         relaks.meanwhile = null;
         // use a try block, in case user-supplied onCancel handler attached
         // to the meanwhile object throws
+        if (previously.showingProgress || !previously.blankInitially) {
+            // save the previous progress if we're displaying it
+            relaks.previousProgressElement = relaks.progressElement;
+        }
         try {
             previously.cancel();
         } catch (err) {
@@ -71,7 +75,7 @@ RelaksComponent.prototype.render = function() {
         console.error(err);
         relaks.meanwhile.clear();
         relaks.meanwhile = null;
-        return relaks.progressElement || relaks.promisedElement;
+        return relaks.progressElement || relaks.previousProgressElement || relaks.promisedElement;
     }
 
     if (isPromise(promise)) {
@@ -90,6 +94,7 @@ RelaksComponent.prototype.render = function() {
                 relaks.promisedElement = element;
                 relaks.promisedElementExpected = true;
                 relaks.progressElement = null;
+                relaks.previousProgressElement = null;
                 relaks.meanwhile = null;
                 _this.forceUpdate();
             }
@@ -112,6 +117,7 @@ RelaksComponent.prototype.render = function() {
         relaks.meanwhile = null;
         relaks.promisedElement = element;
         relaks.progressElement = null;
+        relaks.previousProgressElement = null;
     }
 
     // we have triggered the asynchronize operation and are waiting for it to
@@ -122,11 +128,22 @@ RelaksComponent.prototype.render = function() {
     }
     if (relaks.progressElement) {
         // a progress element was provided synchronously by renderAsync()
-        // we'll display that; clear the timeout function if progress was
-        // set to show on a delay
-        meanwhile.clear();
-        meanwhile.showingProgress = true;
-        return relaks.progressElement;
+        // we'll display that if delay is set to 0
+        if (meanwhile.showingProgress) {
+            return relaks.progressElement;
+        } else if (!meanwhile.blankInitially) {
+            // we don't want the component to be empty initially
+            // show the progress unless we've progress from an earlier,
+            // interrupted cycle
+            if (!relaks.previousProgressElement) {
+                return relaks.progressElement;
+            }
+        }
+
+    }
+    if (relaks.previousProgressElement) {
+        // show the previous progress
+        return relaks.previousProgressElement;
     }
     // umm, we got nothing
     return null;
@@ -156,6 +173,7 @@ RelaksComponent.prototype.componentWillMount = function() {
         progressElementExpected: false,
         promisedElement: null,
         promisedElementExpected: false,
+        previousProgressElement: null,
         meanwhile: null,
         previous: null,
         current: {
@@ -184,6 +202,9 @@ function Meanwhile(component, previously) {
     this.component = component;
     this.synchronous = true;
     this.showingProgress = false;
+    this.delayWhenEmpty = 50;
+    this.delayWhenRendered = Infinity;
+    this.blankInitially = true;
     this.canceled = false;
     this.prior = (previously) ? previously.prior : relaks.previous;
     this.previous = relaks.previous;
@@ -213,11 +234,10 @@ Meanwhile.prototype.check = function() {
  * Show progress element, possibly after a delay
  *
  * @param  {ReactElement} element
- * @param  {Number} delay
  *
  * @return {Boolean}
  */
-Meanwhile.prototype.show = function(element, delay) {
+Meanwhile.prototype.show = function(element) {
     var relaks = this.component.relaks;
 
     // make sure the rendering cycle is still current
@@ -226,30 +246,23 @@ Meanwhile.prototype.show = function(element, delay) {
     // save the element so render() can return it eventually
     relaks.progressElement = element;
 
-    // see if we're showing progress already...
     if (this.showingProgress) {
-        // if so, show the new progress immediately
+        // see if we're showing progress already, show the new progress immediately
         this.update();
         return true;
     } else {
         if (this.updateTimeout) {
             // we've already schedule the displaying of progress
-            if (delay !== undefined) {
-                // caller wants to set a new delay, remove the current one first
-                clearTimeout(this.updateTimeout);
-                this.updateTimeout = 0;
-
-                if (delay > 0) {
-                    // substract time already spent
-                    var elapsed = getTime() - this.startTime;
-                    delay -= elapsed;
-                }
-            } else {
-                // nothing to do--just wait for the initial timeout to fire
-                return false;
-            }
+            // just wait for the initial timeout to fire
+            return false;
         }
 
+        var delay;
+        if (!relaks.promisedElement) {
+            delay = this.delayWhenEmpty;
+        } else {
+            delay = this.delayWhenRendered;
+        }
         if (delay > 0) {
             if (delay !== Infinity) {
                 // show progress after a brief delay, to allow
@@ -265,20 +278,10 @@ Meanwhile.prototype.show = function(element, delay) {
                 }, delay);
             }
             return false;
-        } else if (delay <= 0) {
+        } else {
             // caller wants it to be shown immediately
             this.update();
             return true;
-        } else {
-            // when no delay is given, then progress is shown only
-            // if the component would be blank otherwise--this is assuming
-            // that the first time this function was invoked was done so
-            // synchrously (i.e. not in a promise callback)
-            //
-            // if the component was rendered before, then nothing happens
-            // until all promises resolve--or if a call to show() is made
-            // and a delay is given
-            return !!relaks.promisedElement;
         }
     }
 };
@@ -294,6 +297,7 @@ Meanwhile.prototype.update = function() {
 
     // toss the result of the previous rendering cycle
     relaks.promisedElement = null;
+    relaks.previousProgressElement = null;
 
     if (this.synchronous) {
         // no need to force update since we're still inside
@@ -344,6 +348,28 @@ Meanwhile.prototype.clear = function() {
         clearTimeout(this.updateTimeout);
         this.updateTimeout = 0;
     }
+};
+
+/**
+ * Set progressive rendering delay, for when the component is empty and when
+ * it has been fully rendered previously
+ *
+ * @param  {Number} empty
+ * @param  {Number} rendered
+ */
+Meanwhile.prototype.delay = function(empty, rendered) {
+    this.delayWhenEmpty = empty;
+    this.delayWhenRendered = rendered;
+};
+
+/**
+ * Determine progress element should be shown immediately when nothing has been
+ * rendered yet
+ *
+ * @param  {Boolean} blank
+ */
+Meanwhile.prototype.blank = function(blank) {
+    this.blankInitially = blank;
 };
 
 function AsyncRenderingInterrupted() {
