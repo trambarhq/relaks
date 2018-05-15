@@ -2,7 +2,7 @@
   "name": "relaks",
   "description": "Asychronous React component",
   "author": "Chung Leong",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "main": "./index.js",
   "preferGlobal": false,
   "repository": "git://github.com/chung-leong/relaks.git",
