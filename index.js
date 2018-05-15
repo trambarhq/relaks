@@ -289,6 +289,38 @@ Meanwhile.prototype.show = function(element, force) {
 };
 
 /**
+ * Return true if the component has previously been fully rendered
+ *
+ * @return {Boolean}
+ */
+Meanwhile.prototype.revising = function() {
+    var relaks = this.component.relaks;
+    return !!relaks.promisedElement;
+};
+
+/**
+ * Set progressive rendering delay, for when the component is empty and when
+ * it has been fully rendered previously
+ *
+ * @param  {Number} empty
+ * @param  {Number} rendered
+ */
+Meanwhile.prototype.delay = function(empty, rendered) {
+    this.delayWhenEmpty = empty;
+    this.delayWhenRendered = rendered;
+};
+
+/**
+ * Determine progress element should be shown immediately when nothing has been
+ * rendered yet
+ *
+ * @param  {Boolean} blank
+ */
+Meanwhile.prototype.blank = function(blank) {
+    this.blankInitially = blank;
+};
+
+/**
  * Rendering the progress element now
  *
  * @param  {Boolean|undefined} force
@@ -361,28 +393,6 @@ Meanwhile.prototype.clear = function() {
         clearTimeout(this.updateTimeout);
         this.updateTimeout = 0;
     }
-};
-
-/**
- * Set progressive rendering delay, for when the component is empty and when
- * it has been fully rendered previously
- *
- * @param  {Number} empty
- * @param  {Number} rendered
- */
-Meanwhile.prototype.delay = function(empty, rendered) {
-    this.delayWhenEmpty = empty;
-    this.delayWhenRendered = rendered;
-};
-
-/**
- * Determine progress element should be shown immediately when nothing has been
- * rendered yet
- *
- * @param  {Boolean} blank
- */
-Meanwhile.prototype.blank = function(blank) {
-    this.blankInitially = blank;
 };
 
 function AsyncRenderingInterrupted() {
