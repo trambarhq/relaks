@@ -1,17 +1,16 @@
 Relaks
 ------
 
-Relaks is a minimalist library that provides a [promise-based](https://promisesaplus.com/),
-asynchronous interface to [React](https://reactjs.org/) components. Instead
-of `render()`, Relaks components implement `renderAsync()`, a method that
-returns a promise of a `ReactElement`. When it fulfills, the fulfillment value
-is rendered.
+Relaks is a minimalist library that give a [React](https://reactjs.org/)
+components a [promise-based](https://promisesaplus.com/), asynchronous interface.
+Instead of `render()`, Relaks components implement `renderAsync()`, a method that
+returns a promise of a `ReactElement`.
 
 * [Basic example](#basic-example)
 * [Example with multiple async operations](#example-with-multiple-async-operations)
 * [Real world example](#real-world-example)
 * [Interruption of rendering](#interruption-of-rendering)
-* [Progressive rendering delays](#progressive-rendering-delays)
+* [Progressive rendering delay](#progressive-rendering-delay)
 * [Life-cycle functions](#life-cycle-functions)
 * [API reference](#api-reference)
 * [ES5 convention](#es5-convention)
@@ -127,7 +126,7 @@ author and category names are not yet available. We put dashes in their place
 then proceed to retrieve the related objects. Once these are retrieved, actual
 text replaces the dashes.
 
-There's a great deal of redundant in the example code. Typically it's advisable  
+There's a great deal of redundant in the example code. Typically it's advisable
 to put the UI code in a separate component:
 
 ```javascript
@@ -228,7 +227,7 @@ story, the call to `meanwhile.show()` after the story is retrieved will throw.
 We won't end up wasting bandwidth fetching the author and category. Relaks will
 silently swallow the exception.  
 
-## Progressive rendering delays
+## Progressive rendering delay
 
 By default, progressive rendering will not start immediately. The promise
 returned by `renderAsync()` is given a small window of time. Only if it fails
@@ -263,29 +262,26 @@ behavior.
 ## API reference
 
 * [Methods](#methods)
-  * [meanwhile.blank](#meanwhile-blank)
-  * [meanwhile.check](#meanwhile-check)
-  * [meanwhile.delay](#meanwhile-delay)
-  * [meanwhile.revising](#meanwhile-revising)
-  * [meanwhile.show](#meanwhile-show)
+  * [meanwhile.blank](#meanwhileblank)
+  * [meanwhile.check](#meanwhilecheck)
+  * [meanwhile.delay](#meanwhiledelay)
+  * [meanwhile.revising](#meanwhilerevising)
+  * [meanwhile.show](#meanwhileshow)
 * [Event handlers](#event-handlers)
-  * [meanwhile.onCancel](#meanwhile-oncancel)
-  * [meanwhile.onComplete](#meanwhile-oncomplete)
-  * [meanwhile.onProgress](#meanwhile-onprogress)
+  * [meanwhile.onCancel](#meanwhileoncancel)
+  * [meanwhile.onComplete](#meanwhileoncomplete)
+  * [meanwhile.onProgress](#meanwhileonprogress)
 * [Properties](#properties)
-  * [meanwhile.current](#meanwhile-current)
-  * [meanwhile.previous](#meanwhile-previous)
-  * [meanwhile.prior](#meanwhile-prior)
+  * [meanwhile.current](#meanwhilecurrent)
+  * [meanwhile.previous](#meanwhileprevious)
+  * [meanwhile.prior](#meanwhileprior)
 
 ### Methods
 
 #### meanwhile.blank
 
-```javascript
-/**
- * @param  {Boolean} permitted
- */
-function blank(permitted)
+```typescript
+function blank(permitted: boolean)
 ```
 
 Determine whether progress element should be shown immediately when nothing has
@@ -296,7 +292,7 @@ must be provided to `meanwhile.show()` in the synchronous portion of
 
 #### meanwhile.check
 
-```javascript
+```typescript
 function check()
 ```
 
@@ -306,12 +302,8 @@ use `meanwhile.show()` instead.
 
 #### meanwhile.delay
 
-```javascript
-/**
- * @param  {Number} empty
- * @param  {Number} rendered
- */
-function delay(empty, rendered)
+```typescript
+function delay(empty: number, rendered: number)
 ```
 
 Set progressive rendering delay, for when the component is empty and when
@@ -319,31 +311,24 @@ it has fully rendered previously. When a parameter is `undefined`, it's ignored.
 
 #### meanwhile.revising
 
-```javascript
-/**
- * @return {Boolean}
- */
-function revising()
+```typescript
+function revising(): boolean
 ```
 
 Return true if the component has previously been fully rendered.
 
 #### meanwhile.show
 
-```javascript
-/**
- * @param  {ReactElement} element
- * @param  {Boolean|undefined} force
- *
- * @return {Boolean}
- */
-function show(element, force)
+```typescript
+function show(element: ReactElement, force: boolean): boolean
 ```
 
 Show progress element, possibly after a delay. Pass `true` as the second
-parameter to force rendering to occur.
+parameter to force rendering to occur immediately. A return value of `false`
+means rendering is being deferred.
 
-This function calls `meanwhile.check()` at the beginning.
+This method calls `meanwhile.check()` to ascertain that the rendering cycle is
+still valid.
 
 ### Event handlers
 
