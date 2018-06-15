@@ -1,7 +1,7 @@
 Relaks
 ------
 
-Relaks is a minimalist library that give a [React](https://reactjs.org/)
+Relaks is a minimalist library that give [React](https://reactjs.org/)
 components a [promise-based](https://promisesaplus.com/), asynchronous interface.
 Instead of `render()`, Relaks components implement `renderAsync()`, a method that
 returns a promise of a `ReactElement`.
