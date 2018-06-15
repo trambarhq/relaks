@@ -5,12 +5,11 @@ var Enzyme = require('enzyme');
 var Echo = require('./lib/echo');
 var Relaks = require('../index');
 
-console.log(Relaks.Component)
-
 class Test extends Relaks.Component {
     renderAsync(meanwhile) {
+        meanwhile.blank(false);
         meanwhile.show(<div>Initial</div>);
-        return this.props.echo.return('data', 100, { test:1 }).then(() => {
+        return this.props.echo.return('data', { test:1 }, 100).then(() => {
             return <div>Done</div>;
         });
     }
