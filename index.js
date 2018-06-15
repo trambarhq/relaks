@@ -206,7 +206,7 @@ function Meanwhile(component, previously) {
 }
 
 /**
- * Check if the rendering cycle isn't been superceded by a new one. If so
+ * Check if the rendering cycle has been superceded by a new one. If so
  * throw an exception to end it. Ensure component is mounted as well.
  */
 Meanwhile.prototype.check = function() {

@@ -7,8 +7,8 @@ var Relaks = require('../index');
 
 var Test = Relaks.createClass({
     renderAsync: function(meanwhile) {
-        meanwhile.show(<div>Initial</div>);
-        return this.props.echo.return('data', 100, { test:1 }).then(() => {
+        meanwhile.show(<div>Initial</div>, 'initial');
+        return this.props.echo.return('data', { test:1 }, 100).then(() => {
             return <div>Done</div>;
         });
     },
