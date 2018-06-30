@@ -55,6 +55,9 @@ asynchronous operation--typically data retrieval--is happening. `show()` may be
 called multiple times during a single rendering cycle. This allows a component
 to render progressively as data arrives.
 
+`Relaks.Component` is also available as `Relaks.AsyncComponent`, so you can
+import both it and the standard React `Component`. 
+
 ## Example with multiple async operations
 
 ```javascript

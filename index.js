@@ -1,6 +1,6 @@
 var React = require('react');
 
-exports.Component = RelaksComponent;
+exports.Component = exports.AsyncComponent = RelaksComponent;
 exports.createClass = createClass;
 exports.AsyncRenderingInterrupted = AsyncRenderingInterrupted;
 exports.Meanwhile = Meanwhile;
