@@ -303,8 +303,12 @@ Meanwhile.prototype.revising = function() {
  * @param  {Number} rendered
  */
 Meanwhile.prototype.delay = function(empty, rendered) {
-    this.delayWhenEmpty = empty;
-    this.delayWhenRendered = rendered;
+    if (typeof(empty) === 'number') {
+        this.delayWhenEmpty = empty;
+    }
+    if (typeof(rendered) === 'number') {
+        this.delayWhenRendered = rendered;
+    }
 };
 
 /**
