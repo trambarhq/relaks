@@ -1,38 +1,41 @@
-var Promise = require('bluebird');
-var React = require('react');
-var Chai = require('chai'), expect = Chai.expect;
-var Enzyme = require('enzyme');
-var Echo = require('./lib/echo');
-var Relaks = require('../index');
-var createRelaksClass = require('../create-class');
+import Promise from 'bluebird';
+import { expect } from 'chai';
+import PreactRenderSpy from 'preact-render-spy';
+import Echo from './lib/echo';
+import { h } from 'preact'
+import { AsyncComponent } from '../preact';
 
-var Test = Relaks.createClass({
-    renderAsync: function(meanwhile) {
+/** @jsx h */
+
+class Test extends AsyncComponent {
+    renderAsync(meanwhile, props) {
         meanwhile.show(<div>Initial</div>, 'initial');
-        return this.props.echo.return('data', { test:1 }, 100).then(() => {
+        return props.echo.return('data', { test:1 }, 100).then(() => {
             return <div>Done</div>;
         });
-    },
+    }
 
-    componentWillMount: function() {
+    componentWillMount() {
+        super.componentWillMount();
         this.setState({ mounted: true });
         if (this.props.onMount) {
             this.props.onMount();
         }
-    },
+    }
 
-    componentWillUnmount: function() {
+    componentWillUnmount() {
+        super.componentWillUnmount();
         this.setState({ mounted: false });
         if (this.props.onUnmount) {
             this.props.onUnmount();
         }
-    },
-});
+    }
+}
 
-describe('ES5 test', function() {
+describe('Preact test', function() {
     it ('should render the component', function() {
         var echo = new Echo();
-        var wrapper = Enzyme.mount(<Test echo={echo}/>);
+        var wrapper = PreactRenderSpy.deep(<Test echo={echo}/>);
 
         return Promise.try(() => {
             expect(wrapper.text()).to.equal('Initial');
@@ -45,7 +48,7 @@ describe('ES5 test', function() {
         var echo = new Echo();
         var mounted;
         var onMount = () => { mounted = true };
-        var wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} />);
+        var wrapper = PreactRenderSpy.deep(<Test echo={echo} onMount={onMount} />);
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
     })
@@ -54,10 +57,10 @@ describe('ES5 test', function() {
         var mounted;
         var onMount = () => { mounted = true };
         var onUnmount = () => { mounted = false };
-        var wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} onUnmount={onUnmount} />);
+        var wrapper = PreactRenderSpy.deep(<Test echo={echo} onMount={onMount} onUnmount={onUnmount} />);
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
-        wrapper.unmount();
+        wrapper.render(null);
         expect(mounted).to.be.false;
     })
 })
