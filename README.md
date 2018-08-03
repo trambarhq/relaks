@@ -8,6 +8,7 @@ returns a promise of a `ReactElement`.
 
 * [Basic example](#basic-example)
 * [Example with multiple async operations](#example-with-multiple-async-operations)
+* [ES7 syntax](#es7-syntax)
 * [Real world example](#real-world-example)
 * [Interruption of rendering](#interruption-of-rendering)
 * [Progressive rendering delay](#progressive-rendering-delay)
@@ -20,11 +21,10 @@ returns a promise of a `ReactElement`.
 ## Basic example
 
 ```javascript
-var React = require('react');
-var Relaks = require('relaks');
+import React from 'react';
+import Relaks from 'relaks';
 
 class StoryView extends Relaks.Component {
-
     renderAsync(meanwhile) {
         var db = this.props.database;
         var query = {
@@ -56,16 +56,15 @@ called multiple times during a single rendering cycle. This allows a component
 to render progressively as data arrives.
 
 `Relaks.Component` is also available as `Relaks.AsyncComponent`, so you can
-import both it and the standard React `Component`. 
+import both it and the standard React `Component`.
 
 ## Example with multiple async operations
 
 ```javascript
-var React = require('react');
-var Relaks = require('relaks');
+import React from 'react';
+import Relaks from 'relaks';
 
 class StoryView extends Relaks.Component {
-
     renderAsync(meanwhile) {
         var db = this.props.database;
         var query1 = {
@@ -133,11 +132,10 @@ There's a great deal of redundant in the example code. Typically it's advisable
 to put the UI code in a separate component:
 
 ```javascript
-var React = require('react');
-var Relaks = require('relaks');
+import React from 'react';
+import Relaks from 'relaks';
 
 class StoryView extends Relaks.Component {
-
     renderAsync(meanwhile) {
         var db = this.props.database;
         var props = {
@@ -187,7 +185,6 @@ class StoryView extends Relaks.Component {
 }
 
 class StoryViewSync extends React.PureComponent {
-
     render() {
         var { story, author, category } = this.props;
         if (!story) {
@@ -201,6 +198,48 @@ class StoryViewSync extends React.PureComponent {
                 <p>{story.text}</p>
             </div>
         );
+    }
+}
+```
+
+## ES7 syntax
+
+The example above becomes a lot cleaner when we use the ES7 await operator:
+
+```javascript
+import React from 'react';
+import Relaks from 'relaks';
+
+class StoryView extends Relaks.Component {
+    async renderAsync(meanwhile) {
+        var db = this.props.database;
+        var props = {
+            story: null,
+            author: null,
+            category: null,
+        };
+        meanwhile.show(<StoryViewSync {...props} />);        
+        props.story = await db.findOne({
+            table: 'story',
+            criteria: {
+                id: this.props.storyID
+            }
+        });
+        meanwhile.show(<StoryViewSync {...props} />);        
+        props.author = await db.findOne({
+            table: 'author',
+            criteria: {
+                id: props.story.author_id
+            }
+        });
+        meanwhile.show(<StoryViewSync {...props} />);
+        props.category = await db.findOne({
+            table: 'category',
+            criteria: {
+                id: props.story.category_id
+            }
+        });
+        return <StoryViewSync {...props} />;
     }
 }
 ```

@@ -1,3 +1,5 @@
+var AsyncRenderingInterrupted = require('./async-rendering-interrupted');
+
 function Meanwhile(component, previously) {
     var relaks = component.relaks;
     this.component = component;
