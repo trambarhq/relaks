@@ -15,6 +15,7 @@ returns a promise of a `ReactElement`.
 * [Life-cycle functions](#life-cycle-functions)
 * [API reference](#api-reference)
 * [ES5 convention](#es5-convention)
+* [Preact support](#preact-support)
 * [License](#license)
 * [Acknowledgement](#acknowledgement)
 
@@ -411,6 +412,12 @@ module.exports = Relaks.createClass({
     },
 });
 ```
+
+## Preact support
+
+Relaks has built-in support for [Preact](https://preactjs.com/). Simply import
+from 'relaks/preact' instead of 'relaks'. `renderAsync()` will receive `props`,
+`state`, and `context` in addition to the meanwhile object.
 
 ## License
 
