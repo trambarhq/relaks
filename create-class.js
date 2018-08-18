@@ -52,4 +52,3 @@ function chain(f, g) {
 }
 
 module.exports = createClass;
-Relaks.createClass = createClass;
