@@ -2,8 +2,14 @@ var Promise = require('bluebird');
 var React = require('react');
 var Chai = require('chai'), expect = Chai.expect;
 var Enzyme = require('enzyme');
-var Echo = require('./lib/echo');
-var Relaks = require('../index'); Relaks.createClass = require('../create-class');
+var Adapter = require('enzyme-adapter-react-16');
+var Echo = require('./lib/echo').default;
+var Relaks = require('../index');
+
+React.createClass = require('create-react-class');
+Relaks.createClass = require('../create-class');
+
+Enzyme.configure({ adapter: new Adapter() });
 
 var Test = Relaks.createClass({
     renderAsync: function(meanwhile) {

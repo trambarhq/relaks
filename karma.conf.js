@@ -3,7 +3,7 @@ var Path = require('path');
 module.exports = function(config) {
     config.set({
         port: 9876,
-        colors: true,
+        colors: false,
         logLevel: config.LOG_WARNING,
         autoWatch: true,
         singleRun: false,
@@ -46,15 +46,6 @@ module.exports = function(config) {
                 modules: [ 'node_modules' ].map((folder) => {
                     return Path.resolve(`./${folder}`);
                 })
-            },
-            externals: {
-                'react/addons': true,
-                'react/lib/ExecutionEnvironment': true,
-                'react/lib/ReactContext': true,
-
-                // these exist only in React 15.5+
-                'react-dom/test-utils': true,
-                'react-test-renderer/shallow': true,
             }
         },
 

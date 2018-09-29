@@ -1,22 +1,27 @@
-var _ = require('lodash');
-var Promise = require('bluebird');
+import _ from 'lodash';
+import Promise from 'bluebird';
 
-module.exports = Echo;
+class Echo {
+    constructor() {
+        this.cache = {};
+    }
 
-function Echo() {
-    this.clear();
+    return(name, data, delay) {
+        var promise = this.cache[name];
+        if (!promise) {
+            promise = this.cache[name] = Promise.delay(delay).then(() => {
+                return _.cloneDeep(data);
+            });
+        }
+        return promise;
+    }
+
+    clear() {
+        this.cache = {};
+    }
 }
 
-Echo.prototype.return = function(name, data, delay) {
-    var promise = this.cache[name];
-    if (!promise) {
-        promise = this.cache[name] = Promise.delay(delay).then(() => {
-            return _.cloneDeep(data);
-        });
-    }
-    return promise;
-};
-
-Echo.prototype.clear = function() {
-    this.cache = {};
+export {
+    Echo as default,
+    Echo
 };

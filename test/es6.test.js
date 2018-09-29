@@ -1,9 +1,13 @@
-var Promise = require('bluebird');
-var React = require('react');
-var Chai = require('chai'), expect = Chai.expect;
-var Enzyme = require('enzyme');
-var Echo = require('./lib/echo');
-var Relaks = require('../index');
+import Promise from 'bluebird';
+import React from 'react';
+import { expect } from 'chai';
+import Enzyme from 'enzyme';
+import Adapter from 'enzyme-adapter-react-16';
+
+import Echo from './lib/echo';
+import Relaks from '../index';
+
+Enzyme.configure({ adapter: new Adapter() });
 
 class Test extends Relaks.Component {
     renderAsync(meanwhile) {
@@ -32,8 +36,8 @@ class Test extends Relaks.Component {
 
 describe('ES6 test', function() {
     it ('should render the component', function() {
-        var echo = new Echo();
-        var wrapper = Enzyme.mount(<Test echo={echo}/>);
+        let echo = new Echo();
+        let wrapper = Enzyme.mount(<Test echo={echo}/>);
 
         return Promise.try(() => {
             expect(wrapper.text()).to.equal('Initial');
@@ -43,19 +47,19 @@ describe('ES6 test', function() {
         });
     })
     it ('should call componentWillMount()', function() {
-        var echo = new Echo();
-        var mounted;
-        var onMount = () => { mounted = true };
-        var wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} />);
+        let echo = new Echo();
+        let mounted;
+        let onMount = () => { mounted = true };
+        let wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} />);
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
     })
     it ('should allow unmounting before rendering cycle finishes', function() {
-        var echo = new Echo();
-        var mounted;
-        var onMount = () => { mounted = true };
-        var onUnmount = () => { mounted = false };
-        var wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} onUnmount={onUnmount} />);
+        let echo = new Echo();
+        let mounted;
+        let onMount = () => { mounted = true };
+        let onUnmount = () => { mounted = false };
+        let wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} onUnmount={onUnmount} />);
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
         wrapper.unmount();
