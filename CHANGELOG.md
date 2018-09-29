@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.1.4
+
+* Added support for error boundary
+* Added set()
+
 ## 1.1.3
 
 * Updated packages used for testing
