@@ -6,8 +6,8 @@ function Meanwhile(component, previously) {
     this.synchronous = true;
     this.showingProgress = false;
     this.showingProgressInitially = false;
-    this.delayWhenEmpty = 50;
-    this.delayWhenRendered = Infinity;
+    this.delayWhenEmpty = Meanwhile.delayWhenEmpty;
+    this.delayWhenRendered = Meanwhile.delayWhenRendered;
     this.canceled = false;
     this.prior = (previously) ? previously.prior : relaks.previous;
     this.previous = relaks.previous;
@@ -18,6 +18,9 @@ function Meanwhile(component, previously) {
     this.onComplete = null;
     this.onProgress = null;
 }
+
+Meanwhile.delayWhenEmpty = 50;
+Meanwhile.delayWhenRendered = Infinity;
 
 var prototype = Meanwhile.prototype;
 

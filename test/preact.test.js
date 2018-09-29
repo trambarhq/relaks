@@ -37,11 +37,9 @@ describe('Preact test', function() {
         var echo = new Echo();
         var wrapper = PreactRenderSpy.deep(<Test echo={echo}/>);
 
-        return Promise.try(() => {
-            expect(wrapper.text()).to.equal('Initial');
-            return Promise.delay(250).then(() => {
-                expect(wrapper.text()).to.equal('Done');
-            });
+        expect(wrapper.text()).to.equal('Initial');
+        return Promise.delay(250).then(() => {
+            expect(wrapper.text()).to.equal('Done');
         });
     })
     it ('should call componentWillMount()', function() {

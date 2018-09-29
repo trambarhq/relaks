@@ -3,6 +3,13 @@ var Meanwhile = require('./meanwhile');
 
 module.exports = function(React) {
 
+var isPreact = (React.h instanceof Function);
+var supportErrorBoundary = !isPreact && parseInt(React.version) >= 16;
+
+var errorHandler = function(err) {
+    console.error(err);
+};
+
 function RelaksComponent() {
 }
 
@@ -30,6 +37,10 @@ prototype.render = function() {
         relaks.progressElement = null;
         relaks.progressElementRendered = null;
         return relaks.promisedElement;
+    } else if (relaks.promisedErrorExpected) {
+        // throw error encounted in async code
+        relaks.promisedErrorExpected = false;
+        throw relaks.promisedError;
     } else if (relaks.progressElementExpected) {
         // render the new progress element
         relaks.progressElementExpected = false;
@@ -64,7 +75,7 @@ prototype.render = function() {
     // call user-defined renderAsync() in a try-catch block to catch potential errors
     try {
         var promise;
-        if (this.renderAsync.length > 1) {
+        if (isPreact) {
             promise = this.renderAsync(meanwhile, this.props, this.state, this.context);
         } else {
             promise = this.renderAsync(meanwhile);
@@ -73,12 +84,20 @@ prototype.render = function() {
         // from here on, any call to Meanwhile.show() is asynchronous
         meanwhile.synchronous = false;
     } catch (err) {
-        // a synchronouse error occurred, show any progress made or what was
-        // there before
-        console.error(err);
+        // a synchronouse error occurred,
         relaks.meanwhile.clear();
         relaks.meanwhile = null;
-        return relaks.progressElement || relaks.progressElementRendered || relaks.promisedElement;
+        if (supportErrorBoundary) {
+            // throw the error if there's support for error boundary
+            throw err;
+        } else {
+            // otherwise call the error handler then show any progress made
+            // or what was there before
+            if (errorHandler instanceof Function) {
+                errorHandler(err);
+            }
+            return relaks.progressElement || relaks.progressElementRendered || relaks.promisedElement;
+        }
     }
 
     if (isPromise(promise)) {
@@ -104,11 +123,20 @@ prototype.render = function() {
             if (err instanceof AsyncRenderingInterrupted) {
                 // the rendering cycle was interrupted--do nothing
             } else {
-                // dump the error into the console and return what has been
-                // rendered so far or what was there before
-                console.error(err);
-                var element = relaks.progressElement || relaks.promisedElement;
-                resolve(element);
+                if (supportErrorBoundary) {
+                    relaks.promisedError = err;
+                    relaks.promisedErrorExpected = true;
+                    relaks.meanwhile = null;
+                    _this.forceUpdate();
+                } else {
+                    // otherwise call the error handler then return what has
+                    // been rendered so far or what was there before
+                    if (errorHandler instanceof Function) {
+                        errorHandler(err);
+                    }
+                    var element = relaks.progressElement || relaks.promisedElement;
+                    resolve(element);
+                }
             }
         };
         promise.then(resolve, reject);
@@ -167,6 +195,8 @@ prototype.componentWillMount = function() {
         promisedElement: null,
         promisedElementExpected: false,
         progressElementRendered: null,
+        promisedError: null,
+        promisedErrorExpected: false,
         meanwhile: null,
         previous: null,
         current: {
@@ -190,11 +220,26 @@ prototype.componentWillUnmount = function() {
     }
 };
 
+function set(name, value) {
+    switch (name) {
+        case 'errorHandler':
+            errorHandler = value;
+            break;
+        case 'delayWhenEmpty':
+            Meanwhile.delayWhenEmpty = value;
+            break;
+        case 'delayWhenRendered':
+            Meanwhile.delayWhenRendered = value;
+            break;
+    }
+}
+
 return {
     Component: prototype.constructor,
     AsyncComponent: prototype.constructor,
     AsyncRenderingInterrupted: AsyncRenderingInterrupted,
     Meanwhile: Meanwhile,
+    set: set,
 };
 };
 
