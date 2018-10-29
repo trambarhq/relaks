@@ -333,7 +333,6 @@ behavior.
   * [meanwhile.delay](#meanwhiledelay)
   * [meanwhile.revising](#meanwhilerevising)
   * [meanwhile.show](#meanwhileshow)
-
   * [Relaks.set](#relaksset)
 
 * [Event handlers](#event-handlers)
