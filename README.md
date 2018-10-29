@@ -393,7 +393,7 @@ still valid.
 #### Relaks.set
 
 ```typescript
-function set(name: string, value: any)
+function set(name: string, value: any): void
 ```
 
 Set one of Relaks's global parameters. `name` can be one of the following:
