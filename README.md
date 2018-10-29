@@ -9,11 +9,11 @@ returns a promise of a `ReactElement`.
 * [Basic example](#basic-example)
 * [Example with multiple async operations](#example-with-multiple-async-operations)
 * [ES7 syntax](#es7-syntax)
-* [Real world example](#real-world-example)
 * [Interruption of rendering](#interruption-of-rendering)
 * [Progressive rendering delay](#progressive-rendering-delay)
-* [Life-cycle functions](#life-cycle-functions)
+* [Error handling](#error-handling)
 * [API reference](#api-reference)
+* [Life-cycle functions](#life-cycle-functions)
 * [ES5 convention](#es5-convention)
 * [Preact support](#preact-support)
 * [License](#license)
@@ -22,13 +22,12 @@ returns a promise of a `ReactElement`.
 ## Basic example
 
 ```javascript
-import React from 'react';
-import Relaks from 'relaks';
+import { AsyncComponent } from 'relaks';
 
-class StoryView extends Relaks.Component {
+class StoryView extends AsyncComponent {
     renderAsync(meanwhile) {
-        var db = this.props.database;
-        var query = {
+        let db = this.props.database;
+        let query = {
             table: 'story',
             criteria: {
                 id: this.props.storyID
@@ -48,7 +47,7 @@ class StoryView extends Relaks.Component {
 ```
 
 `renderAsync()` may also return a `ReactElement` or null, in which case it
-behaviors like a normal React component.
+behaves like a normal React component.
 
 The parameter `meanwhile` is an object with a number of methods, the chief of
 which is `show()`. As the name implies, it lets you show something while an
@@ -62,13 +61,12 @@ import both it and the standard React `Component`.
 ## Example with multiple async operations
 
 ```javascript
-import React from 'react';
-import Relaks from 'relaks';
+import { AsyncComponent } from 'relaks';
 
-class StoryView extends Relaks.Component {
+class StoryView extends AsyncComponent {
     renderAsync(meanwhile) {
-        var db = this.props.database;
-        var query1 = {
+        let db = this.props.database;
+        let query1 = {
             table: 'story',
             criteria: {
                 id: this.props.storyID
@@ -85,7 +83,7 @@ class StoryView extends Relaks.Component {
                 </div>
             );
 
-            var query2 = {
+            let query2 = {
                 table: 'author',
                 criteria: {
                     id: story.author_id
@@ -101,7 +99,7 @@ class StoryView extends Relaks.Component {
                     </div>
                 );
 
-                var query3 = {
+                let query3 = {
                     table: 'category',
                     criteria: {
                         id: story.category_id
@@ -124,29 +122,29 @@ class StoryView extends Relaks.Component {
 ```
 
 In the code above, `renderAsync()` first retrieves the story object. It calls
-`meanwhile.show()` to render information that's immediately available. The
-author and category names are not yet available. We put dashes in their place
-then proceed to retrieve the related objects. Once these are retrieved, actual
-text replaces the dashes.
+`meanwhile.show()` to render information that's immediately available, namely
+the story's title and text. The author and category names are not yet
+available, so we put dashes in their place. Then we proceed to retrieve the
+related objects. Once these are retrieved, actual text replaces the dashes.
 
 There's a great deal of redundant in the example code. Typically it's advisable
 to put the UI code in a separate component:
 
 ```javascript
-import React from 'react';
-import Relaks from 'relaks';
+import { PureComponent } from 'react';
+import { AsyncComponent } from 'relaks';
 
-class StoryView extends Relaks.Component {
+class StoryView extends AsyncComponent {
     renderAsync(meanwhile) {
-        var db = this.props.database;
-        var props = {
-            story: null,
-            author: null,
-            category: null,
+        let db = this.props.database;
+        let props = {
+            story: undefined,
+            author: undefined,
+            category: undefined,
         };
         meanwhile.show(<StoryViewSync {...props} />);        
         return Promise.resolve().then(() => {
-            var query1 = {
+            let query1 = {
                 table: 'story',
                 criteria: {
                     id: this.props.storyID
@@ -158,7 +156,7 @@ class StoryView extends Relaks.Component {
         }).then(() => {
             meanwhile.show(<StoryViewSync {...props} />);        
         }).then(() => {
-            var query2 = {
+            let query2 = {
                 table: 'author',
                 criteria: {
                     id: props.story.author_id
@@ -170,7 +168,7 @@ class StoryView extends Relaks.Component {
         }).then(() => {
             meanwhile.show(<StoryViewSync {...props} />);        
         }).then(() => {
-            var query3 = {
+            let query3 = {
                 table: 'category',
                 criteria: {
                     id: props.story.category_id
@@ -185,9 +183,9 @@ class StoryView extends Relaks.Component {
     }
 }
 
-class StoryViewSync extends React.PureComponent {
+class StoryViewSync extends PureComponent {
     render() {
-        var { story, author, category } = this.props;
+        let { story, author, category } = this.props;
         if (!story) {
             return <div>Loading</div>;
         }
@@ -208,17 +206,10 @@ class StoryViewSync extends React.PureComponent {
 The example above becomes a lot cleaner when we use the ES7 await operator:
 
 ```javascript
-import React from 'react';
-import Relaks from 'relaks';
-
-class StoryView extends Relaks.Component {
+class StoryView extends AsyncComponent {
     async renderAsync(meanwhile) {
-        var db = this.props.database;
-        var props = {
-            story: null,
-            author: null,
-            category: null,
-        };
+        let db = this.props.database;
+        let props = {};
         meanwhile.show(<StoryViewSync {...props} />);        
         props.story = await db.findOne({
             table: 'story',
@@ -245,25 +236,15 @@ class StoryView extends Relaks.Component {
 }
 ```
 
-## Real World Example
-
-Relaks was created in support of [Trambar](https://github.com/chung-leong/trambar),
-an open-source social-network tool for GitLab. You can see it in action
-[here](https://live.trambar.io/). Using the React developer extension, you can
-easily see how the application is structured. When you see a component
-containing another component whose name ends with ".Sync", it's a Relaks component.
-
-![Trambar](docs/img/trambar.png)
-
 ## Interruption of rendering
 
 When a Relaks component receives new props (or experiences a state change), its
-renderAsync() is called to start a new rendering cycle. If the component is
+`renderAsync()` is called to start a new rendering cycle. If the component is
 still in the middle of rendering--i.e. the promise returned earlier had not yet
 been fulfilled--this rendering cycle would be cancelled. If `meanwhile.onCancel`
 is set, the function would be invoked at this point.
 
-A call to `meanwhile.show` in the defunct cycle would trigger an
+A call to `meanwhile.show()` in the defunct rendering cycle would trigger an
 `AsyncRenderingInterrupted` exception, breaking the promise chain. In the
 example above, if the component receives a new story ID while it's fetching the
 story, the call to `meanwhile.show()` after the story is retrieved will throw.
@@ -273,27 +254,74 @@ silently swallow the exception.
 ## Progressive rendering delay
 
 By default, progressive rendering will not start immediately. The promise
-returned by `renderAsync()` is given a small window of time. Only if it fails
-to be fulfilled within this window would progressive rendering occur. If it is
-fulfilled quickly (because everything in the promise chain is cached), then
+returned by `renderAsync()` has a small window of time to fulfill itself. Only
+if it fails to do so within that window would progressive rendering occur. If
+it fulfills quickly (because everything in the promise chain is cached), then
 the calls to `meanwhile.show()` would produce no effect.
 
 The default delay is 50ms during the initial rendering cycle and infinity in
 subsequent cycles. Basically, progressive rendering is turned off once a
 component manages to fully render itself. You can alter the delay intervals
-with a call to `meanwhile.delay()`.
+with a call to `meanwhile.delay()`. You can change the default values with
+calls to `Relaks.set()`.
 
 For a very brief moment a Relaks component will be blank. If this causes layout
 or visual glitches, you can force Relaks to render the progress element
 initially by passing `'initial'` as the second parameter to `meanwhile.show()`.
+This needs to happen prior to any `await` operation (i.e. outside of callbacks
+to `.then()`). Example:
+
+```javascript
+class StoryView extends AsyncComponent {
+    async renderAsync(meanwhile) {
+        let db = this.props.database;
+        let props = {};
+        meanwhile.show(<StoryViewSync {...props} />, 'initial');
+        props.story = await db.findOne({
+            table: 'story',
+            criteria: {
+                id: this.props.storyID
+            }
+        });
+        meanwhile.show(<StoryViewSync {...props} />);        
+        props.author = await db.findOne({
+            table: 'author',
+            criteria: {
+                id: props.story.author_id
+            }
+        });
+        meanwhile.show(<StoryViewSync {...props} />);
+        props.category = await db.findOne({
+            table: 'category',
+            criteria: {
+                id: props.story.category_id
+            }
+        });
+        return <StoryViewSync {...props} />;
+    }
+}
+```
+
+## Error handling
+
+When a promise rejection is not explicitly handled in `renderAsync()`, Relaks
+will catch the rejection, force the component to refresh, then promptly throw
+the error object again inside its `render()` method. Doing so permits React's
+[error boundary](https://reactjs.org/docs/error-boundaries.html) mechanism to
+capture the error as it would errors occurring in synchronous code.
+
+When there is no support for error boundaries (Preact, React 15 and below),
+Relaks will call an error handler instead. The default handler just dumps the
+error object into the JavaSCript console. Use `Relaks.set()` to set a custom
+handler.
 
 ## Life-cycle functions
 
-`Relaks.Component` implements `componentWillMount()` and `componentWillUnmount()`
-in order to monitor whether a component is still mounted. If you override
-them be sure to call the parent implementations.
+`Relaks.AsyncComponent` implements `componentWillMount()` and
+`componentWillUnmount()` in order to monitor whether a component is still
+mounted. If you override them be sure to call the parent implementations.
 
-`Relaks.Component` also implements `shouldComponentUpdate()`. Shallow
+`Relaks.AsyncComponent` also implements `shouldComponentUpdate()`. Shallow
 comparisons are done on a component's props and state to determine whether it
 needs to be rerendered. Override the method if you need more sophisticated
 behavior.
@@ -305,10 +333,14 @@ behavior.
   * [meanwhile.delay](#meanwhiledelay)
   * [meanwhile.revising](#meanwhilerevising)
   * [meanwhile.show](#meanwhileshow)
+
+  * [Relaks.set](#relaksset)
+
 * [Event handlers](#event-handlers)
   * [meanwhile.onCancel](#meanwhileoncancel)
   * [meanwhile.onComplete](#meanwhileoncomplete)
   * [meanwhile.onProgress](#meanwhileonprogress)
+
 * [Properties](#properties)
   * [meanwhile.current](#meanwhilecurrent)
   * [meanwhile.previous](#meanwhileprevious)
@@ -319,7 +351,7 @@ behavior.
 #### meanwhile.check
 
 ```typescript
-function check()
+function check(): void
 ```
 
 Check if the rendering cycle has been superceded by a new one. If so throw an
@@ -329,7 +361,7 @@ use `meanwhile.show()` instead.
 #### meanwhile.delay
 
 ```typescript
-function delay(empty: number, rendered: number)
+function delay(empty: number, rendered: number): void
 ```
 
 Set progressive rendering delay, for when the component is empty and when
@@ -358,6 +390,22 @@ A return value of `false` means rendering is being deferred.
 
 This method calls `meanwhile.check()` to ascertain that the rendering cycle is
 still valid.
+
+#### Relaks.set
+
+```typescript
+function set(name: string, value: any)
+```
+
+Set one of Relaks's global parameters. `name` can be one of the following:
+
+* **delayWhenEmpty** - The amount of time given to promises returned by
+  `renderAsync()` before contents passed to `meanwhile.show()` appears when
+  nothing has been rendered yet. In milliseconds. The default is 50.
+* **delayWhenRendered** - The time allowance when the component has fully
+  rendered previously. The default is infinity.
+* **errorHandler** - Error handler used when there is no support for error
+  boundaries. The default is `console.error()`.
 
 ### Event handlers
 
@@ -404,6 +452,8 @@ interrupted cycle, while `prior` would have those of the last completed cycle.
 Relaks supports the older method of creating a component:
 
 ```javascript
+var Relaks = require('relaks/legacy');
+
 module.exports = Relaks.createClass({
     displayName: 'StoryView',
 
@@ -418,6 +468,15 @@ module.exports = Relaks.createClass({
 Relaks has built-in support for [Preact](https://preactjs.com/). Simply import
 from 'relaks/preact' instead of 'relaks'. `renderAsync()` will receive `props`,
 `state`, and `context` in addition to the meanwhile object.
+
+Import from `'relaks/preact'` instead of `'relaks'`:
+
+```javascript
+import { h, Component } from 'preact';
+import { AsyncComponent } from 'relaks/preact';
+
+/** @jsx h */
+```
 
 ## License
 
