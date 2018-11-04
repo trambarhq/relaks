@@ -12,10 +12,14 @@
   },
   "license": "MIT",
   "keywords": [
-    "react"
+    "relaks",
+    "react",
+    "preact"
   ],
   "tags": [
-    "react"
+    "relaks",
+    "react",
+    "preact"
   ],
   "scripts": {
     "test": "./node_modules/karma/bin/karma start --single-run --no-color",
