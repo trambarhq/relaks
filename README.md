@@ -220,17 +220,17 @@ When there is no support for error boundaries (Preact, React 15 and below), Rela
 
 ## Building a full application
 
-Relaks is a simple, unopinionated component that can be used in a variety of situations. The following is a suggest model on how to build a complete application.
+Relaks is a simple, unopinionated component that can be used in a variety of situations. The following is a suggested model on how to build a complete application.
 
 ![Relaks model](docs/img/relaks-model.png)
 
 ### Bootstrapping
 
-The **Bootstrap code** is responsible for kick-starting the application. It's run right after the HTML page has loaded. It creates data sources, wait for them to become ready, then render the root React component into a DOM node. Here's the bootstrap code from [one of the example apps](https://github.com/chung-leong/relaks-starwars-example-sequel):
+Bootstrap code kick-starts an application. It's run right after the HTML page has loaded. It creates data providers, wait for them to become ready, then render the root React component into a DOM node. Here's the bootstrap code from [one of the example apps](https://github.com/chung-leong/relaks-starwars-example-sequel):
 
 ```javascript
 async function initialize(evt) {
-    // create data source
+    // create remote data source
     let dataSource = new DjangoDataSource({
         baseURL: 'https://swapi.co/api',
     });
@@ -254,21 +254,21 @@ async function initialize(evt) {
 }
 ```
 
-For an example of a more elaborate bootstrap sequence, see [app-core.js](https://github.com/chung-leong/trambar/blob/master/common/src/app-core.js) of the [Trambar](https://trambar.io) source code. The code does not merely create the data sources, it also handles interactions between them. Basically, it creates the infrastructure needed by the React UI code.
+For an example of a more elaborate bootstrap sequence, see [app-core.js](https://github.com/chung-leong/trambar/blob/master/common/src/app-core.js) of the [Trambar](https://trambar.io) source code. The code does not merely initialize the data providers, it also handles interactions between them. Basically, it's responsible for the infrastructure needed by the React UI code.
 
-### Data sources
+### Data providers
 
-A data source is simply an object that provides data needed by the app. It can do so synchronously or asynchronously (i.e. through promise-returning methods). It'll typically be an event emitter. When a data source wishes to indicate that new data is available, it'll emit a `change` event.
+A data provider is simply an object that provides data needed by the app. It can do so synchronously or asynchronously (i.e. through promise-returning methods). It'll typically be an event emitter. When a provider wishes to indicate that new data is available, it'll emit a `change` event.
 
-An example of a synchronous data source is [relaks-route-manager](https://github.com/chung-leong/relaks-route-manager). It extracts parameters from the browser's location. When the user clicks on a hyperlink or the back button, the current route changes. The route manager emits a `change` event and the application rerenders using new parameters extracted from the URL.
+An example of a synchronous data provider is [relaks-route-manager](https://github.com/chung-leong/relaks-route-manager). It extracts parameters from the browser's location. When the user clicks on a hyperlink or the back button, the current route changes. The route manager emits a `change` event and the application rerenders using new parameters extracted from the URL.
 
-An example of an asynchronous data source is [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source). It retrieves data from a Django backend. It provides a set of `fetchXXX()` methods that return promises. When given an expiration interval, the data source will periodically invalidate cached results and emit a `change` event.
+An example of an asynchronous data provider is [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source). It retrieves data from a Django backend. It provides a set of `fetchXXX()` methods that return promises. When given an expiration interval, the data source will periodically invalidate cached results and emit a `change` event.
 
-Data sources need not be coded specifically for Relaks. They're just classes that return data. They can be reused in other contexts (on the server side, for instance). The only requirement imposed by Relaks is the need for caching. Asynchronous methods should always return the same promise when give the same parameters unless the underlying data has changed. Otherwise a lot of redundant operations would occur every time the app rerenders.
+Data providers need not be coded specifically for Relaks. They're just classes that return data. They can be reused in other contexts (on the server side, for instance). The only requirement imposed by Relaks is the need for caching. Asynchronous methods should always return the same promise when give the same parameters unless the underlying data has changed. Otherwise a lot of redundant operations would occur whenever the app rerenders.
 
 ### Root-level component
 
-`Application` is the root-level React component. It receives a set of data sources as props. In its constructor, it creates proxy objects around the data source objects and save them into its state. These are then pass down the component tree in `render()` in lieu of the data sources themselves. In `componentDidMount()`, `Application` attaches event handlers to the data sources. When it receives a `change` event, it recreates the corresponding proxy. The call to `setState()` triggers rerendering. The `renderAsync()` methods of Relaks components are invoked, which in turn pulls in up-to-date data.
+`Application` is the root-level React component. It receives a set of data providers as props. In its constructor, it creates proxy objects around the data provider objects and save them into its state. These are then pass down the component tree in `render()` in lieu of the providers themselves. In `componentDidMount()`, `Application` attaches event handlers to the providers. When it receives a `change` event, it recreates the corresponding proxy. The call to `setState()` triggers rerendering. The `renderAsync()` methods of Relaks components are invoked, which in turn pulls in up-to-date data.
 
 From [one of the examples](https://github.com/chung-leong/relaks-starwars-example-sequel):
 
@@ -349,19 +349,19 @@ class Database {
 }
 ```
 
-The code above shows how you can implement certain pragmatics in a proxy object. For `getCategoryByID()`, we know that `catID` can be 0. In such a event we simply return a default category. We also choose to handle 404 error differently in the production environment. Instead of letting the error bubble up to the error boundary, leading to an error message, we'd simply show the default when a category has gone missing.
+The code above shows how you can implement certain pragmatics in a proxy object. For `getCategoryByID()`, we know that `catID` can be 0. In such an event we simply return a default category. We also choose to handle 404 error differently in the production environment. Instead of letting the error bubble up to an error boundary (leading to the unmounting of the component) we'd simply show the default when a category has gone missing.
 
-Proxy objects make debugging easier. You can easily stick `console.log()` and conditional `debugger` statements into your own code. You can find your own code in your app's source tree much more quickly than something deep inside `node_modules`.
+Proxy objects make debugging easier. You can easily stick `console.log()` and conditional `debugger` statements into your own code. You can find your source file far more quickly than something deep inside `node_modules` (especially if you choose not to generate sourcemap for libraries).
 
 ### Synchronous/Asynchronous pairs
 
-When a component needs data from an asynchronous data source (e.g. remote database), it extends `Relaks.AsynComponent` and implements `renderAsync()`. It's generally advisable to place the code for loading data in an asynchronous component and the code for drawing the user interface in a separate synchronous component. Doing so makes the code easier to debug and test. It also makes it easier to divide work among multiple programmers. Someone familiar with the backend code could work on the asynchronous part, while someone else who's more comfortable with UI design can focus on the synchronous part.
+When a component needs data from an asynchronous provider (e.g. remote database), it extends `Relaks.AsynComponent` and implements `renderAsync()`. It's generally advisable to place the code for fetching data in an asynchronous component and the code for drawing the user interface in a separate synchronous component. Doing so makes the code easier to debug and test. It also makes it easier to divide work among multiple programmers. Someone familiar with the backend code could work on the asynchronous part while someone else more comfortable with UI design can focus on the synchronous part.
 
 The following is a screen-cap of the [React Developer Tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en) showing the component tree of the [Trambar client app](https://live.trambar.io/). You can see that two of the components come in async/sync pairs:
 
 ![Trambar - News page](docs/img/trambar-news-page.png)
 
-`NewsPage` is the app's news feed page. It extends `Relaks.AsyncComponent`. Note on the right how it has received four data sources from `Application`. Its only child `NewsPageSync` is shown below:
+`NewsPage` is the app's news feed page. It extends `Relaks.AsyncComponent`. Note on the right how it has received four proxy objects from `Application`. Its only child `NewsPageSync` is shown below:
 
 ![Trambar - News page (sync)](docs/img/trambar-news-page-sync.png)
 
@@ -516,8 +516,8 @@ import { AsyncComponent } from 'relaks/preact';
 ## Libraries & add-ons
 
 * [relaks-route-manager](https://github.com/chung-leong/relaks-route-manager) - route manager
-* [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source) - data source for Django REST backend
-* [relaks-harvest](https://github.com/chung-leong/relaks-harvest) - library for server-side rendering (SSR)
+* [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source) - retrieves data through Django REST API
+* [relaks-harvest](https://github.com/chung-leong/relaks-harvest) - library used for server-side rendering (SSR)
 * [relaks-event-emitter](https://github.com/chung-leong/relaks-event-emitter) - event emitter designed with asynchronous code in mind
 
 ## Examples
