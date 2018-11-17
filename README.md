@@ -16,6 +16,7 @@ Relaks is a minimalist library that give [React](https://reactjs.org/) component
 * [Preact support](#preact-support)
 * [Libraries & add-ons](#libraries--and-ons)
 * [Examples](#example)
+* [Questions](#questions)
 * [License](#license)
 * [Acknowledgement](#acknowledgement)
 
@@ -528,6 +529,12 @@ import { AsyncComponent } from 'relaks/preact';
 * [Django todo list](https://github.com/chung-leong/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source)
 
 * [Trambar](https://trambar.io) - a real-world social app for which Relaks was created
+
+## Questions
+
+If you have questions concerning Relaks, feel free to contact me by [e-mail](chernyshevsky@hotmail.com). You can also post your question at [Stack Overflow](https://stackoverflow.com/). I'm actively tracking the "relaks" tag.
+
+You can follow the development of projects related to Relaks at my [Trambar](https://live.trambar.io/).
 
 ## License
 
