@@ -17,8 +17,7 @@ class Test extends Relaks.Component {
         });
     }
 
-    componentWillMount() {
-        super.componentWillMount();
+    componentDidMount() {
         this.setState({ mounted: true });
         if (this.props.onMount) {
             this.props.onMount();

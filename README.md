@@ -215,7 +215,7 @@ When there is no support for error boundaries (Preact, React 15 and below), Rela
 
 ## Life-cycle functions
 
-`Relaks.AsyncComponent` implements `componentWillMount()` and `componentWillUnmount()` in order to monitor whether a component is still mounted. If you override them be sure to call the parent implementations.
+`Relaks.AsyncComponent` implements `componentWillUnmount()` in order to monitor whether a component is still mounted. If you override it be sure to call the parent implementation. Otherwise Relaks will attempt to redraw the component after it's been unmounted (which admittedly is harmless aside from triggering warnings from React).
 
 `Relaks.AsyncComponent` also implements `shouldComponentUpdate()`. Shallow comparisons are done on a component's props and state to determine whether it needs to be rerendered. Override the method if you need more sophisticated behavior.
 

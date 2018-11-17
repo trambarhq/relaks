@@ -19,7 +19,7 @@ var Test = Relaks.createClass({
         });
     },
 
-    componentWillMount: function() {
+    componentDidMount: function() {
         this.setState({ mounted: true });
         if (this.props.onMount) {
             this.props.onMount();

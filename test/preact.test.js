@@ -15,8 +15,7 @@ class Test extends AsyncComponent {
         });
     }
 
-    componentWillMount() {
-        super.componentWillMount();
+    componentDidMount() {
         this.setState({ mounted: true });
         if (this.props.onMount) {
             this.props.onMount();

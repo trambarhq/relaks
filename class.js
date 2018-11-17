@@ -10,12 +10,32 @@ var errorHandler = function(err) {
     console.error(err);
 };
 
-function RelaksComponent() {
+function RelaksComponent(props) {
+    React.Component.call(this, props);
+    this.createRelaksContext();
 }
 
 var prototype = Object.create(React.Component.prototype);
 prototype.constructor = RelaksComponent;
 prototype.constructor.prototype = prototype;
+
+prototype.createRelaksContext = function() {
+    this.relaks = {
+        progressElement: null,
+        progressElementExpected: false,
+        promisedElement: null,
+        promisedElementExpected: false,
+        progressElementRendered: null,
+        promisedError: null,
+        promisedErrorExpected: false,
+        meanwhile: null,
+        previous: null,
+        current: {
+            props: {},
+            state: {},
+        },
+    };
+};
 
 /**
  * Render component, calling renderAsync() if necessary
@@ -24,10 +44,6 @@ prototype.constructor.prototype = prototype;
  */
 prototype.render = function() {
     var relaks = this.relaks;
-    if (!relaks) {
-        console.warn('Relaks context is missing. Make sure you are calling componentWillMount() and componentWillUnmount() of the superclass');
-        return null;
-    }
 
     // see if rendering is triggered by resolution of a promise,
     // or by a call to Meanwhile.show()
@@ -124,10 +140,13 @@ prototype.render = function() {
                 // the rendering cycle was interrupted--do nothing
             } else {
                 if (supportErrorBoundary) {
-                    relaks.promisedError = err;
-                    relaks.promisedErrorExpected = true;
-                    relaks.meanwhile = null;
-                    _this.forceUpdate();
+                    // throw the error in render() if we're still mounted
+                    if (_this.relaks) {
+                        relaks.promisedError = err;
+                        relaks.promisedErrorExpected = true;
+                        relaks.meanwhile = null;
+                        _this.forceUpdate();
+                    }
                 } else {
                     // otherwise call the error handler then return what has
                     // been rendered so far or what was there before
@@ -186,27 +205,6 @@ prototype.shouldComponentUpdate = function(nextProps, nextState) {
 };
 
 /**
- * Create Relaks context on mount.
- */
-prototype.componentWillMount = function() {
-    this.relaks = {
-        progressElement: null,
-        progressElementExpected: false,
-        promisedElement: null,
-        promisedElementExpected: false,
-        progressElementRendered: null,
-        promisedError: null,
-        promisedErrorExpected: false,
-        meanwhile: null,
-        previous: null,
-        current: {
-            props: {},
-            state: {},
-        },
-    };
-};
-
-/**
  * Remove Relaks context on unmount, canceling any outstanding asynchronous
  * rendering cycle.
  */
@@ -216,6 +214,7 @@ prototype.componentWillUnmount = function() {
         if (relaks.meanwhile) {
             relaks.meanwhile.cancel();
         }
+
         this.relaks = undefined;
     }
 };
