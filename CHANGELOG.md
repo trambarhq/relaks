@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.1.5
+
+* Removed dependency on componentWillMount()
+* Preventing calls to forceUpdate() after component has been unmounted
+
 ## 1.1.4
 
 * Added support for error boundary
