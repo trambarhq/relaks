@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.1.6
+
+* Preventing timeout function from causing JavaScript error
+
 ## 1.1.5
 
 * Removed dependency on componentWillMount()

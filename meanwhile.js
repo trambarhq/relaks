@@ -137,6 +137,9 @@ prototype.delay = function(empty, rendered) {
  */
 prototype.update = function(forced) {
     var relaks = this.component.relaks;
+    if (!relaks) {
+        return;
+    }
 
     // indicate that the component is displaying progress
     // unless we're forcing the progress display
