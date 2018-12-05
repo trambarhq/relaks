@@ -30,7 +30,7 @@ class StoryView extends AsyncComponent {
         let db = this.props.database;
         let storyURL = `/story/${this.props.storyID}/`;
         meanwhile.show(<div>Loading</div>);        
-        return db.findOne(storyURL).then((story) => {
+        return db.fetchOne(storyURL).then((story) => {
             return (
                 <div>
                     <h1>{story.title}</h1>
@@ -42,11 +42,7 @@ class StoryView extends AsyncComponent {
 }
 ```
 
-`renderAsync()` may also return a `ReactElement` or null, in which case it behaves like a normal React component.
-
-The parameter `meanwhile` is an object with a number of methods, the chief of which is `show()`. As the name implies, it lets you show something while an asynchronous operation--typically data retrieval--is happening. `show()` may be called multiple times during a single rendering cycle. This allows a component to render progressively as data arrives.
-
-`Relaks.Component` is also available as `Relaks.AsyncComponent`, so you can import both it and the standard React `Component`.
+The component above fetches a JSON object from a remote location and displays it's contents. While waiting for the data to arrive, it shows a loading message through a call to `meanwhile.show()`. `meanwhile` is an interface object that lets you control how component behaves in the time prior to the fulfillment of the promise returned by `renderAsync()`. Generally this means showing something while an asynchronous operation is in progress. By calling `meanwhile.show()` at various stages, a component can render itself progressively.
 
 ## Example with multiple async operations
 
@@ -58,7 +54,7 @@ class StoryView extends AsyncComponent {
         let db = this.props.database;
         let storyURL = `/stories/${this.props.storyID}/`;
         meanwhile.show(<div>Loading</div>);        
-        return db.findOne(storyURL).then((story) => {
+        return db.fetchOne(storyURL).then((story) => {
             meanwhile.show(
                 <div>
                     <h1>{story.title}</h1>
@@ -68,7 +64,7 @@ class StoryView extends AsyncComponent {
                 </div>
             );
             let authorURL = `/users/${story.author_id}/`;
-            return db.findOne(authorURL).then((author) => {
+            return db.fetchOne(authorURL).then((author) => {
                 meanwhile.show(
                     <div>
                         <h1>{story.title}</h1>
@@ -79,7 +75,7 @@ class StoryView extends AsyncComponent {
                 );
 
                 let categoryURL = `/categories/${story.category_id}/`;
-                return db.findOne(categoryURL).then((category) => {
+                return db.fetchOne(categoryURL).then((category) => {
                     return (
                         <div>
                             <h1>{story.title}</h1>
@@ -114,21 +110,21 @@ class StoryView extends AsyncComponent {
         meanwhile.show(<StoryViewSync {...props} />);        
         return Promise.resolve().then(() => {
             let storyURL = `/stories/${this.props.storyID}/`;
-            return db.findOne(storyURL).then((story) => {
+            return db.fetchOne(storyURL).then((story) => {
                 props.story = story;
             });
         }).then(() => {
             meanwhile.show(<StoryViewSync {...props} />);        
         }).then(() => {
             let authorURL = `/users/${props.story.author_id}`;
-            return db.findOne(authorURL).then((author) => {
+            return db.fetchOne(authorURL).then((author) => {
                 props.author = author;
             });
         }).then(() => {
             meanwhile.show(<StoryViewSync {...props} />);        
         }).then(() => {
             let categoryURL = `/categories/${props.story.category_id}`;
-            return db.findOne(categoryURL).then((category) => {
+            return db.fetchOne(categoryURL).then((category) => {
                 props.category = category;
             });
         }).then(() => {
@@ -165,11 +161,11 @@ class StoryView extends AsyncComponent {
         let db = this.props.database;
         let props = {};
         meanwhile.show(<StoryViewSync {...props} />);        
-        props.story = await db.findOne(`/stories/${this.props.storyID}/`);
+        props.story = await db.fetchOne(`/stories/${this.props.storyID}/`);
         meanwhile.show(<StoryViewSync {...props} />);        
-        props.author = await db.findOne(`/users/${props.story.author_id}`);
+        props.author = await db.fetchOne(`/users/${props.story.author_id}`);
         meanwhile.show(<StoryViewSync {...props} />);
-        props.category = await db.findOne(`/categories/${props.story.category_id}`);
+        props.category = await db.fetchOne(`/categories/${props.story.category_id}`);
         return <StoryViewSync {...props} />;
     }
 }
@@ -177,9 +173,9 @@ class StoryView extends AsyncComponent {
 
 ## Interruption of rendering
 
-When a Relaks component receives new props (or experiences a state change), its `renderAsync()` is called to start a new rendering cycle. If the component is still in the middle of rendering--i.e. the promise returned earlier had not yet been fulfilled--this rendering cycle would be cancelled. If `meanwhile.onCancel` is set, the function would be invoked at this point.
+When a Relaks component receives new props (or experiences a state change), its `renderAsync()` is called to start a new rendering cycle. If the component is still in the middle of rendering--i.e. the promise returned earlier had not yet been fulfilled--this rendering cycle would be canceled. If `meanwhile.onCancel` is set, the function would be invoked at this point.
 
-A call to `meanwhile.show()` in the defunct rendering cycle would trigger an `AsyncRenderingInterrupted` exception, breaking the promise chain. In the example above, if the component receives a new story ID while it's fetching the story, the call to `meanwhile.show()` after the story is retrieved will throw. We won't end up wasting bandwidth fetching the author and category. Relaks will silently swallow the exception.  
+A call to `meanwhile.show()` in the defunct rendering cycle would trigger an `AsyncRenderingInterrupted` exception, breaking the promise chain. In the example above, if the component receives a new story ID while it's fetching the story, the call to `meanwhile.show()` after the story is retrieved will throw. We won't end up wasting bandwidth fetching the author and category of a story we no longer need. Relaks will silently swallow the exception.  
 
 ## Progressive rendering delay
 
@@ -195,11 +191,11 @@ class StoryView extends AsyncComponent {
         let db = this.props.database;
         let props = {};
         meanwhile.show(<StoryViewSync {...props} />, 'initial');
-        props.story = await db.findOne(`/stories/${this.props.storyID}/`);
+        props.story = await db.fetchOne(`/stories/${this.props.storyID}/`);
         meanwhile.show(<StoryViewSync {...props} />);        
-        props.author = await db.findOne(`/users/${props.story.author_id}`);
+        props.author = await db.fetchOne(`/users/${props.story.author_id}`);
         meanwhile.show(<StoryViewSync {...props} />);
-        props.category = await db.findOne(`/categories/${props.story.category_id}`);
+        props.category = await db.fetchOne(`/categories/${props.story.category_id}`);
         return <StoryViewSync {...props} />;
     }
 }
@@ -209,13 +205,13 @@ class StoryView extends AsyncComponent {
 
 When a promise rejection is not explicitly handled in `renderAsync()`, Relaks will catch the rejection, force the component to refresh, then promptly throw the error object again inside its `render()` method. Doing so permits React's [error boundary](https://reactjs.org/docs/error-boundaries.html) mechanism to capture the error as it would errors occurring in synchronous code.
 
-In the example above, if one of the requested objects does not exist, `db.findOne()` would throw asynchronously (i.e. rejection of the promise it has returned). If a component further up the tree has set an error boundary, the error would be caught there.
+In the example above, if one of the requested objects does not exist, `db.fetchOne()` would throw asynchronously (i.e. rejection of the promise it has returned). If a component further up the tree has set an error boundary, the error would be caught there.
 
 When there is no support for error boundaries (Preact, React 15 and below), Relaks will call an error handler instead. The default handler just dumps the error object into the JavaSCript console. Use `Relaks.set()` to set a custom handler.
 
 ## Life-cycle functions
 
-`Relaks.AsyncComponent` implements `componentWillUnmount()` in order to monitor whether a component is still mounted. If you override it be sure to call the parent implementation. Otherwise Relaks will attempt to redraw the component after it's been unmounted (which admittedly is harmless aside from triggering warnings from React).
+`Relaks.AsyncComponent` implements `componentWillUnmount()` in order to monitor whether a component is still mounted. If you override it, be sure to call the parent implementation. Otherwise Relaks will attempt to redraw the component after it's been unmounted (which admittedly is harmless aside from triggering warnings from React).
 
 `Relaks.AsyncComponent` also implements `shouldComponentUpdate()`. Shallow comparisons are done on a component's props and state to determine whether it needs to be rerendered. Override the method if you need more sophisticated behavior.
 
@@ -265,7 +261,7 @@ An example of a synchronous data provider is [relaks-route-manager](https://gith
 
 An example of an asynchronous data provider is [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source). It retrieves data from a Django backend. It provides a set of `fetchXXX()` methods that return promises. When given an expiration interval, the data source will periodically invalidate cached results and emit a `change` event.
 
-Data providers need not be coded specifically for Relaks. They're just classes that return data. They can be reused in other contexts (on the server side, for instance). The only requirement imposed by Relaks is the need for caching. Asynchronous methods should always return the same promise when give the same parameters unless the underlying data has changed. Otherwise a lot of redundant operations would occur whenever the app rerenders.
+Data providers need not be coded specifically for Relaks. They're just classes that return data. They can be reused in other contexts (on the server side, for instance). The only requirement imposed by Relaks is the need for caching. Asynchronous methods should always return the same promise when give the same arguments unless the underlying data has changed. Otherwise a lot of redundant operations would occur whenever the app rerenders.
 
 ### Root-level component
 
@@ -319,7 +315,7 @@ handleRouteChange = (evt) => {
 
 ### Proxy objects
 
-Proxy objects serve a number of purposes. First and foremost, they're used to trigger rerendering of [pure components](https://reactjs.org/docs/react-api.html#reactpurecomponent). Any component that extends `React.PureComponent` or `Relaks.AsyncComponent` is a pure component. Its render method is only called when a shallow comparison indicates that its props or state has changed. Recreation of proxy objects when `change` events occur triggers that, ensuring that new data is propagated through the component tree.
+Proxy objects serve a number of purposes. First and foremost, they're used to trigger rerendering of [pure components](https://reactjs.org/docs/react-api.html#reactpurecomponent). Any component that extends `React.PureComponent` or `Relaks.AsyncComponent` is a pure component. Its render method is only called when a shallow comparison indicates that its props or state have changed. Recreation of proxy objects when `change` events occur triggers that, ensuring that new data is propagated through the component tree.
 
 Proxy objects also insulate your code from third-party code. You can tailor them to fit your preferred convention and phraseology. For example, [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source) provides a `fetchOne()` method that accepts an URL as parameter. Instead of calling this everywhere, you can implement a set of methods specific to your app's database schema. For example:
 
@@ -358,7 +354,7 @@ Proxy objects make debugging easier. You can easily stick `console.log()` and co
 
 When a component needs data from an asynchronous provider (e.g. remote database), it extends `Relaks.AsynComponent` and implements `renderAsync()`. It's generally advisable to place the code for fetching data in an asynchronous component and the code for drawing the user interface in a separate synchronous component. Doing so makes the code easier to debug and test. It also makes it easier to divide work among multiple programmers. Someone familiar with the backend code could work on the asynchronous part while someone else more comfortable with UI design can focus on the synchronous part.
 
-The following is a screen-cap of the [React Developer Tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en) showing the component tree of the [Trambar client app](https://live.trambar.io/). You can see that two of the components come in async/sync pairs:
+The following is a screen-cap of the [React Developer Tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en) showing the component tree of the [Trambar client app](https://trambar.io/). You can see that two of the components come in async/sync pairs:
 
 ![Trambar - News page](docs/img/trambar-news-page.png)
 
@@ -411,7 +407,7 @@ The calendar bar needs the project's daily statistics in order to know which dat
 function check(): void
 ```
 
-Check if the rendering cycle has been superceded by a new one. If so throw an exception to end it. Ensure component is mounted as well. Generally you would use `meanwhile.show()` instead.
+Check if the rendering cycle has been superceded by a new one. If so throw an exception to end it. It ensures the component is mounted as well. Generally you would use `meanwhile.show()` instead.
 
 #### meanwhile.delay
 
