@@ -44,7 +44,7 @@ class StoryView extends AsyncComponent {
 }
 ```
 
-The component above fetches a JSON object from a remote location and displays it's contents. While waiting for the data to arrive, it shows a loading message through a call to `meanwhile.show()`. `meanwhile` is an interface object that lets you control how component behaves in the time prior to the fulfillment of the promise returned by `renderAsync()`. Generally this means showing something while an asynchronous operation is in progress. By calling `meanwhile.show()` at various stages, a component can render itself progressively.
+The component above fetches a JSON object from a remote location and displays it's contents. While waiting for the data to arrive, it shows a loading message by calling `meanwhile.show()`. `meanwhile` is an interface object that lets you control how component behaves prior to the fulfillment of the returned promise. Generally this means showing something while asynchronous operations are in progress. By calling `meanwhile.show()` at various stages, a component can render itself progressively.
 
 ## Example with multiple async operations
 
@@ -93,9 +93,9 @@ class StoryView extends AsyncComponent {
 }
 ```
 
-In the code above, `renderAsync()` first retrieves the story object. It calls `meanwhile.show()` to render information that's immediately available, namely the story's title and text. The author and category names are not yet available, so we put dashes in their place. Then we proceed to retrieve the related objects. Once these are retrieved, actual text replaces the dashes.
+In the code above, `renderAsync()` first fetches the story object. It calls `meanwhile.show()` to render information that's immediately available, namely the story's title and text. The author and category names are not yet available, so we put dashes in their place, then we proceed to retrieve them. Once the related objects are retrieved, actual text replaces the dashes.
 
-There's a great deal of redundant in the example code. Typically it's advisable to put the UI code in a separate component:
+There's a great deal of redundant in the code. Typically it's advisable to put the UI code in a separate component:
 
 ```javascript
 import { PureComponent } from 'react';
@@ -175,13 +175,13 @@ class StoryView extends AsyncComponent {
 
 ## Interruption of rendering
 
-When a Relaks component receives new props (or experiences a state change), its `renderAsync()` is called to start a new rendering cycle. If the component is still in the middle of rendering--i.e. the promise returned earlier had not yet been fulfilled--this rendering cycle would be canceled. If `meanwhile.onCancel` is set, the function would be invoked at this point.
+When a Relaks component receives new props (or experiences a state change), its `renderAsync()` is called and a new rendering cycle starts. If the component was still in the middle of rendering--i.e. the promise returned earlier had not yet been fulfilled--this rendering cycle would be canceled. If `meanwhile.onCancel` is set, the function would be invoked at this point.
 
-A call to `meanwhile.show()` in the defunct rendering cycle would trigger an `AsyncRenderingInterrupted` exception, breaking the promise chain. In the example above, if the component receives a new story ID while it's fetching the story, the call to `meanwhile.show()` after the story is retrieved will throw. We won't end up wasting bandwidth fetching the author and category of a story we no longer need. Relaks will silently swallow the exception.  
+A call to `meanwhile.show()` in the defunct rendering cycle would trigger an `AsyncRenderingInterrupted` exception, breaking the promise chain. In the example above, if the component receives a new story ID while it's fetching the story, the second call to `meanwhile.show()` will throw. We won't end up wasting bandwidth fetching the author and category of a story we no longer need. Relaks will silently swallow the exception.  
 
 ## Progressive rendering delay
 
-By default, progressive rendering will not start immediately. The promise returned by `renderAsync()` has a small window of time to fulfill itself. Only if it fails to do so within that window would progressive rendering occur. If it fulfills quickly (because everything in the promise chain is cached), then the calls to `meanwhile.show()` would produce no effect.
+By default, progressive rendering will not start immediately. The promise returned by `renderAsync()` has a small window of time to fulfill itself. Only if it fails to do so would progressive rendering commerce. If it fulfills quickly (because everything in the promise chain is cached), then the calls to `meanwhile.show()` would produce no effect.
 
 The default delay is 50ms during the initial rendering cycle and infinity in subsequent cycles. Basically, progressive rendering is turned off once a component manages to fully render itself. You can alter the delay intervals with a call to `meanwhile.delay()`. You can change the default values with calls to `Relaks.set()`.
 
@@ -253,7 +253,7 @@ async function initialize(evt) {
 }
 ```
 
-For an example of a more elaborate bootstrap sequence, see [app-core.js](https://github.com/chung-leong/trambar/blob/master/common/src/app-core.js) of the [Trambar](https://trambar.io) source code. The code does not merely initialize the data providers, it also handles interactions between them. Basically, it's responsible for the infrastructure needed by the React UI code.
+For an example of a more elaborate bootstrap sequence, see [app-core.js](https://github.com/chung-leong/trambar/blob/master/common/src/app-core.js) of the [Trambar](https://github.com/chung-leong/trambar) source code. The code does not merely initialize the data providers, it also handles interactions between them. Basically, it's responsible for the infrastructure needed by the React UI code.
 
 ### Data providers
 
@@ -356,7 +356,7 @@ Proxy objects make debugging easier. You can easily stick `console.log()` and co
 
 When a component needs data from an asynchronous provider (e.g. remote database), it extends `Relaks.AsynComponent` and implements `renderAsync()`. It's generally advisable to place the code for fetching data in an asynchronous component and the code for drawing the user interface in a separate synchronous component. Doing so makes the code easier to debug and test. It also makes it easier to divide work among multiple programmers. Someone familiar with the backend code could work on the asynchronous part while someone else more comfortable with UI design can focus on the synchronous part.
 
-The following is a screen-cap of the [React Developer Tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en) showing the component tree of the [Trambar client app](https://trambar.io/). You can see that two of the components come in async/sync pairs:
+The following is a screen-cap of the [React Developer Tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en) showing the component tree of the [Trambar client app](https://github.com/chung-leong/trambar/blob/master/docs/demo.md). You can see that two of the components come in async/sync pairs:
 
 ![Trambar - News page](docs/img/trambar-news-page.png)
 
