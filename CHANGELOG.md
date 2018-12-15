@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.1.7
+
+* Added support for seeding components initial appearance
+
 ## 1.1.6
 
 * Preventing timeout function from causing JavaScript error
