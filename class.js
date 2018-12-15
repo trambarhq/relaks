@@ -28,6 +28,7 @@ prototype.createRelaksContext = function() {
         progressElementRendered: null,
         promisedError: null,
         promisedErrorExpected: false,
+        initialRender: true,
         meanwhile: null,
         previous: null,
         current: {
@@ -91,10 +92,16 @@ prototype.render = function() {
     // call user-defined renderAsync() in a try-catch block to catch potential errors
     try {
         var promise;
-        if (isPreact) {
-            promise = this.renderAsync(meanwhile, this.props, this.state, this.context);
-        } else {
-            promise = this.renderAsync(meanwhile);
+        if (relaks.initialRender) {
+            // see if the contents has been seeded
+            promise = findSeed(this.constructor, this.props);
+        }
+        if (!promise) {
+            if (isPreact) {
+                promise = this.renderAsync(meanwhile, this.props, this.state, this.context);
+            } else {
+                promise = this.renderAsync(meanwhile);
+            }
         }
 
         // from here on, any call to Meanwhile.show() is asynchronous
@@ -167,6 +174,7 @@ prototype.render = function() {
         relaks.progressElement = null;
         relaks.progressElementRendered = null;
     }
+    relaks.initialRender = false;
 
     // we have triggered the asynchronize operation and are waiting for it to
     // complete; in the meantime we need to return something
@@ -230,6 +238,9 @@ function set(name, value) {
         case 'delayWhenRendered':
             Meanwhile.delayWhenRendered = value;
             break;
+        case 'seeds':
+            seeds = value;
+            break;
     }
 }
 
@@ -241,6 +252,38 @@ return {
     set: set,
 };
 };
+
+var seeds = [];
+
+function findSeed(type, props) {
+    var index = -1;
+    var best = -1;
+    for (var i = 0; i < seeds.length; i++) {
+        var seed = seeds[i];
+        if (seed.type === type) {
+            // the props aren't going to match up exactly due to object
+            // recreations; just find the one that is closest
+            var count = 0;
+            if (props && seed.props) {
+                for (var key in props) {
+                    if (seed.props[key] === props[key]) {
+                        count++;
+                    }
+                }
+            }
+            if (count > best) {
+                // choose this one
+                index = i;
+                best = count;
+            }
+        }
+    }
+    if (index != -1) {
+        var match = seeds[index];
+        seeds.splice(index, 1);
+        return match.result;
+    }
+}
 
 /**
  * Return true if the given object is a promise

@@ -450,6 +450,7 @@ Set one of Relaks's global parameters. `name` can be one of the following:
 * **delayWhenEmpty** - The amount of time given to promises returned by `renderAsync()` before contents passed to `meanwhile.show()` appears when nothing has been rendered yet. In milliseconds. The default is 50.
 * **delayWhenRendered** - The time allowance when the component has fully rendered previously. The default is infinity.
 * **errorHandler** - Error handler used when there is no support for error boundaries. The default is `console.error()`.
+* **seeds** - An array of prerendered results from [relaks-harvest](https://github.com/trambarhq/relaks-harvest). Used when we hydrate a server-generated page.
 
 ### Event handlers
 
