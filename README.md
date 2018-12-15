@@ -524,6 +524,7 @@ import { AsyncComponent } from 'relaks/preact';
 
 * [Starwars API](https://github.com/trambarhq/relaks-starwars-example) - a simple example that fetches data from [SWAPI.co](SWAPI.co)
 * [Starwars API: Episode V](https://github.com/trambarhq/relaks-starwars-example-sequel) - sequel to the first Starwars API example
+* [Starwars API: Episode VI - The Server Strikes Back](https://github.com/trambarhq/relaks-starwars-example-isomorphic) - demonstrates how to create an isomorphic app
 * [Django todo list](https://github.com/trambarhq/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source)
 
 * [Trambar](https://trambar.io) - a real-world social app for which Relaks was created
