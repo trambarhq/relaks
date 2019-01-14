@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.1.8
+
+* Fixed event handlers when seeded contents are employed
+
 ## 1.1.7
 
 * Added support for seeding components initial appearance

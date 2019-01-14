@@ -44,6 +44,7 @@ prototype.createRelaksContext = function() {
  * @return {ReactElement|null}
  */
 prototype.render = function() {
+    var _this = this;
     var relaks = this.relaks;
 
     // see if rendering is triggered by resolution of a promise,
@@ -92,9 +93,10 @@ prototype.render = function() {
     // call user-defined renderAsync() in a try-catch block to catch potential errors
     try {
         var promise;
+        var seed;
         if (relaks.initialRender) {
             // see if the contents has been seeded
-            promise = findSeed(this.constructor, this.props);
+            promise = seed = findSeed(this.constructor, this.props);
         }
         if (!promise) {
             if (isPreact) {
@@ -106,6 +108,84 @@ prototype.render = function() {
 
         // from here on, any call to Meanwhile.show() is asynchronous
         meanwhile.synchronous = false;
+
+        if (isPromise(promise)) {
+            // set up handlers for the promise returned
+            var resolve = function(element) {
+                if (meanwhile !== relaks.meanwhile) {
+                    // a new rendering cycle has started
+                    meanwhile.cancel();
+                } else if (!_this.relaks) {
+                    // component has been unmounted
+                    meanwhile.cancel();
+                } else {
+                    // tell render() to show the element
+                    meanwhile.finish();
+                    relaks.promisedElement = element;
+                    relaks.promisedElementExpected = true;
+                    relaks.meanwhile = null;
+                    _this.forceUpdate();
+                }
+            };
+            var reject = function(err) {
+                if (err instanceof AsyncRenderingInterrupted) {
+                    // the rendering cycle was interrupted--do nothing
+                } else {
+                    if (supportErrorBoundary) {
+                        // throw the error in render() if we're still mounted
+                        if (_this.relaks) {
+                            relaks.promisedError = err;
+                            relaks.promisedErrorExpected = true;
+                            relaks.meanwhile = null;
+                            _this.forceUpdate();
+                        }
+                    } else {
+                        // otherwise call the error handler then return what has
+                        // been rendered so far or what was there before
+                        if (errorHandler instanceof Function) {
+                            errorHandler(err);
+                        }
+                        var element = relaks.progressElement || relaks.promisedElement;
+                        resolve(element);
+                    }
+                }
+            };
+            promise.then(resolve, reject);
+        } else {
+            // allow renderAsync() to act synchronously
+            var element = promise;
+            relaks.meanwhile = null;
+            relaks.promisedElement = element;
+            relaks.progressElement = null;
+            relaks.progressElementRendered = null;
+            if (seed) {
+                // if seeded content was used, force a redraw immediately to
+                // ensure that event handlers bound to this instance are used
+                // (and not those bound to the instance created during harvesting)
+                setTimeout(function() { _this.forceUpdate() }, 0);
+            }
+        }
+        relaks.initialRender = false;
+
+        // we have triggered the asynchronize operation and are waiting for it to
+        // complete; in the meantime we need to return something
+        if (relaks.promisedElement) {
+            // show what was there before
+            return relaks.promisedElement;
+        }
+        if (relaks.progressElement) {
+            // a progress element was provided synchronously by renderAsync()
+            // we'll display that if delay is set to 0
+            if (meanwhile.showingProgress || meanwhile.showingProgressInitially) {
+                return relaks.progressElement;
+            }
+        }
+        if (relaks.progressElementRendered) {
+            // show the previous progress
+            return relaks.progressElementRendered;
+        }
+        // umm, we got nothing
+        return null;
     } catch (err) {
         // a synchronouse error occurred,
         relaks.meanwhile.clear();
@@ -122,79 +202,6 @@ prototype.render = function() {
             return relaks.progressElement || relaks.progressElementRendered || relaks.promisedElement;
         }
     }
-
-    if (isPromise(promise)) {
-        // set up handlers for the promise returned
-        var _this = this;
-        var resolve = function(element) {
-            if (meanwhile !== relaks.meanwhile) {
-                // a new rendering cycle has started
-                meanwhile.cancel();
-            } else if (!_this.relaks) {
-                // component has been unmounted
-                meanwhile.cancel();
-            } else {
-                // tell render() to show the element
-                meanwhile.finish();
-                relaks.promisedElement = element;
-                relaks.promisedElementExpected = true;
-                relaks.meanwhile = null;
-                _this.forceUpdate();
-            }
-        };
-        var reject = function(err) {
-            if (err instanceof AsyncRenderingInterrupted) {
-                // the rendering cycle was interrupted--do nothing
-            } else {
-                if (supportErrorBoundary) {
-                    // throw the error in render() if we're still mounted
-                    if (_this.relaks) {
-                        relaks.promisedError = err;
-                        relaks.promisedErrorExpected = true;
-                        relaks.meanwhile = null;
-                        _this.forceUpdate();
-                    }
-                } else {
-                    // otherwise call the error handler then return what has
-                    // been rendered so far or what was there before
-                    if (errorHandler instanceof Function) {
-                        errorHandler(err);
-                    }
-                    var element = relaks.progressElement || relaks.promisedElement;
-                    resolve(element);
-                }
-            }
-        };
-        promise.then(resolve, reject);
-    } else {
-        // allow renderAsync() to act synchronously
-        var element = promise;
-        relaks.meanwhile = null;
-        relaks.promisedElement = element;
-        relaks.progressElement = null;
-        relaks.progressElementRendered = null;
-    }
-    relaks.initialRender = false;
-
-    // we have triggered the asynchronize operation and are waiting for it to
-    // complete; in the meantime we need to return something
-    if (relaks.promisedElement) {
-        // show what was there before
-        return relaks.promisedElement;
-    }
-    if (relaks.progressElement) {
-        // a progress element was provided synchronously by renderAsync()
-        // we'll display that if delay is set to 0
-        if (meanwhile.showingProgress || meanwhile.showingProgressInitially) {
-            return relaks.progressElement;
-        }
-    }
-    if (relaks.progressElementRendered) {
-        // show the previous progress
-        return relaks.progressElementRendered;
-    }
-    // umm, we got nothing
-    return null;
 };
 
 /**
