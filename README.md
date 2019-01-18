@@ -527,6 +527,7 @@ import { AsyncComponent } from 'relaks/preact';
 * [Starwars API: Episode VI - The Server Strikes Back](https://github.com/trambarhq/relaks-starwars-example-isomorphic) - demonstrates how to create an isomorphic app
 * [Django todo list](https://github.com/trambarhq/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source)
 * [Hacker News reader](https://github.com/trambarhq/relaks-hacker-news-example) - building a quick-and-dirty HN front-end
+* [Media capture](https://github.com/trambarhq/relaks-media-capture) - capturing video and images in web browser
 * [Trambar](https://trambar.io) - a real-world social app for which Relaks was created
 
 ## Questions
