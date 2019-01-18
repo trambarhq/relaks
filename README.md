@@ -1,5 +1,5 @@
 Relaks
-------
+======
 
 Relaks is a minimalist library that give [React](https://reactjs.org/) components a [promise-based](https://promisesaplus.com/), asynchronous interface. Instead of `render()`, Relaks components implement `renderAsync()`, a method that returns a promise of a `ReactElement`. Asynchronous data retrieval can then be performed as part of the rendering sequence.
 
@@ -12,7 +12,7 @@ Relaks enables a simpler programming model. It's especially useful for web appli
 * [Progressive rendering delay](#progressive-rendering-delay)
 * [Error handling](#error-handling)
 * [Life-cycle functions](#life-cycle-functions)
-* [Building a full application](#building-a-full-application)
+* [Building a complete front-end](#building-a-complete-front-end)
 * [API reference](#api-reference)
 * [ES5 convention](#es5-convention)
 * [Preact support](#preact-support)
@@ -217,15 +217,15 @@ When there is no support for error boundaries (Preact, React 15 and below), Rela
 
 `Relaks.AsyncComponent` also implements `shouldComponentUpdate()`. Shallow comparisons are done on a component's props and state to determine whether it needs to be rerendered. Override the method if you need more sophisticated behavior.
 
-## Building a full application
+## Building a complete front-end
 
-Relaks is a simple, unopinionated component that can be used in a variety of situations. The following is a suggested model on how to build a complete application.
+Relaks is a simple, unopinionated component that can be used in a variety of situations. The following is a suggested model on how to build a complete front-end of a web application.
 
 ![Relaks model](docs/img/relaks-model.png)
 
 ### Bootstrapping
 
-Bootstrap code kick-starts an application. It's run right after the HTML page has loaded. It creates data providers, wait for them to become ready, then render the root React component into a DOM node. Here's the bootstrap code from [one of the example apps](https://github.com/trambarhq/relaks-starwars-example-sequel):
+Bootstrap code kick-starts the web client. It's run right after the HTML page has loaded. It creates data providers, wait for them to become ready, then render the root React component into a DOM node. Here's the bootstrap code from [one of the example apps](https://github.com/trambarhq/relaks-starwars-example-sequel):
 
 ```javascript
 async function initialize(evt) {
@@ -243,12 +243,12 @@ async function initialize(evt) {
     routeManager.activate();
     await routeManager.start();
 
-    // render <Application />
+    // render <FrontEnd />
     let appContainer = document.getElementById('app-container');
     if (!appContainer) {
         throw new Error('Unable to find app element in DOM');
     }
-    let appElement = h(Application, { dataSource, routeManager });
+    let appElement = h(FrontEnd, { dataSource, routeManager });
     render(appElement, appContainer);
 }
 ```
@@ -259,7 +259,7 @@ For an example of a more elaborate bootstrap sequence, see [app-core.js](https:/
 
 A data provider is simply an object that provides data needed by the app. It can do so synchronously or asynchronously (i.e. through promise-returning methods). It'll typically be an event emitter. When a provider wishes to indicate that new data is available, it'll emit a `change` event.
 
-An example of a synchronous data provider is [relaks-route-manager](https://github.com/trambarhq/relaks-route-manager). It extracts parameters from the browser's location. When the user clicks on a hyperlink or the back button, the current route changes. The route manager emits a `change` event and the application rerenders using new parameters extracted from the URL.
+An example of a synchronous data provider is [relaks-route-manager](https://github.com/trambarhq/relaks-route-manager). It extracts parameters from the browser's location. When the user clicks on a hyperlink or the back button, the current route changes. The route manager emits a `change` event and the front-end rerenders using new parameters extracted from the URL.
 
 An example of an asynchronous data provider is [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source). It retrieves data from a Django backend. It provides a set of `fetchXXX()` methods that return promises. When given an expiration interval, the data source will periodically invalidate cached results and emit a `change` event.
 
@@ -267,7 +267,7 @@ Data providers need not be coded specifically for Relaks. They're just classes t
 
 ### Root-level component
 
-`Application` is the root-level React component. It receives a set of data providers as props. In its constructor, it creates proxy objects around the data provider objects and save them into its state. These are then pass down the component tree in `render()` in lieu of the providers themselves. In `componentDidMount()`, `Application` attaches event handlers to the providers. When it receives a `change` event, it recreates the corresponding proxy. The call to `setState()` triggers rerendering. The `renderAsync()` methods of Relaks components are invoked, which in turn pulls in up-to-date data.
+`FrontEnd` is the root-level React component. It receives a set of data providers as props. In its constructor, it creates proxy objects around the data provider objects and save them into its state. These are then pass down the component tree in `render()` in lieu of the providers themselves. In `componentDidMount()`, `FrontEnd` attaches event handlers to the providers. When it receives a `change` event, it recreates the corresponding proxy. The call to `setState()` triggers rerendering. The `renderAsync()` methods of Relaks components are invoked, which in turn pulls in up-to-date data.
 
 From [one of the examples](https://github.com/trambarhq/relaks-starwars-example-sequel):
 
@@ -360,7 +360,7 @@ The following is a screen-cap of the [React Developer Tools](https://chrome.goog
 
 ![Trambar - News page](docs/img/trambar-news-page.png)
 
-`NewsPage` is the app's news feed page. It extends `Relaks.AsyncComponent`. Note on the right how it has received four proxy objects from `Application`. Its only child `NewsPageSync` is shown below:
+`NewsPage` is the app's news feed page. It extends `Relaks.AsyncComponent`. Note on the right how it has received four proxy objects. Its only child `NewsPageSync` is shown below:
 
 ![Trambar - News page (sync)](docs/img/trambar-news-page-sync.png)
 
