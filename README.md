@@ -389,6 +389,7 @@ The calendar bar needs the project's daily statistics in order to know which dat
   * [meanwhile.delay](#meanwhiledelay)
   * [meanwhile.revising](#meanwhilerevising)
   * [meanwhile.show](#meanwhileshow)
+  * [Relaks.plant](#relaksplant)
   * [Relaks.set](#relaksset)
 
 * [Event handlers](#event-handlers)
@@ -439,6 +440,14 @@ A return value of `false` means rendering is being deferred.
 
 This method calls `meanwhile.check()` to ascertain that the rendering cycle is still valid.
 
+#### Relaks.plant
+
+```typescript
+function plant(seeds: object[]): void
+```
+
+Plant prerendered results from [relaks-harvest](https://github.com/trambarhq/relaks-harvest) so that the initial rendering from Relaks components when [hydrating](https://reactjs.org/docs/react-dom.html#hydrate) will match the server-generated contents.
+
 #### Relaks.set
 
 ```typescript
@@ -450,7 +459,6 @@ Set one of Relaks's global parameters. `name` can be one of the following:
 * **delayWhenEmpty** - The amount of time given to promises returned by `renderAsync()` before contents passed to `meanwhile.show()` appears when nothing has been rendered yet. In milliseconds. The default is 50.
 * **delayWhenRendered** - The time allowance when the component has fully rendered previously. The default is infinity.
 * **errorHandler** - Error handler used when there is no support for error boundaries. The default is `console.error()`.
-* **seeds** - An array of prerendered results from [relaks-harvest](https://github.com/trambarhq/relaks-harvest). Used when we hydrate a server-generated page.
 
 ### Event handlers
 

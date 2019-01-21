@@ -246,9 +246,16 @@ function set(name, value) {
             Meanwhile.delayWhenRendered = value;
             break;
         case 'seeds':
-            seeds = value;
+            plant(value);
             break;
     }
+}
+
+function plant(list) {
+    if (!(list instanceof Array)) {
+        throw new Error('Seeds must be an array of object. Are you calling harvest() with the options { seeds: true }?');
+    }
+    seeds = list;
 }
 
 return {
@@ -257,6 +264,7 @@ return {
     AsyncRenderingInterrupted: AsyncRenderingInterrupted,
     Meanwhile: Meanwhile,
     set: set,
+    plant: plant,
 };
 };
 

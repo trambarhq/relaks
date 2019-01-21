@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.1.9
+
+* Added plant()
+
 ## 1.1.8
 
 * Fixed event handlers when seeded contents are employed
