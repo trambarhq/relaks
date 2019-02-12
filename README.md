@@ -525,8 +525,10 @@ import { AsyncComponent } from 'relaks/preact';
 
 * [relaks-route-manager](https://github.com/trambarhq/relaks-route-manager) - route manager
 * [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source) - retrieves data through Django REST API
+* [relaks-wordpress-data-source](https://github.com/trambarhq/relaks-wordpress-data-source) - retrieves data from WordPress
 * [relaks-harvest](https://github.com/trambarhq/relaks-harvest) - library used for server-side rendering (SSR)
 * [relaks-event-emitter](https://github.com/trambarhq/relaks-event-emitter) - event emitter designed with asynchronous code in mind
+* [relaks-media-capture](https://github.com/trambarhq/relaks-media-capture) - capturing video and images in web browser
 
 ## Examples
 
@@ -535,7 +537,8 @@ import { AsyncComponent } from 'relaks/preact';
 * [Starwars API: Episode VI - The Server Strikes Back](https://github.com/trambarhq/relaks-starwars-example-isomorphic) - demonstrates how to create an isomorphic app
 * [Django todo list](https://github.com/trambarhq/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source)
 * [Hacker News reader](https://github.com/trambarhq/relaks-hacker-news-example) - building a quick-and-dirty HN front-end
-* [Media capture](https://github.com/trambarhq/relaks-media-capture) - capturing video and images in web browser
+* [Media capture](https://github.com/trambarhq/relaks-media-capture-example) - demonstrates how to capture video
+* [Zero-latency WordPress](https://github.com/trambarhq/relaks-wordpress-example) - building an extremely responsive WordPress front-end
 * [Trambar](https://trambar.io) - a real-world social app for which Relaks was created
 
 ## Questions
