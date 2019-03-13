@@ -243,13 +243,9 @@ async function initialize(evt) {
     routeManager.activate();
     await routeManager.start();
 
-    // render <FrontEnd />
-    let appContainer = document.getElementById('app-container');
-    if (!appContainer) {
-        throw new Error('Unable to find app element in DOM');
-    }
-    let appElement = h(FrontEnd, { dataSource, routeManager });
-    render(appElement, appContainer);
+    let container = document.getElementById('react-container');
+    let element = h(FrontEnd, { dataSource, routeManager });
+    render(element, container);
 }
 ```
 
@@ -257,13 +253,13 @@ For an example of a more elaborate bootstrap sequence, see [front-end-core.js](h
 
 ### Data providers
 
-A data provider is simply an object that provides data needed by the app. It can do so synchronously or asynchronously (i.e. through promise-returning methods). It'll typically be an event emitter. When a provider wishes to indicate that new data is available, it'll emit a `change` event.
+A data provider is simply an object that provides data needed by the front-end. It can do so synchronously or asynchronously (i.e. through promise-returning methods). It'll typically be an event emitter. When a provider wishes to indicate that new data is available, it'll emit a `change` event.
 
 An example of a synchronous data provider is [relaks-route-manager](https://github.com/trambarhq/relaks-route-manager). It extracts parameters from the browser's location. When the user clicks on a hyperlink or the back button, the current route changes. The route manager emits a `change` event and the front-end rerenders using new parameters extracted from the URL.
 
 An example of an asynchronous data provider is [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source). It retrieves data from a Django backend. It provides a set of `fetchXXX()` methods that return promises. When given an expiration interval, the data source will periodically invalidate cached results and emit a `change` event.
 
-Data providers need not be coded specifically for Relaks. They're just classes that return data. They can be reused in other contexts (on the server side, for instance). The only requirement imposed by Relaks is the need for caching. Asynchronous methods should always return the same promise when give the same arguments unless the underlying data has changed. Otherwise a lot of redundant operations would occur whenever the app rerenders.
+Data providers need not be coded specifically for Relaks. They're just classes that return data. They can be reused in other contexts (on the server side, for instance). The only requirement imposed by Relaks is the need for caching. Asynchronous methods should always return the same promise when give the same arguments unless the underlying data has changed. Otherwise a lot of redundant operations would occur whenever the front-end rerenders.
 
 ### Root-level component
 
@@ -356,7 +352,7 @@ Proxy objects make debugging easier. You can easily stick `console.log()` and co
 
 When a component needs data from an asynchronous provider (e.g. remote database), it extends `Relaks.AsynComponent` and implements `renderAsync()`. It's generally advisable to place the code for fetching data in an asynchronous component and the code for drawing the user interface in a separate synchronous component. Doing so makes the code easier to debug and test. It also makes it easier to divide work among multiple programmers. Someone familiar with the backend code could work on the asynchronous part while someone else more comfortable with UI design can focus on the synchronous part.
 
-The following is a screen-cap of the [React Developer Tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en) showing the component tree of the [Trambar client app](https://github.com/trambarhq/trambar/blob/master/docs/demo.md). You can see that two of the components come in async/sync pairs:
+The following is a screen-cap of the [React Developer Tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en) showing the component tree of the [Trambar web client](https://github.com/trambarhq/trambar/blob/master/docs/demo.md). You can see that two of the components come in async/sync pairs:
 
 ![Trambar - News page](docs/img/trambar-news-page.png)
 
@@ -534,7 +530,7 @@ import { AsyncComponent } from 'relaks/preact';
 
 * [Starwars API](https://github.com/trambarhq/relaks-starwars-example) - a simple example that fetches data from [SWAPI.co](SWAPI.co)
 * [Starwars API: Episode V](https://github.com/trambarhq/relaks-starwars-example-sequel) - sequel to the first Starwars API example
-* [Starwars API: Episode VI - The Server Strikes Back](https://github.com/trambarhq/relaks-starwars-example-isomorphic) - demonstrates how to create an isomorphic app
+* [Starwars API: Episode VI - The Server Strikes Back](https://github.com/trambarhq/relaks-starwars-example-isomorphic) - demonstrates how to create an isomorphic front-end
 * [Django todo list](https://github.com/trambarhq/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source)
 * [Hacker News reader](https://github.com/trambarhq/relaks-hacker-news-example) - building a quick-and-dirty HN front-end
 * [Media capture](https://github.com/trambarhq/relaks-media-capture-example) - demonstrates how to capture video
