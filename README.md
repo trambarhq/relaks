@@ -253,7 +253,7 @@ async function initialize(evt) {
 }
 ```
 
-For an example of a more elaborate bootstrap sequence, see [app-core.js](https://github.com/trambarhq/trambar/blob/master/common/src/app-core.js) of the [Trambar](https://github.com/trambarhq/trambar) source code. The code does not merely initialize the data providers, it also handles interactions between them. Basically, it's responsible for the infrastructure needed by the React UI code.
+For an example of a more elaborate bootstrap sequence, see [front-end-core.js](https://github.com/trambarhq/trambar/blob/master/common/src/front-end-core.js) of the [Trambar](https://github.com/trambarhq/trambar) source code. The code does not merely initialize the data providers, it also handles interactions between them. Basically, it's responsible for the infrastructure needed by the React UI code.
 
 ### Data providers
 
