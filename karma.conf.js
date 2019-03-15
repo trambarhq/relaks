@@ -28,9 +28,9 @@ module.exports = function(config) {
         reporters: [ 'progress' ],
 
         webpack: {
-            devtool: 'inline-source-map',
+            mode: 'development',
             module: {
-                loaders: [
+                rules: [
                     {
                         test: /\.jsx?$/,
                         loader: 'babel-loader',
@@ -41,12 +41,6 @@ module.exports = function(config) {
                     }
                 ]
             },
-            resolve: {
-                extensions: [ '.js', '.jsx' ],
-                modules: [ 'node_modules' ].map((folder) => {
-                    return Path.resolve(`./${folder}`);
-                })
-            }
         },
 
         webpackMiddleware: {
