@@ -1,46 +1,45 @@
 var AsyncRenderingInterrupted = require('./async-rendering-interrupted');
 
 function AsyncRenderingCycle(func, props, prev) {
-    this.progressElement = null;
+    this.progressElement = undefined;
     this.progressAvailable = false;
     this.progressForced = false;
-    this.promisedElement = null;
+    this.promisedElement = undefined;
     this.promisedAvailable = false;
     this.elementRendered = null;
-    this.deferredError = null;
+    this.deferredError = undefined;
     this.showingProgress = false;
     this.delayEmpty = 0;
     this.delayRendered = 0;
     this.canceled = false;
     this.completed = false;
-
-    this.target = { func: func, props: props };
-    if (prev) {
-    	this.prevProps = prev.props;
-    	if (prev.canceled) {
-    		this.prevPropsAsync = prev.prevPropsAsync;
-    		this.initial = prev.initial;
-    	} else {
-		    this.prevPropsAsync = prev.props;
-		    this.initial = false;
-    	}
-    } else {
-    	this.prevProps = {};
-    	this.prevPropsAsync = {};
-	    this.initial = true;
-    }
+    this.initial = true;
+    this.prevProps = {};
+    this.prevPropsAsync = {};
     this.updateTimeout = 0;
     this.startTime = new Date;
     this.handlers = {};
-
-    this.context = null;
-    this.setContext = null;
+    this.target = { func: func, props: props };
+    this.context = undefined;
+    this.setContext = undefined;
 
     this.show = this.show.bind(this);
     this.check = this.check.bind(this);
     this.delay = this.delay.bind(this);
     this.resolve = this.resolve.bind(this);
     this.reject = this.reject.bind(this);
+
+    if (prev) {
+        this.prevProps = prev.props;
+        if (prev.canceled) {
+            this.prevPropsAsync = prev.prevPropsAsync;
+            this.initial = prev.initial;
+        } else {
+            this.prevPropsAsync = prev.props;
+            this.initial = false;
+        }
+        this.elementRendered = prev.elementRendered;
+    }
 }
 
 var prototype = AsyncRenderingCycle.prototype;
@@ -74,6 +73,17 @@ prototype.resolve = function(element) {
         throw new AsyncRenderingInterrupted;
     }
 	if (!this.hasEnded()) {
+        if (element === undefined) {
+            // use the last progress element
+            if (this.progressElement !== undefined) {
+                element = this.progressElement;
+            } else if (this.elementRendered) {
+                return;
+            }
+        } else {
+            this.progressElement = undefined;
+            this.progressAvailable = false;
+        }
 		this.promisedElement = element;
 		this.promisedAvailable = true;
 		this.rerender();
@@ -90,30 +100,25 @@ prototype.reject = function(err) {
 	}
 };
 
-prototype.getPromised = function() {
+prototype.getElement = function() {
 	if (this.promisedAvailable) {
 		this.elementRendered = this.promisedElement;
-		this.promisedElement = null;
+		this.promisedElement = undefined;
 		this.promisedAvailable = false;
 		this.complete();
-		return this.elementRendered;
-	}
+	} else if (this.progressAvailable) {
+        this.elementRendered = this.progressElement;
+        this.progressElement = undefined;
+        this.progressAvailable = false;
+        this.progress();
+    }
+    return this.elementRendered;
 };
 
-prototype.getProgress = function() {
-	if (this.progressAvailable) {
-		this.elementRendered = this.progressElement;
-		this.progressElement = null;
-		this.progressAvailable = false;
-		this.progress();
-		return this.elementRendered;
-	}
-};
-
-prototype.getDeferred = function() {
+prototype.getError = function() {
 	if (this.deferredError) {
 		var error = this.deferredError;
-		this.deferredError = null;
+		this.deferredError = undefined;
 		this.cancel();
 		return error;
 	}

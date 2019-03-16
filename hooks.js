@@ -50,14 +50,14 @@ function Relaks(asyncFunc, areEqual) {
         state = undefined;
 
 		// throw error that had occurred in async code
-		var error = cycle.getDeferred();
+		var error = cycle.getError();
         if (error) {
         	throw error;
         }
 
         // return either the promised element or progress
-		var element = cycle.getPromised() || cycle.getProgress();
-        return (element !== undefined) ? element : null;
+		var element = cycle.getElement();
+        return element;
 	};
 
 	// add prop types if available
