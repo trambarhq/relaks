@@ -131,6 +131,12 @@ prototype.getPrevProps = function(asyncCycle) {
 prototype.substitute = function(element) {
 	this.promisedElement = element;
     this.promisedAvailable = true;
+
+    // schedule immediate rerendering so refs, callbacks are correct
+    var _this = this;
+    setTimeout(function() { 
+        _this.setContext({ cycle: _this });
+    }, 0);
 };
 
 prototype.on = function(name, f) {
@@ -143,6 +149,10 @@ prototype.show = function(element, disposition) {
 
     // save the element so it can be rendered eventually
     this.progressElement = element;
+
+    if (this.noProgress) {
+        return false;
+    }
 
     var delay;
     if (this.showingProgress) {
@@ -185,14 +195,14 @@ prototype.show = function(element, disposition) {
  * @param  {Boolean|undefined} force
  */
 prototype.update = function(forced) {
+    this.progressAvailable = true;
+    this.progressForced = forced;
     if (this.synchronous) {
         // no need to force renderering since we're still inside
         // the synchronous function call and we can simply return 
         // the progress element
     } else {
 	    // indicate that rendering isn't triggered in the normal fashion
-	    this.progressAvailable = true;
-	    this.progressForced = forced;
 	    this.rerender();
     }
 };
@@ -203,8 +213,11 @@ prototype.update = function(forced) {
  * throw an exception to end it. Ensure component is mounted as well.
  */
 prototype.check = function() {
+    if (this.noProgress) {
+        return;
+    }
     if (this.canceled || this.isRerendering()) {
-        // throw exception to break promise chain
+            // throw exception to break promise chain
         throw new AsyncRenderingInterrupted;
     }
 };

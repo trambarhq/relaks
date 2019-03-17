@@ -1,5 +1,6 @@
 var React = require('react');
 var AsyncRenderingCycle = require('./async-rendering-cycle');
+var Seeds = require('./seeds');
 var useState = React.useState;
 var useEffect = React.useEffect;
 
@@ -26,7 +27,7 @@ function Relaks(asyncFunc, areEqual) {
 
 	        if (cycle.isInitial()) {
 	            // see if the contents has been seeded
-	            var seed = findSeed(syncFunc, props);
+	            var seed = Seeds.findSeed(syncFunc, props);
 	            if (seed) {
 	            	cycle.substitute(seed);
 	            }
@@ -58,6 +59,21 @@ function Relaks(asyncFunc, areEqual) {
         // return either the promised element or progress
 		var element = cycle.getElement();
         return element;
+	};
+
+	// attach async function (that returns a promise to the final result)
+	syncFunc.renderAsync = (props) => {
+		state = [ {}, (v) => {} ];
+		var cycle = AsyncRenderingCycle.start(state, syncFunc, props);
+		cycle.noProgress = true;
+		var promise = asyncFunc(props);
+		state = undefined;
+		return promise.then(function(element) {
+			if (element === undefined) {
+				element = cycle.progressElement;
+			}
+			return element;
+		});
 	};
 
 	// add prop types if available
@@ -104,48 +120,9 @@ function usePreviousProps(asyncCycle) {
 	return cycle.getPrevProps(asyncCycle);
 }
 
-function plant(list) {
-    if (!(list instanceof Array)) {
-        throw new Error('Seeds must be an array of object. Are you calling harvest() with the options { seeds: true }?');
-    }
-    seeds = list;
-}
-
-var seeds = [];
-
-function findSeed(type, props) {
-    var index = -1;
-    var best = -1;
-    for (var i = 0; i < seeds.length; i++) {
-        var seed = seeds[i];
-        if (seed.type === type) {
-            // the props aren't going to match up exactly due to object
-            // recreations; just find the one that is closest
-            var count = 0;
-            if (props && seed.props) {
-                for (var key in props) {
-                    if (seed.props[key] === props[key]) {
-                        count++;
-                    }
-                }
-            }
-            if (count > best) {
-                // choose this one
-                index = i;
-                best = count;
-            }
-        }
-    }
-    if (index != -1) {
-        var match = seeds[index];
-        seeds.splice(index, 1);
-        return match.result;
-    }
-}
-
 module.exports = exports = Relaks;
 
-exports.plant = plant;
+exports.plant = Seeds.plant;
 exports.useProgress = useProgress;
 exports.useRenderEvent = useRenderEvent;
 exports.usePreviousProps = usePreviousProps;
