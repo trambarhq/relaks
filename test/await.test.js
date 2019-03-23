@@ -1,4 +1,4 @@
-import Promise from 'bluebird';
+import Bluebird from 'bluebird';
 import { expect } from 'chai';
 import PreactRenderSpy from 'preact-render-spy';
 import Echo from './lib/echo';
@@ -31,16 +31,13 @@ class Test extends AsyncComponent {
 }
 
 describe('Await test', function() {
-    it ('should render the component', function() {
+    it ('should render the component', async function() {
         var echo = new Echo();
         var wrapper = PreactRenderSpy.deep(<Test echo={echo}/>);
 
-        return Promise.try(() => {
-            expect(wrapper.text()).to.equal('Initial');
-            return Promise.delay(250).then(() => {
-                expect(wrapper.text()).to.equal('Done');
-            });
-        });
+        expect(wrapper.text()).to.equal('Initial');
+        await Bluebird.delay(250);
+        expect(wrapper.text()).to.equal('Done');
     })
     it ('should call componentWillMount()', function() {
         var echo = new Echo();
