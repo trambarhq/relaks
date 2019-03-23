@@ -1,5 +1,6 @@
 var React = require('react');
 var AsyncRenderingCycle = require('./async-rendering-cycle');
+var AsyncSaveBuffer = require('./async-save-buffer');
 var Seeds = require('./seeds');
 var useState = React.useState;
 var useEffect = React.useEffect;
@@ -120,9 +121,15 @@ function usePreviousProps(asyncCycle) {
 	return cycle.getPrevProps(asyncCycle);
 }
 
+function useSaveBuffer(params) {
+	var state = useState();
+	return AsyncSaveBuffer.get(state, params);
+}
+
 module.exports = exports = Relaks;
 
 exports.plant = Seeds.plant;
 exports.useProgress = useProgress;
 exports.useRenderEvent = useRenderEvent;
 exports.usePreviousProps = usePreviousProps;
+exports.useSaveBuffer = useSaveBuffer;
