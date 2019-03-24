@@ -1,85 +1,78 @@
-import Promise from 'bluebird';
-import React from 'react';
+import Bluebird from 'bluebird';
+import React, { Component } from 'react';
 import { expect } from 'chai';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Echo from './lib/echo';
-import Relaks from '../index';
+import Relaks, { AsyncComponent } from '../index';
 
 Enzyme.configure({ adapter: new Adapter() });
 
-class ErrorBoundary extends React.Component {
+class Boundary extends Component {
     constructor(props) {
         super(props);
-        this.state = { error: null };
+        this.state = {};
+    }
+
+    static getDerivedStateFromError(error) {
+        return { error };
     }
 
     render() {
-        if (this.state.error) {
-            return this.state.error.message;
+        const { children } = this.props;
+        const { error } = this.state;
+        if (error) {
+            return error.message;
+        } else {
+            return children;
         }
-        return this.props.children;
-    }
-
-    componentDidCatch(error, info) {
-        this.setState({ error });
-    }
-}
-
-class AsyncErrorComponent extends Relaks.Component {
-    renderAsync(meanwhile) {
-        if (this.props.synchronous) {
-            throw new Error('Synchronous error');
-        }
-        meanwhile.show(<div>Initial</div>, 'initial');
-        return this.props.echo.return('data', { test:1 }, 100).then(() => {
-            throw new Error('Asynchronous error');
-        });
-    }
-}
-
-class SyncErrorComponent extends React.Component {
-    render() {
-        throw new Error('Synchronous error');
     }
 }
 
 describe('Error boundary test', function() {
+    // suppress Mocha's error handler during test
+    let mochaErrorHandler;
     before(function() {
-        // Enzyme doesn't seem to work correctly with componentDidCatch()
-        // will need to checke behavior in real-world code
-        this.skip();
-    })
+        mochaErrorHandler = window.onerror;
+        window.onerror = null;
+    });
+    after(function() {
+        window.onerror = mochaErrorHandler;
+    });
+
     it ('should catch error in synchronous code', function() {
-        let wrapper = Enzyme.mount(
-            <ErrorBoundary>
-                <SyncErrorComponent />
-            </ErrorBoundary>
-        );
+        class Test extends Component {
+            render() {
+                throw new Error('Synchronous error');
+            }
+        }
+
+        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
         expect(wrapper.text()).to.equal('Synchronous error');
     })
     it ('should catch error in synchronous code of async component', function() {
-        let echo = new Echo();
-        let wrapper = Enzyme.mount(
-            <ErrorBoundary>
-                <AsyncErrorComponent echo={echo} synchronous={true} />
-            </ErrorBoundary>
-        );
+        class Test extends AsyncComponent {
+            renderAsync(meanwhile) {
+                throw new Error('Synchronous error');
+            }
+        }
+
+        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
         expect(wrapper.text()).to.equal('Synchronous error');
     })
-    it ('should catch error in asynchronous code', function() {
-        let echo = new Echo();
-        let wrapper = Enzyme.mount(
-            <ErrorBoundary>
-                <AsyncErrorComponent echo={echo} synchronous={false} />
-            </ErrorBoundary>
-        );
-        return Promise.try(() => {
-            expect(wrapper.text()).to.equal('Initial');
-            return Promise.delay(250).then(() => {
-                expect(wrapper.text()).to.equal('Asynchronous error');
-            });
-        });
+    it ('should catch error in asynchronous code', async function() {
+        class Test extends AsyncComponent {
+            async renderAsync(meanwhile) {
+                meanwhile.show(<div>Initial</div>, 'initial');
+                await Bluebird.delay(100);
+                throw new Error('Asynchronous error');
+            }
+        }
+
+        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
+        expect(wrapper.text()).to.equal('Initial');
+        await Bluebird.delay(250);
+        expect(wrapper.text()).to.equal('Asynchronous error');
     })
 })
+

@@ -1,44 +1,45 @@
-import Promise from 'bluebird';
+import Bluebird from 'bluebird';
 import { expect } from 'chai';
 import PreactRenderSpy from 'preact-render-spy';
-import Echo from './lib/echo';
 import { h } from 'preact'
 import Relaks, { AsyncComponent } from '../preact';
 
 /** @jsx h */
 
-class AsyncErrorComponent extends Relaks.Component {
-    renderAsync(meanwhile) {
-        if (this.props.synchronous) {
-            throw new Error('Synchronous error');
-        }
-        meanwhile.show(<div>Initial</div>, 'initial');
-        return this.props.echo.return('data', { test:1 }, 100).then(() => {
-            throw new Error('Asynchronous error');
-        });
-    }
-}
-
 describe('Error handler test', function() {
     it ('should be called when error occurs in synchronous code of async component', function() {
+        class Test extends AsyncComponent {
+            renderAsync(meanwhile) {
+                throw new Error('Synchronous error');
+            }
+        }
+
         let errorReceived;
         Relaks.set('errorHandler', (err) => {
             errorReceived = err;
         });
-        let echo = new Echo();
-        let wrapper = PreactRenderSpy.deep(<AsyncErrorComponent echo={echo} synchronous={true} />);
+        const wrapper = PreactRenderSpy.deep(<Test />);
+
         expect(errorReceived).to.be.instanceof(Error);
     })
-    it ('should be called when error occurs in synchronous code of async component', function() {
+    it ('should be called when error occurs in synchronous code of async component', async function() {
+        class Test extends AsyncComponent {
+            renderAsync(meanwhile) {
+                meanwhile.show(<div>Initial</div>, 'initial');
+                return Bluebird.delay(100).then(() => {
+                    throw new Error('Asynchronous error');
+                });
+            }
+        }
+
         let errorReceived;
         Relaks.set('errorHandler', (err) => {
             errorReceived = err;
         });
-        let echo = new Echo();
-        let wrapper = PreactRenderSpy.deep(<AsyncErrorComponent echo={echo} synchronous={false} />);
+        const wrapper = PreactRenderSpy.deep(<Test />);
+
         expect(wrapper.text()).to.equal('Initial');
-        return Promise.delay(250).then(() => {
-            expect(errorReceived).to.be.instanceof(Error);
-        });
+        await Bluebird.delay(250);
+        expect(errorReceived).to.be.instanceof(Error);
     })
 })

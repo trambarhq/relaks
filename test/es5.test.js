@@ -1,9 +1,8 @@
-var Promise = require('bluebird');
+var Bluebird = require('bluebird');
 var React = require('react');
 var Chai = require('chai'), expect = Chai.expect;
 var Enzyme = require('enzyme');
 var Adapter = require('enzyme-adapter-react-16');
-var Echo = require('./lib/echo').default;
 var Relaks = require('../index');
 
 React.createClass = require('create-react-class');
@@ -11,55 +10,52 @@ Relaks.createClass = require('../create-class');
 
 Enzyme.configure({ adapter: new Adapter() });
 
-var Test = Relaks.createClass({
-    renderAsync: function(meanwhile) {
-        meanwhile.show(<div>Initial</div>, 'initial');
-        return this.props.echo.return('data', { test:1 }, 100).then(() => {
-            return <div>Done</div>;
-        });
-    },
-
-    componentDidMount: function() {
-        this.setState({ mounted: true });
-        if (this.props.onMount) {
-            this.props.onMount();
-        }
-    },
-
-    componentWillUnmount: function() {
-        this.setState({ mounted: false });
-        if (this.props.onUnmount) {
-            this.props.onUnmount();
-        }
-    },
-});
-
 describe('ES5 test', function() {
-    it ('should render the component', function() {
-        var echo = new Echo();
-        var wrapper = Enzyme.mount(<Test echo={echo}/>);
+    var Test = Relaks.createClass({
+        renderAsync: function(meanwhile) {
+            meanwhile.show(<div>Initial</div>, 'initial');
+            return Bluebird.delay(100).then(() => {
+                return <div>Done</div>;
+            });
+        },
 
-        return Promise.try(() => {
+        componentDidMount: function() {
+            this.setState({ mounted: true });
+            if (this.props.onMount) {
+                this.props.onMount();
+            }
+        },
+
+        componentWillUnmount: function() {
+            this.setState({ mounted: false });
+            if (this.props.onUnmount) {
+                this.props.onUnmount();
+            }
+        },
+    });
+
+    it ('should render the component', function() {
+        var wrapper = Enzyme.mount(<Test />);
+
+        return Bluebird.try(() => {
             expect(wrapper.text()).to.equal('Initial');
-            return Promise.delay(250).then(() => {
+            return Bluebird.delay(250).then(() => {
                 expect(wrapper.text()).to.equal('Done');
             });
         });
     })
     it ('should call componentWillMount()', function() {
-        var echo = new Echo();
         var mounted;
         var onMount = () => { mounted = true };
-        var wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} />);
+        var wrapper = Enzyme.mount(<Test onMount={onMount} />);
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
     })
     it ('should allow unmounting before rendering cycle finishes', function() {
-        var echo = new Echo();
         var mounted;
         var onMount = () => { mounted = true };
         var onUnmount = () => { mounted = false };
-        var wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} onUnmount={onUnmount} />);
+        var wrapper = Enzyme.mount(<Test onMount={onMount} onUnmount={onUnmount} />);
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
         wrapper.unmount();

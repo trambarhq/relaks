@@ -1,66 +1,112 @@
-import Promise from 'bluebird';
+import Bluebird from 'bluebird';
 import React from 'react';
 import { expect } from 'chai';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Echo from './lib/echo';
 import Relaks from '../index';
 
 Enzyme.configure({ adapter: new Adapter() });
 
-class Test extends Relaks.Component {
-    renderAsync(meanwhile) {
-        meanwhile.show(<div>Initial</div>, 'initial');
-        return this.props.echo.return('data', { test:1 }, 100).then(() => {
-            return <div>Done</div>;
-        });
-    }
-
-    componentDidMount() {
-        this.setState({ mounted: true });
-        if (this.props.onMount) {
-            this.props.onMount();
-        }
-    }
-
-    componentWillUnmount() {
-        super.componentWillUnmount();
-        this.setState({ mounted: false });
-        if (this.props.onUnmount) {
-            this.props.onUnmount();
-        }
-    }
-}
-
 describe('ES6 test', function() {
     it ('should render the component', function() {
-        let echo = new Echo();
-        let wrapper = Enzyme.mount(<Test echo={echo}/>);
+        class Test extends Relaks.Component {
+            renderAsync(meanwhile) {
+                meanwhile.show(<div>Initial</div>, 'initial');
+                return Bluebird.delay(100).then(() => {
+                    return <div>Done</div>;
+                });
+            }
+        }
 
-        return Promise.try(() => {
+        const wrapper = Enzyme.mount(<Test />);
+
+        return Bluebird.try(() => {
             expect(wrapper.text()).to.equal('Initial');
-            return Promise.delay(250).then(() => {
+            return Bluebird.delay(250).then(() => {
+                expect(wrapper.text()).to.equal('Done');
+            });
+        });
+    })
+    it ('should use last progress when renderAsync() returns undefined', function() {
+        class Test extends Relaks.Component {
+            renderAsync(meanwhile) {
+                meanwhile.show(<div>Initial</div>, 'initial');
+                return Bluebird.delay(100).then(() => {
+                    meanwhile.show(<div>Done</div>);
+                });
+            }
+        }
+
+        const wrapper = Enzyme.mount(<Test />);
+
+        return Bluebird.try(() => {
+            expect(wrapper.text()).to.equal('Initial');
+            return Bluebird.delay(250).then(() => {
                 expect(wrapper.text()).to.equal('Done');
             });
         });
     })
     it ('should call componentWillMount()', function() {
-        let echo = new Echo();
+        class Test extends Relaks.Component {
+            renderAsync(meanwhile) {
+                meanwhile.show(<div>Initial</div>, 'initial');
+                return Bluebird.delay(100).then(() => {
+                    return <div>Done</div>;
+                });
+            }
+
+            componentDidMount() {
+                const { onMount } = this.props;
+                this.setState({ mounted: true });
+                if (onMount) {
+                    onMount();
+                }
+            }
+        }
+
         let mounted;
-        let onMount = () => { mounted = true };
-        let wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} />);
+        const onMount = () => { mounted = true };
+        const wrapper = Enzyme.mount(<Test onMount={onMount} />);
+
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
     })
     it ('should allow unmounting before rendering cycle finishes', function() {
-        let echo = new Echo();
+        class Test extends Relaks.Component {
+            renderAsync(meanwhile) {
+                meanwhile.show(<div>Initial</div>, 'initial');
+                return Bluebird.delay(100).then(() => {
+                    return <div>Done</div>;
+                });
+            }
+
+            componentDidMount() {
+                const { onMount } = this.props;
+                this.setState({ mounted: true });
+                if (onMount) {
+                    onMount();
+                }
+            }
+
+            componentWillUnmount() {
+                const { onUnmount } = this.props;
+                super.componentWillUnmount();
+                this.setState({ mounted: false });
+                if (onUnmount) {
+                    onUnmount();
+                }
+            }
+        }
+
         let mounted;
-        let onMount = () => { mounted = true };
-        let onUnmount = () => { mounted = false };
-        let wrapper = Enzyme.mount(<Test echo={echo} onMount={onMount} onUnmount={onUnmount} />);
+        const onMount = () => { mounted = true };
+        const onUnmount = () => { mounted = false };
+        const wrapper = Enzyme.mount(<Test onMount={onMount} onUnmount={onUnmount} />);
+
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
+        expect(wrapper.text()).to.equal('Initial');
         wrapper.unmount();
         expect(mounted).to.be.false;
     })
