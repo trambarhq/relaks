@@ -101,9 +101,9 @@ prototype.render = function() {
         }
         if (!promise) {
             if (isPreact) {
-                promise = this.renderAsync(meanwhile, this.props, this.state, this.context);
+                promise = this.renderAsyncEx(meanwhile, this.props, this.state, this.context);
             } else {
-                promise = this.renderAsync(meanwhile);
+                promise = this.renderAsyncEx(meanwhile);
             }
         }
 
@@ -205,6 +205,20 @@ prototype.render = function() {
     }
 };
 
+prototype.renderAsyncEx = function(/* ... */) {
+    var relaks = this.relaks;
+    var promise = this.renderAsync.apply(this, arguments);
+    if (isPromise(promise)) {
+        promise = promise.then(function(element) {
+            if (element === undefined) {
+                element = relaks.progressElement;
+            }
+            return element;
+        });
+    }
+    return promise;
+};
+
 /**
  * Return false if the component's props and state haven't changed.
  *
@@ -300,3 +314,4 @@ function compare(prevSet, nextSet) {
     }
     return true;
 }
+

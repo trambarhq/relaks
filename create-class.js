@@ -12,6 +12,7 @@ function createClass(specs) {
     var own = Relaks.Component.prototype;
     specs = clone(specs);
     specs.render = own.render;
+    specs.renderAsyncEx = own.renderAsyncEx;
     specs.componentWillMount = chain(specs.componentWillMount, own.createRelaksContext);
     specs.componentWillUnmount = chain(specs.componentWillUnmount, own.componentWillUnmount);
     specs.shouldComponentUpdate = specs.shouldComponentUpdate || own.shouldComponentUpdate;
