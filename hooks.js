@@ -36,8 +36,8 @@ function Relaks(asyncFunc, areEqual) {
 		}
 
 		// cancel current cycle on unmount
-		useEffect(() => {
-			return () => { 
+		useEffect(function() {
+			return function() { 
 				if (!cycle.hasEnded()) {
 					cycle.cancel();
 				}
@@ -63,8 +63,8 @@ function Relaks(asyncFunc, areEqual) {
 	};
 
 	// attach async function (that returns a promise to the final result)
-	syncFunc.renderAsync = (props) => {
-		state = [ {}, (v) => {} ];
+	syncFunc.renderAsync = function(props) {
+		state = [ {}, function(v) {} ];
 		var cycle = AsyncRenderingCycle.start(state, syncFunc, props);
 		cycle.noProgress = true;
 		var promise = asyncFunc(props);
