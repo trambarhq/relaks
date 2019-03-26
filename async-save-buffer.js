@@ -181,5 +181,15 @@ function preserveDef(base, ours) {
 function restoreDef(theirs) {	
 }
 
-module.exports = prototype.constructor;
-module.exports.get = get;
+prototype.constructor.get = get;
+
+function useSaveBuffer(params) {
+	var state = useState();
+	return AsyncSaveBuffer.get(state, params);
+}
+
+export {
+	AsyncSaveBuffer,
+	
+	useSaveBuffer,
+};

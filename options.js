@@ -1,4 +1,40 @@
+var delayWhenEmpty = 50;
+var delayWhenRendered = Infinity;
 var seeds = [];
+var errorHandler = function(err) {
+    console.error(err);
+};
+
+function get(name) {
+    switch (name) {
+        case 'errorHandler':
+            return errorHandler;
+        case 'delayWhenEmpty':
+            return delayWhenEmpty;
+        case 'delayWhenRendered':
+            return delayWhenRendered;
+        case 'seeds':
+            plant(value);
+            break;
+    }    
+}
+
+function set(name, value) {
+    switch (name) {
+        case 'errorHandler':
+            errorHandler = value;
+            break;
+        case 'delayWhenEmpty':
+            delayWhenEmpty = value;
+            break;
+        case 'delayWhenRendered':
+            delayWhenRendered = value;
+            break;
+        case 'seeds':
+            plant(value);
+            break;
+    }
+}
 
 function plant(list) {
     if (!(list instanceof Array)) {
@@ -7,7 +43,9 @@ function plant(list) {
     seeds = list;
 }
 
-function findSeed(type, props) {
+function findSeed(target) {
+    var type = target.func || target.constructor;
+    var props = target.props;
     var index = -1;
     var best = -1;
     for (var i = 0; i < seeds.length; i++) {
@@ -37,7 +75,9 @@ function findSeed(type, props) {
     }
 }
 
-module.exports = { 
-	plant: plant,
-	findSeed: findSeed,
+export { 
+    get,
+    set,
+	plant,
+	findSeed,
 };

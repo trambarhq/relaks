@@ -4,13 +4,13 @@ import { expect } from 'chai';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Relaks from '../index';
+import { AsyncComponent } from '../index';
 
 Enzyme.configure({ adapter: new Adapter() });
 
 describe('ES6 test', function() {
     it ('should render the component', function() {
-        class Test extends Relaks.Component {
+        class Test extends AsyncComponent {
             renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
                 return Bluebird.delay(100).then(() => {
@@ -29,7 +29,7 @@ describe('ES6 test', function() {
         });
     })
     it ('should use last progress when renderAsync() returns undefined', function() {
-        class Test extends Relaks.Component {
+        class Test extends AsyncComponent {
             renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
                 return Bluebird.delay(100).then(() => {
@@ -48,7 +48,7 @@ describe('ES6 test', function() {
         });
     })
     it ('should call componentWillMount()', function() {
-        class Test extends Relaks.Component {
+        class Test extends AsyncComponent {
             renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
                 return Bluebird.delay(100).then(() => {
@@ -73,7 +73,7 @@ describe('ES6 test', function() {
         expect(mounted).to.be.true;
     })
     it ('should allow unmounting before rendering cycle finishes', function() {
-        class Test extends Relaks.Component {
+        class Test extends AsyncComponent {
             renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
                 return Bluebird.delay(100).then(() => {

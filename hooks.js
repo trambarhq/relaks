@@ -1,39 +1,15 @@
-var React = require('react');
-var AsyncRenderingCycle = require('./async-rendering-cycle');
-var AsyncSaveBuffer = require('./async-save-buffer');
-var Seeds = require('./seeds');
-var useState = React.useState;
-var useEffect = React.useEffect;
+import React, { useState, useEffect } from 'react';
+import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 // variable used for communicating between wrapper functions and hook functions 
 var state;
 
-function Relaks(asyncFunc, areEqual) {
+function use(asyncFunc) {
 	// create synchronous function wrapper
 	var syncFunc = function(props) {
 		state = useState({});
-		var cycle = AsyncRenderingCycle.get(state);
-		if (cycle) {
-			if (cycle.hasEnded()) {
-				cycle = undefined;
-			} else if (!cycle.isRerendering()) {
-				// cancel the current cycle
-				cycle.cancel();
-				cycle = undefined;
-			}
-		}
-		if (!cycle) {
-			// start a new cycle
-			cycle = AsyncRenderingCycle.start(state, syncFunc, props);
-
-	        if (cycle.isInitial()) {
-	            // see if the contents has been seeded
-	            var seed = Seeds.findSeed(syncFunc, props);
-	            if (seed) {
-	            	cycle.substitute(seed);
-	            }
-	        }
-		}
+		var target = { func: syncFunc, props };
+		var cycle = AsyncRenderingCycle.acquire(state, target);
 
 		// cancel current cycle on unmount
 		useEffect(function() {
@@ -45,9 +21,9 @@ function Relaks(asyncFunc, areEqual) {
 		}, [ cycle ]);
 
 		// call async function
-		cycle.startSync();
-		asyncFunc(props).then(cycle.resolve, cycle.reject);
-		cycle.endSync();
+		cycle.run(function() {
+			return asyncFunc(props);
+		});
 
         state = undefined;
 
@@ -63,7 +39,7 @@ function Relaks(asyncFunc, areEqual) {
 	};
 
 	// attach async function (that returns a promise to the final result)
-	syncFunc.renderAsync = function(props) {
+	syncFunc.renderAsyncEx = function(props) {
 		state = [ {}, function(v) {} ];
 		var cycle = AsyncRenderingCycle.start(state, syncFunc, props);
 		cycle.noProgress = true;
@@ -81,10 +57,6 @@ function Relaks(asyncFunc, areEqual) {
 	if (asyncFunc.propTypes) {
 		syncFunc.propTypes = asyncFunc.propTypes;
 	}
-	// memoize function unless behavior is countermanded
-	if (areEqual !== false) {
-		syncFunc = React.memo(syncFunc, areEqual);
-	}
 	// add default props if available
 	if (asyncFunc.defaultProps) {
 		syncFunc.defaultProps = asyncFunc.defaultProps;
@@ -94,18 +66,20 @@ function Relaks(asyncFunc, areEqual) {
 	return syncFunc;
 }
 
-function useProgress(delayEmpty, delayRendered) {
-	// apply default delays
-	if (typeof(delayEmpty) !== 'number') {
-		delayEmpty = 50;
-	}
-	if (typeof(delayRendered) !== 'number') {
-		delayRendered = Infinity;
-	}
+function memo(asyncFunc, areEqual) {
+	var syncFunc = use(asyncFunc);
+	var memoizedFunc = React.memo(syncFunc, areEqual);
 
+	if (!memoizedFunc.defaultProps) {
+		memoizedFunc.defaultProps = syncFunc.defaultProps;
+	}
+	return memoizedFunc;
+}
+
+function useProgress(delayEmpty, delayRendered) {
 	// set delays
 	var cycle = AsyncRenderingCycle.get(state);
-	cycle.delay(delayEmpty, delayRendered);
+	cycle.delay(delayEmpty, delayRendered, true);
 
 	// return functions (bound in constructor)
 	return [ cycle.show, cycle.check, cycle.delay ];
@@ -121,15 +95,11 @@ function usePreviousProps(asyncCycle) {
 	return cycle.getPrevProps(asyncCycle);
 }
 
-function useSaveBuffer(params) {
-	var state = useState();
-	return AsyncSaveBuffer.get(state, params);
-}
+export {
+	use,
+	memo,
 
-module.exports = exports = Relaks;
-
-exports.plant = Seeds.plant;
-exports.useProgress = useProgress;
-exports.useRenderEvent = useRenderEvent;
-exports.usePreviousProps = usePreviousProps;
-exports.useSaveBuffer = useSaveBuffer;
+	useProgress,
+	useRenderEvent,
+	usePreviousProps,
+};

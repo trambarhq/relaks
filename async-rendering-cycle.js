@@ -1,4 +1,5 @@
-var AsyncRenderingInterrupted = require('./async-rendering-interrupted');
+import { AsyncRenderingInterrupted } from './async-rendering-interrupted';
+import * as Options from './options';
 
 function AsyncRenderingCycle(func, props, prev) {
     this.progressElement = undefined;
@@ -9,8 +10,8 @@ function AsyncRenderingCycle(func, props, prev) {
     this.elementRendered = null;
     this.deferredError = undefined;
     this.showingProgress = false;
-    this.delayEmpty = 0;
-    this.delayRendered = 0;
+    this.delayEmpty = get('delayWhenEmpty');
+    this.delayRendered = get('delayWhenRendered');
     this.canceled = false;
     this.completed = false;
     this.initial = true;
@@ -59,12 +60,25 @@ prototype.isRerendering = function() {
     return this.promisedAvailable || this.progressAvailable || this.deferredError;
 }
 
-prototype.startSync = function() {
+prototype.run = function(f) {
     this.synchronous = true;
+    try {
+        var promise = f();
+        if (promise && typeof(promise.then) === 'function') {
+            promise.then(this.resolve, this.reject);
+        } else {
+            this.resolve(promise);
+        }
+    } catch (err) {
+        this.reject(err);
+    }
+    this.synchronous = false;
+};
+
+prototype.startSync = function() {
 };
 
 prototype.endSync = function() {
-	this.synchronous = false;
 };
 
 prototype.resolve = function(element) {
@@ -80,10 +94,9 @@ prototype.resolve = function(element) {
             } else if (this.elementRendered) {
                 return;
             }
-        } else {
-            this.progressElement = undefined;
-            this.progressAvailable = false;
         }
+        this.progressElement = undefined;
+        this.progressAvailable = false;
 		this.promisedElement = element;
 		this.promisedAvailable = true;
 		this.rerender();
@@ -321,16 +334,46 @@ function get(state) {
 	return cycle;
 }
 
-function start(state, func, props) {
+function start(state, target) {
 	var context = state[0];
 	var prev = context.cycle;
-	var cycle = new AsyncRenderingCycle(func, props, prev);
+	var cycle = new AsyncRenderingCycle(target, prev);
 	cycle.context = context;
 	cycle.setContext = state[1];
 	context.cycle = cycle;
 	return cycle;
 }
 
-module.exports = prototype.constructor;
-module.exports.get = get;
-module.exports.start = start;
+function acquire(state, target) {
+    var cycle = get(state);
+    if (cycle) {
+        if (cycle.hasEnded()) {
+            cycle = undefined;
+        } else if (!cycle.isRerendering()) {
+            // cancel the current cycle
+            cycle.cancel();
+            cycle = undefined;
+        }
+    }
+    if (!cycle) {
+        // start a new cycle
+        cycle = start(state, target);
+
+        // see if the contents has been seeded
+        if (cycle.isInitial()) {
+            var seed = Options.findSeed(target);
+            if (seed) {
+                cycle.substitute(seed);
+            }
+        }
+    }
+    return cycle;
+}
+
+prototype.constructor.get = get;
+prototype.constructor.start = start;
+prototype.constructor.acquire = acquire;
+
+export {
+    AsyncRenderingCycle,
+};

@@ -4,14 +4,14 @@ import { expect } from 'chai';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Relaks, { useProgress, useRenderEvent, usePreviousProps, useSaveBuffer } from '../hooks';
+import Relaks, { useProgress, useRenderEvent, usePreviousProps, useSaveBuffer } from '../index';
 
 Enzyme.configure({ adapter: new Adapter() });
 
 describe('Hooks test', function() {
     describe('#useProgress()', function() {
         it ('should render the component', async function() {
-            const Test = Relaks(async (props) => {
+            const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress();
 
                 show(<div>Initial</div>, 'initial');
@@ -27,7 +27,7 @@ describe('Hooks test', function() {
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should show last progress when undefined is returned', async function() {
-            const Test = Relaks(async (props) => {
+            const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress();
 
                 show(<div>Initial</div>, 'initial');
@@ -43,7 +43,7 @@ describe('Hooks test', function() {
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should not render progress when promise resolve quickly', async function() {
-            const Test = Relaks(async (props) => {
+            const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress(200);
 
                 show(<div>Initial</div>, 'initial');
@@ -61,7 +61,7 @@ describe('Hooks test', function() {
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should render progress when promise resolve slowly', async function() {
-            const Test = Relaks(async (props) => {
+            const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress(50);
 
                 show(<div>Initial</div>, 'initial');
@@ -84,7 +84,7 @@ describe('Hooks test', function() {
     describe('#useRenderEvent()', function() {
         it ('should fire progress event', async function() {
             const events = [];
-            const Test = Relaks(async (props) => {
+            const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress(50);
 
                 useRenderEvent('progress', (evt) => {
@@ -109,7 +109,7 @@ describe('Hooks test', function() {
         })
         it ('should fire complete event when undefined is returned', async function() {
             const events = [];
-            const Test = Relaks(async (props) => {
+            const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress(50);
 
                 useRenderEvent('complete', (evt) => {
@@ -134,7 +134,7 @@ describe('Hooks test', function() {
         })
         it ('should fire complete event when an element is returned', async function() {
             const events = [];
-            const Test = Relaks(async (props) => {
+            const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress(50);
 
                 useRenderEvent('complete', (evt) => {

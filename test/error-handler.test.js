@@ -7,7 +7,17 @@ import Relaks, { AsyncComponent } from '../preact';
 /** @jsx h */
 
 describe('Error handler test', function() {
-    it ('should be called when error occurs in synchronous code of async component', function() {
+    // suppress Mocha's error handler during test
+    let mochaErrorHandler;
+    before(function() {
+        mochaErrorHandler = window.onerror;
+        window.onerror = null;
+    });
+    after(function() {
+        window.onerror = mochaErrorHandler;
+    });
+
+    it ('should be called when error occurs in synchronous code of async component', async function() {
         class Test extends AsyncComponent {
             renderAsync(meanwhile) {
                 throw new Error('Synchronous error');
@@ -20,6 +30,7 @@ describe('Error handler test', function() {
         });
         const wrapper = PreactRenderSpy.deep(<Test />);
 
+        await Bluebird.delay(250);
         expect(errorReceived).to.be.instanceof(Error);
     })
     it ('should be called when error occurs in synchronous code of async component', async function() {
@@ -34,6 +45,7 @@ describe('Error handler test', function() {
 
         let errorReceived;
         Relaks.set('errorHandler', (err) => {
+            console.log('[ERROR]')
             errorReceived = err;
         });
         const wrapper = PreactRenderSpy.deep(<Test />);
