@@ -52,9 +52,13 @@ describe('Save buffer', function() {
             const object = {
                 hello: 'world'
             };
+            let compared = false;
             const buffer = AsyncSaveBuffer.get(state, {
                 original: object,
-                compare: _.isEqual,
+                compare: (ours, theirs) => {
+                    compared = true;
+                    return _.isEqual(ours, theirs);
+                },
             });
             const newObject = {
                 hello: 'donut'
@@ -67,6 +71,7 @@ describe('Save buffer', function() {
             };
             buffer.set(newerObject);
             expect(buffer.changed).to.be.false;
+            expect(compared).to.be.true;
         })
     })
     describe('#assign()', function() {
@@ -271,8 +276,6 @@ describe('Save buffer', function() {
             expect(buffer.current).to.equal(merged);
             expect(buffer.changed).to.be.true;
         })
-
-
         it ('should call set saving to false when the result shows up', async function() {
             const state = [ 
                 {}, 

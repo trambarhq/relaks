@@ -1,10 +1,11 @@
+import _ from 'lodash';
 import Bluebird from 'bluebird';
 import React from 'react';
 import { expect } from 'chai';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Relaks, { useProgress, useRenderEvent, usePreviousProps } from '../index';
+import Relaks, { useProgress, useRenderEvent, usePreviousProps, useSaveBuffer } from '../index';
 
 Enzyme.configure({ adapter: new Adapter() });
 
@@ -161,6 +162,54 @@ describe('Hooks', function() {
     describe('#usePreviousProps()', function() {
         it ('should retrieve previous set of props', async function() {
             /* waiting for hook support */
+        })
+    })
+    describe('#useSaveBuffer()', function() {
+        it ('should update value in input field', async function() {
+            let saved;
+            let draftRef;
+            const Test = (props) => {
+                const { story } = props;
+                const draft = draftRef = useSaveBuffer({
+                    original: story,
+                    save: (base, ours) => {
+                        saved = ours;
+                        return _.clone(ours);
+                    },
+                    compare: _.isEqual,
+                    autosave: 100,
+                });
+                const handleChange = (evt) => {
+                    draft.assign({ title: evt.target.value });
+                };
+                return (
+                    <div>
+                        <input value={draft.current.title} onChange={handleChange} />
+                        <div id="changed">Changed: {draft.changed + ''}</div>
+                    </div>
+                );
+            };
+
+            const story = { title: 'Hello world' };
+            const props = { story };
+            const wrapper = Enzyme.mount(<Test {...props} />);
+            expect(wrapper.find('input').prop('value')).to.equal(story.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: false');
+
+            await Bluebird.delay(50);
+            const changes = { title: 'Goodbye cruel world!' };
+            draftRef.assign(changes);
+            await Bluebird.delay(50);
+
+            wrapper.update();
+            expect(wrapper.find('input').prop('value')).to.equal(changes.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: true');
+
+            await Bluebird.delay(150);
+            expect(saved).to.have.property('title', changes.title);
+            wrapper.setProps({ story: saved });
+            await Bluebird.delay(50);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: false');
         })
     })
 })
