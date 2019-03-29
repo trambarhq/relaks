@@ -4,11 +4,11 @@ import { expect } from 'chai';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Relaks, { useProgress, useRenderEvent, usePreviousProps, useSaveBuffer } from '../index';
+import Relaks, { useProgress, useRenderEvent, usePreviousProps } from '../index';
 
 Enzyme.configure({ adapter: new Adapter() });
 
-describe('Hooks test', function() {
+describe('Hooks', function() {
     describe('#useProgress()', function() {
         it ('should render the component', async function() {
             const Test = Relaks.memo(async (props) => {

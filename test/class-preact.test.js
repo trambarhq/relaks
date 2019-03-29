@@ -6,7 +6,7 @@ import { AsyncComponent } from '../preact';
 
 /** @jsx h */
 
-describe('Preact test', function() {
+describe('AsyncComponent (Preact)', function() {
     it ('should render the component', function() {
         class Test extends AsyncComponent {
             renderAsync(meanwhile, props) {

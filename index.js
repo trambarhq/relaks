@@ -15,3 +15,4 @@ export * from './class';
 export * from './hooks';
 export * from './async-rendering-cycle';
 export * from './async-rendering-interrupted';
+export * from './async-save-buffer';

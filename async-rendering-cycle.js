@@ -92,6 +92,7 @@ prototype.resolve = function(element) {
             if (this.progressElement !== undefined) {
                 element = this.progressElement;
             } else if (this.elementRendered) {
+                this.complete();
                 return;
             }
         }

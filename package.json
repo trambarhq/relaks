@@ -23,8 +23,8 @@
     "preact"
   ],
   "scripts": {
-    "test": "./node_modules/karma/bin/karma start --single-run --no-color",
-    "test:start": "./node_modules/karma/bin/karma start --no-color"
+    "test": "./node_modules/karma/bin/karma start --single-run --",
+    "test:start": "./node_modules/karma/bin/karma start --"
   },
   "devDependencies": {
     "babel-core": "^6.26.3",

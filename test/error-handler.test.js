@@ -17,7 +17,7 @@ describe('Error handler test', function() {
         window.onerror = mochaErrorHandler;
     });
 
-    it ('should be called when error occurs in synchronous code of async component', async function() {
+    it ('should be called when error occurs in synchronous code of async component', function() {
         class Test extends AsyncComponent {
             renderAsync(meanwhile) {
                 throw new Error('Synchronous error');
@@ -30,7 +30,6 @@ describe('Error handler test', function() {
         });
         const wrapper = PreactRenderSpy.deep(<Test />);
 
-        await Bluebird.delay(250);
         expect(errorReceived).to.be.instanceof(Error);
     })
     it ('should be called when error occurs in synchronous code of async component', async function() {

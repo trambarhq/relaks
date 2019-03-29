@@ -8,7 +8,7 @@ import { AsyncComponent } from '../index';
 
 Enzyme.configure({ adapter: new Adapter() });
 
-describe('ES6 test', function() {
+describe('AsyncComponent', function() {
     it ('should render the component', function() {
         class Test extends AsyncComponent {
             renderAsync(meanwhile) {
@@ -109,5 +109,20 @@ describe('ES6 test', function() {
         expect(wrapper.text()).to.equal('Initial');
         wrapper.unmount();
         expect(mounted).to.be.false;
+    })
+    it ('should work properly when ES7 async/await syntax is used', async function() {
+        class Test extends AsyncComponent {
+            async renderAsync(meanwhile, props) {
+                meanwhile.show(<div>Initial</div>, 'initial');
+                await Bluebird.delay(100);
+                return <div>Done</div>;
+            }
+        }
+
+        const wrapper = Enzyme.mount(<Test />);
+
+        expect(wrapper.text()).to.equal('Initial');
+        await Bluebird.delay(250);
+        expect(wrapper.text()).to.equal('Done');
     })
 })

@@ -1,12 +1,12 @@
+import React, { useState } from 'react';
+
 function AsyncSaveBuffer() {
 	this.params = undefined;
 	this.original = undefined;
 	this.current = undefined;
 	this.changed = false;
 	this.saving = false;
-	this.saved = null;
-	this.synchronizing = false;
-	this.synchronized = null;
+	this.saved = undefined;
 	this.promise = null;
 	this.error = null;
 	this.timeout = 0;
@@ -25,7 +25,7 @@ prototype.set = function(ours) {
 	} else {
 		this.current = ours;
 		this.changed = true;
-		this.autocommit();
+		this.autoCommit();
 	}
 	this.preserve(base, ours);
 	this.rerender();
@@ -37,6 +37,15 @@ prototype.assign = function(values /* ... */) {
 		Object.assign(newObject, arguments[i]);
 	}
 	this.set(newObject);
+};
+
+prototype.reset =function() {
+	var base = this.original;
+	this.cancelAutoCommit();
+	this.current = base;
+	this.changed = false;
+	this.preserve(base, base);
+	this.rerender();
 };
 
 prototype.commit = function() {
@@ -78,6 +87,13 @@ prototype.use = function(params) {
 		} else {
 			this.current = theirs;
 		}
+	} else if (this.saving) {
+		if (this.compare(this.saved, theirs)) {
+			this.current = theirs;
+			this.changed = false;
+			this.saving = false;
+			this.saved = undefined;
+		}
 	} else {
 		var base = this.original;
 		var ours = this.current;
@@ -94,10 +110,6 @@ prototype.use = function(params) {
 				}
 			} else {
 				this.current = theirs;
-			}
-			if (this.synchronizing) {
-				this.synchronizing = false;
-				this.synchronized = new Date;
 			}
 		}		
 	}
@@ -117,20 +129,18 @@ prototype.merge = function(base, ours, theirs) {
 };
 
 prototype.save = function(base, ours) {
-	var saveFunc = this.params.merge || saveDef;
+	var saveFunc = this.params.save || saveDef;
 	var promise = Promise.resolve(saveFunc(base, ours));
 	var _this = this;
 	_this.saving = true;
-	_this.synchronizing = true;
 	_this.promise = promise;
 	_this.rerender();
-	return promise.then(function() {
+	return promise.then(function(result) {
 		if (_this.promise === promise) {
-			_this.saving = false;
-			_this.saved = new Date;
+			_this.saved = result;
 			_this.promise = null;
-			_this.rerender();
 		}
+		return result;
 	});
 };
 
@@ -184,7 +194,7 @@ function restoreDef(theirs) {
 prototype.constructor.get = get;
 
 function useSaveBuffer(params) {
-	var state = useState();
+	var state = useState({});
 	return AsyncSaveBuffer.get(state, params);
 }
 
