@@ -5,7 +5,7 @@ import { expect } from 'chai';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Relaks, { useProgress, useRenderEvent, usePreviousProps, useSaveBuffer } from '../index';
+import Relaks, { useProgress, useRenderEvent, usePreviousProps, useSaveBuffer, useEventTime } from '../index';
 
 Enzyme.configure({ adapter: new Adapter() });
 
@@ -210,6 +210,22 @@ describe('Hooks', function() {
             wrapper.setProps({ story: saved });
             await Bluebird.delay(50);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
+        })
+    })
+    describe('#useEventTime()', function() {
+        it ('should set the time when the handler is called', async function() {
+            let func;
+            const Test = (props) => {
+                const [ date, setDate ] = useEventTime();
+                func = setDate;
+                return <div>{date ? date.toISOString() : ''}</div>;
+            };
+            const props = {};
+            const wrapper = Enzyme.mount(<Test {...props} />);
+
+            expect(wrapper.text()).to.equal('');
+            func({ type: 'test' });
+            expect(wrapper.text()).to.match(/^\d{4}-\d{2}-\d{2}/);
         })
     })
 })

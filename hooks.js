@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 // variable used for communicating between wrapper functions and hook functions 
@@ -95,6 +95,16 @@ function usePreviousProps(asyncCycle) {
 	return cycle.getPrevProps(asyncCycle);
 }
 
+function useEventTime() {
+	var state = useState();
+	var date = state[0];
+	var setDate = state[1];
+	var callback = useCallback(function(evt) {
+		setDate(new Date);
+	});
+	return [ date, callback ]; 
+}
+
 export {
 	use,
 	memo,
@@ -102,4 +112,5 @@ export {
 	useProgress,
 	useRenderEvent,
 	usePreviousProps,
+	useEventTime,
 };

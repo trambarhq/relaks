@@ -55,7 +55,7 @@ prototype.commit = function() {
 };
 
 prototype.autoCommit = function() {
-	var delay = this.params.autosave;
+	var delay = this.params.autosave || this.params.autoSave;
 	if (typeof(delay) === 'number') {
 		var _this = this;
 		this.timeout = setTimeout(function() {
@@ -88,7 +88,7 @@ prototype.use = function(params) {
 			this.current = theirs;
 		}
 	} else if (this.saving) {
-		if (this.compare(this.saved, theirs)) {
+		if (this.saved === NO_RETVAL || this.compare(this.saved, theirs)) {
 			this.current = theirs;
 			this.changed = false;
 			this.saving = false;
@@ -136,6 +136,9 @@ prototype.save = function(base, ours) {
 	_this.promise = promise;
 	_this.rerender();
 	return promise.then(function(result) {
+		if (result === undefined) {
+			result = NO_RETVAL;
+		}
 		if (_this.promise === promise) {
 			_this.saved = result;
 			_this.promise = null;
@@ -143,6 +146,8 @@ prototype.save = function(base, ours) {
 		return result;
 	});
 };
+
+var NO_RETVAL = {};
 
 prototype.preserve = function(base, ours) {
 	var preserveFunc = this.params.preserve || preserveDef;
