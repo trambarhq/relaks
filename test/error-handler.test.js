@@ -44,7 +44,6 @@ describe('Error handler test', function() {
 
         let errorReceived;
         Relaks.set('errorHandler', (err) => {
-            console.log('[ERROR]')
             errorReceived = err;
         });
         const wrapper = PreactRenderSpy.deep(<Test />);

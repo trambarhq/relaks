@@ -209,14 +209,7 @@ prototype.show = function(element, disposition) {
 prototype.update = function(forced) {
     this.progressAvailable = true;
     this.progressForced = forced;
-    if (this.synchronous) {
-        // no need to force renderering since we're still inside
-        // the synchronous function call and we can simply return 
-        // the progress element
-    } else {
-	    // indicate that rendering isn't triggered in the normal fashion
-	    this.rerender();
-    }
+    this.rerender();
 };
 
 
@@ -285,8 +278,6 @@ prototype.progress = function() {
 	this.notify('progress');
 };
 
-
-
 /**
  * Cancel the any scheduled rendering of progress
  */
@@ -301,9 +292,15 @@ prototype.clear = function() {
  * Force rendering by recreating the context object
  */
 prototype.rerender = function() {
+    if (this.synchronous) {
+        // no need to force renderering since we're still inside
+        // the synchronous function call and we can simply return 
+        // the progress element
+        return;
+    }
     if (!this.hasEnded()) {
 		if (this.context.cycle === this) {
-			this.setContext({ cycle: this });
+            this.setContext({ cycle: this });
 		}
 	}
 };
