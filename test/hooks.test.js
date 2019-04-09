@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import Bluebird from 'bluebird';
-import React from 'react';
+import React, { Component } from 'react';
 import { expect } from 'chai';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
@@ -80,6 +80,47 @@ describe('Hooks', function() {
             expect(wrapper.text()).to.be.equal('Progress');
             await Bluebird.delay(150);
             expect(wrapper.text()).to.equal('Done');
+        })
+        it ('should throw an error when show() is not called', async function () {
+            // suppress Mocha's error handler during test
+            let mochaErrorHandler = window.onerror;
+            window.onerror = null;
+
+            class Boundary extends Component {
+                constructor(props) {
+                    super(props);
+                    this.state = {};
+                }
+
+                static getDerivedStateFromError(error) {
+                    return { error };
+                }
+
+                render() {
+                    const { children } = this.props;
+                    const { error } = this.state;
+                    if (error) {
+                        return 'ERROR';
+                    } else {
+                        return children;
+                    }
+                }
+            }
+
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress(50);
+
+                await Bluebird.delay(25);
+                show(<div>Progress</div>);
+                await Bluebird.delay(100);
+                show(<div>Done</div>);
+            });
+
+            const props = {};
+            const wrapper = Enzyme.mount(<Boundary><Test {...props} /></Boundary>);
+            window.onerror = mochaErrorHandler;
+
+            expect(wrapper.text()).to.equal('ERROR');
         })
     }) 
     describe('#useRenderEvent()', function() {

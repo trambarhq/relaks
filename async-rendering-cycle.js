@@ -14,6 +14,7 @@ function AsyncRenderingCycle(func, props, prev) {
     this.delayRendered = get('delayWhenRendered');
     this.canceled = false;
     this.completed = false;
+    this.checked = false;
     this.initial = true;
     this.prevProps = {};
     this.prevPropsAsync = {};
@@ -69,16 +70,13 @@ prototype.run = function(f) {
         } else {
             this.resolve(promise);
         }
+        if (!this.checked) {
+            throw new Error('Missing call to show() prior to await');
+        }
     } catch (err) {
         this.reject(err);
     }
     this.synchronous = false;
-};
-
-prototype.startSync = function() {
-};
-
-prototype.endSync = function() {
 };
 
 prototype.resolve = function(element) {
@@ -234,6 +232,7 @@ prototype.check = function() {
             // throw exception to break promise chain
         throw new AsyncRenderingInterrupted;
     }
+    this.checked = true;
 };
 
 /**

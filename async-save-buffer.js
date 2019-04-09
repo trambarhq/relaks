@@ -198,13 +198,6 @@ function restoreDef(theirs) {
 
 prototype.constructor.get = get;
 
-function useSaveBuffer(params) {
-	var state = useState({});
-	return AsyncSaveBuffer.get(state, params);
-}
-
 export {
 	AsyncSaveBuffer,
-	
-	useSaveBuffer,
 };

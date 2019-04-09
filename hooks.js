@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
+import { AsyncSaveBuffer } from './async-save-buffer';
 
 // variable used for communicating between wrapper functions and hook functions 
 var state;
@@ -95,6 +96,11 @@ function usePreviousProps(asyncCycle) {
 	return cycle.getPrevProps(asyncCycle);
 }
 
+function useSaveBuffer(params) {
+	var state = useState({});
+	return AsyncSaveBuffer.get(state, params);
+}
+
 function useEventTime() {
 	var state = useState();
 	var date = state[0];
@@ -112,5 +118,6 @@ export {
 	useProgress,
 	useRenderEvent,
 	usePreviousProps,
+	useSaveBuffer,
 	useEventTime,
 };

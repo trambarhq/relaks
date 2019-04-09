@@ -1,5 +1,4 @@
 import { get, set, plant } from './options';
-import { use, memo } from './hooks';
 
 export default {
 	get: get,
