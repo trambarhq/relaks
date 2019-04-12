@@ -66,12 +66,12 @@ prototype.run = function(f) {
     try {
         var promise = f();
         if (promise && typeof(promise.then) === 'function') {
+            if (!this.checked) {
+                throw new Error('Missing call to show() prior to await');
+            }
             promise.then(this.resolve, this.reject);
         } else {
             this.resolve(promise);
-        }
-        if (!this.checked) {
-            throw new Error('Missing call to show() prior to await');
         }
     } catch (err) {
         this.reject(err);
@@ -146,7 +146,7 @@ prototype.substitute = function(element) {
 
     // schedule immediate rerendering so refs, callbacks are correct
     var _this = this;
-    setTimeout(function() { 
+    setTimeout(function() {
         _this.setContext({ cycle: _this });
     }, 0);
 };
@@ -218,6 +218,7 @@ prototype.update = function(forced) {
  * throw an exception to end it. Ensure component is mounted as well.
  */
 prototype.check = function() {
+    this.checked = true;
     if (this.noProgress) {
         return;
     }
@@ -225,7 +226,6 @@ prototype.check = function() {
             // throw exception to break promise chain
         throw new AsyncRenderingInterrupted;
     }
-    this.checked = true;
 };
 
 /**
@@ -294,7 +294,7 @@ prototype.clear = function() {
 prototype.rerender = function() {
     if (this.synchronous) {
         // no need to force renderering since we're still inside
-        // the synchronous function call and we can simply return 
+        // the synchronous function call and we can simply return
         // the progress element
         return;
     }
@@ -314,7 +314,7 @@ prototype.notify = function(name) {
 			elapsed: elapsed,
 			target: this.target,
 		};
-		f(evt);			
+		f(evt);
 	}
 };
 
