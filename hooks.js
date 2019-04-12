@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
-import { AsyncSaveBuffer } from './async-save-buffer';
 
-// variable used for communicating between wrapper functions and hook functions 
+// variable used for communicating between wrapper functions and hook functions
 var state;
 
 function use(asyncFunc) {
@@ -14,7 +13,7 @@ function use(asyncFunc) {
 
 		// cancel current cycle on unmount
 		useEffect(function() {
-			return function() { 
+			return function() {
 				if (!cycle.hasEnded()) {
 					cycle.cancel();
 				}
@@ -96,11 +95,6 @@ function usePreviousProps(asyncCycle) {
 	return cycle.getPrevProps(asyncCycle);
 }
 
-function useSaveBuffer(params) {
-	var state = useState({});
-	return AsyncSaveBuffer.get(state, params);
-}
-
 function useEventTime() {
 	var state = useState();
 	var date = state[0];
@@ -108,7 +102,7 @@ function useEventTime() {
 	var callback = useCallback(function(evt) {
 		setDate(new Date);
 	});
-	return [ date, callback ]; 
+	return [ date, callback ];
 }
 
 export {
@@ -118,6 +112,5 @@ export {
 	useProgress,
 	useRenderEvent,
 	usePreviousProps,
-	useSaveBuffer,
 	useEventTime,
 };

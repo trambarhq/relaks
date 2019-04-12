@@ -11,7 +11,7 @@ function AsyncSaveBuffer() {
 	this.error = null;
 	this.timeout = 0;
 	this.context = undefined;
-	this.setContext = undefined;	
+	this.setContext = undefined;
 }
 
 var prototype = AsyncSaveBuffer.prototype;
@@ -111,7 +111,7 @@ prototype.use = function(params) {
 			} else {
 				this.current = theirs;
 			}
-		}		
+		}
 	}
 	this.original = theirs;
 };
@@ -193,11 +193,17 @@ function saveDef(base, ours) {
 function preserveDef(base, ours) {
 }
 
-function restoreDef(theirs) {	
+function restoreDef(theirs) {
 }
 
 prototype.constructor.get = get;
 
+function useSaveBuffer(params) {
+	var state = useState({});
+	return AsyncSaveBuffer.get(state, params);
+}
+
 export {
 	AsyncSaveBuffer,
+	useSaveBuffer,
 };
