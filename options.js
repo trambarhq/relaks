@@ -16,7 +16,7 @@ function get(name) {
         case 'seeds':
             plant(value);
             break;
-    }    
+    }
 }
 
 function set(name, value) {
@@ -75,7 +75,7 @@ function findSeed(target) {
     }
 }
 
-export { 
+export {
     get,
     set,
 	plant,

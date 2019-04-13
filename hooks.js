@@ -42,7 +42,8 @@ function use(asyncFunc) {
 	// attach async function (that returns a promise to the final result)
 	syncFunc.renderAsyncEx = function(props) {
 		state = [ {}, function(v) {} ];
-		var cycle = AsyncRenderingCycle.start(state, syncFunc, props);
+		var target = { func: syncFunc, props };
+		var cycle = AsyncRenderingCycle.start(state, target);
 		cycle.noProgress = true;
 		var promise = asyncFunc(props);
 		state = undefined;

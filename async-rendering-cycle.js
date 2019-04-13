@@ -1,17 +1,17 @@
 import { AsyncRenderingInterrupted } from './async-rendering-interrupted';
 import * as Options from './options';
 
-function AsyncRenderingCycle(func, props, prev) {
+function AsyncRenderingCycle(target, prev) {
     this.progressElement = undefined;
     this.progressAvailable = false;
     this.progressForced = false;
     this.promisedElement = undefined;
     this.promisedAvailable = false;
-    this.elementRendered = null;
+    this.elementRendered = (prev) ? prev.elementRendered : null;
     this.deferredError = undefined;
     this.showingProgress = false;
-    this.delayEmpty = get('delayWhenEmpty');
-    this.delayRendered = get('delayWhenRendered');
+    this.delayEmpty = Options.get('delayWhenEmpty');
+    this.delayRendered = Options.get('delayWhenRendered');
     this.canceled = false;
     this.completed = false;
     this.checked = false;
@@ -23,7 +23,7 @@ function AsyncRenderingCycle(func, props, prev) {
     this.updateTimeout = 0;
     this.startTime = new Date;
     this.handlers = {};
-    this.target = { func: func, props: props };
+    this.target = target;
     this.context = undefined;
     this.setContext = undefined;
 
@@ -82,9 +82,6 @@ prototype.run = function(f) {
 
 prototype.resolve = function(element) {
     this.clear();
-    if (this.isRerendering()) {
-        throw new AsyncRenderingInterrupted;
-    }
 	if (!this.hasEnded()) {
         if (element === undefined) {
             // use the last progress element
@@ -115,7 +112,7 @@ prototype.reject = function(err) {
 
 prototype.mount = function() {
     this.mounted = true;
-    if (this.deferredError) {
+    if (this.isRerendering()) {
         this.rerender();
     }
 };
