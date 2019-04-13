@@ -53,6 +53,22 @@ prototype.render = function() {
     return element;
 };
 
+prototype.renderAsyncEx = function() {
+    var cycle = AsyncRenderingCycle.acquire(this.relaks, this);
+    cycle.noProgress = true;
+    var promise = this.renderAsync(cycle);
+    if (promise && typeof(promise.then) === 'function') {
+        return promise.then(function(element) {
+            if (element === undefined) {
+                element = cycle.progressElement;
+            }
+            return element;
+        });
+    } else {
+        return promise;
+    }
+};
+
 /**
  * Cancel any outstanding asynchronous rendering cycle on unmount.
  */

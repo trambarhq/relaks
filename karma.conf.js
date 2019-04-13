@@ -3,7 +3,6 @@ var Path = require('path');
 module.exports = function(config) {
     config.set({
         port: 9876,
-        colors: false,
         logLevel: config.LOG_WARNING,
         autoWatch: true,
         singleRun: false,

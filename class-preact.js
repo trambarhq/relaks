@@ -53,6 +53,22 @@ prototype.render = function(props, state, context) {
     return element;
 };
 
+prototype.renderAsyncEx = function() {
+    var cycle = AsyncRenderingCycle.acquire(this.relaks, this);
+    cycle.noProgress = true;
+    var promise = this.renderAsync(cycle, this.props, this.state, this.context);
+    if (promise && typeof(promise.then) === 'function') {
+        return promise.then(function(element) {
+            if (element === undefined) {
+                element = cycle.progressElement;
+            }
+            return element;
+        });
+    } else {
+        return promise;
+    }
+};
+
 /**
  * Return false if the component's props and state haven't changed.
  *

@@ -1,6 +1,6 @@
 import Bluebird from 'bluebird';
 import { expect } from 'chai';
-import PreactRenderSpy from 'preact-render-spy';
+import { deep } from 'preact-render-spy';
 import { h } from 'preact'
 import { AsyncComponent } from '../preact';
 
@@ -18,7 +18,7 @@ describe('AsyncComponent (Preact)', function() {
             }
         }
 
-        const wrapper = PreactRenderSpy.deep(<Test text="Done" />);
+        const wrapper = deep(<Test text="Done" />);
 
         expect(wrapper.text()).to.equal('Initial');
         return Bluebird.delay(250).then(() => {
@@ -54,7 +54,7 @@ describe('AsyncComponent (Preact)', function() {
 
         let mounted;
         const onMount = () => { mounted = true };
-        const wrapper = PreactRenderSpy.deep(<Test onMount={onMount} />);
+        const wrapper = deep(<Test onMount={onMount} />);
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
     })
@@ -88,7 +88,7 @@ describe('AsyncComponent (Preact)', function() {
         let mounted;
         const onMount = () => { mounted = true };
         const onUnmount = () => { mounted = false };
-        const wrapper = PreactRenderSpy.deep(<Test onMount={onMount} onUnmount={onUnmount} />);
+        const wrapper = deep(<Test onMount={onMount} onUnmount={onUnmount} />);
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
         wrapper.render(null);

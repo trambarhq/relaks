@@ -13,6 +13,7 @@ function use(asyncFunc) {
 
 		// cancel current cycle on unmount
 		useEffect(function() {
+			cycle.mount();
 			return function() {
 				if (!cycle.hasEnded()) {
 					cycle.cancel();
@@ -45,12 +46,16 @@ function use(asyncFunc) {
 		cycle.noProgress = true;
 		var promise = asyncFunc(props);
 		state = undefined;
-		return promise.then(function(element) {
-			if (element === undefined) {
-				element = cycle.progressElement;
-			}
-			return element;
-		});
+		if (promise && typeof(promise.then) === 'function') {
+			return promise.then(function(element) {
+				if (element === undefined) {
+					element = cycle.progressElement;
+				}
+				return element;
+			});
+		} else {
+			return promise;
+		}
 	};
 
 	// add prop types if available

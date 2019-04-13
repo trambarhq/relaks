@@ -15,7 +15,9 @@ function AsyncRenderingCycle(func, props, prev) {
     this.canceled = false;
     this.completed = false;
     this.checked = false;
+    this.mounted = false;
     this.initial = true;
+    this.synchronous = true;
     this.prevProps = {};
     this.prevPropsAsync = {};
     this.updateTimeout = 0;
@@ -62,7 +64,6 @@ prototype.isRerendering = function() {
 }
 
 prototype.run = function(f) {
-    this.synchronous = true;
     try {
         var promise = f();
         if (promise && typeof(promise.then) === 'function') {
@@ -110,6 +111,13 @@ prototype.reject = function(err) {
 			this.rerender();
 		}
 	}
+};
+
+prototype.mount = function() {
+    this.mounted = true;
+    if (this.deferredError) {
+        this.rerender();
+    }
 };
 
 prototype.getElement = function() {
@@ -298,9 +306,14 @@ prototype.rerender = function() {
         // the progress element
         return;
     }
+
     if (!this.hasEnded()) {
 		if (this.context.cycle === this) {
-            this.setContext({ cycle: this });
+            // don't change the state until after the component has mounted
+            // if an error has occurred, mount() will call this again
+            if (this.mounted) {
+                this.setContext({ cycle: this });
+            }
 		}
 	}
 };
