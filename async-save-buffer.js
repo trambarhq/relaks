@@ -18,14 +18,14 @@ var prototype = AsyncSaveBuffer.prototype;
 
 prototype.set = function(ours) {
 	var base = this.original;
-	this.cancelAutoCommit();
+	this.cancelAutosave();
 	if (this.compare(base, ours)) {
 		this.current = ours = base;
 		this.changed = false;
 	} else {
 		this.current = ours;
 		this.changed = true;
-		this.autoCommit();
+		this.autosave();
 	}
 	this.preserve(base, ours);
 	this.rerender();
@@ -41,20 +41,37 @@ prototype.assign = function(values /* ... */) {
 
 prototype.reset =function() {
 	var base = this.original;
-	this.cancelAutoCommit();
+	this.cancelAutosave();
 	this.current = base;
 	this.changed = false;
-	this.preserve(base, base);
+	this.preserve(base, null);
 	this.rerender();
 };
 
-prototype.commit = function() {
+var NO_RETVAL = {};
+
+prototype.save = function() {
 	var base = this.original;
 	var ours = this.current;
-	return this.save(base, ours);
+	var saveFunc = this.params.save || saveDef;
+	var promise = Promise.resolve(saveFunc(base, ours));
+	var _this = this;
+	_this.saving = true;
+	_this.promise = promise;
+	_this.rerender();
+	return promise.then(function(result) {
+		if (result === undefined) {
+			result = NO_RETVAL;
+		}
+		if (_this.promise === promise) {
+			_this.saved = result;
+			_this.promise = null;
+		}
+		return result;
+	});
 };
 
-prototype.autoCommit = function() {
+prototype.autosave = function() {
 	var delay = this.params.autosave || this.params.autoSave;
 	if (typeof(delay) === 'number') {
 		var _this = this;
@@ -67,11 +84,49 @@ prototype.autoCommit = function() {
 	}
 };
 
-prototype.cancelAutoCommit = function() {
+prototype.cancelAutosave = function() {
 	if (this.timeout) {
 		clearTimeout(this.timeout);
 		this.timeout = 0;
 	}
+};
+
+prototype.cancel =function() {
+	var base = this.original;
+	this.cancelAutosave();
+	this.preserve(base, null);
+};
+
+prototype.delete = function() {
+	var base = this.original;
+	var ours = this.current;
+	this.preserve(base, null);
+	var deleteFunc = this.params.delete || deleteDef;
+	return deleteFunc(base, ours);
+};
+
+prototype.compare = function(ours, theirs) {
+	var compareFunc = this.params.compare || compareDef;
+	return compareFunc(ours, theirs);
+};
+
+prototype.merge = function(base, ours, theirs) {
+	var mergeFunc = this.params.merge || mergeDef;
+	return mergeFunc(base, ours, theirs);
+};
+
+prototype.preserve = function(base, ours) {
+	var preserveFunc = this.params.preserve || preserveDef;
+	preserveFunc(base, ours);
+};
+
+prototype.restore = function(theirs) {
+	var restoreFunc = this.params.restore || restoreDef;
+	return restoreFunc(theirs);
+};
+
+prototype.rerender = function() {
+	this.setContext({ buffer: this });
 };
 
 prototype.use = function(params) {
@@ -106,7 +161,8 @@ prototype.use = function(params) {
 				} else {
 					this.current = theirs;
 					this.changed = false;
-					this.cancelAutoCommit();
+					this.cancelAutosave();
+					this.preserve(base, null);
 				}
 			} else {
 				this.current = theirs;
@@ -114,53 +170,6 @@ prototype.use = function(params) {
 		}
 	}
 	this.original = theirs;
-};
-
-prototype.compare = function(ours, theirs) {
-	var compareFunc = this.params.compare || compareDef;
-	var match = compareFunc(ours, theirs);
-	return match;
-};
-
-prototype.merge = function(base, ours, theirs) {
-	var mergeFunc = this.params.merge || mergeDef;
-	var merged = mergeFunc(base, ours, theirs);
-	return merged;
-};
-
-prototype.save = function(base, ours) {
-	var saveFunc = this.params.save || saveDef;
-	var promise = Promise.resolve(saveFunc(base, ours));
-	var _this = this;
-	_this.saving = true;
-	_this.promise = promise;
-	_this.rerender();
-	return promise.then(function(result) {
-		if (result === undefined) {
-			result = NO_RETVAL;
-		}
-		if (_this.promise === promise) {
-			_this.saved = result;
-			_this.promise = null;
-		}
-		return result;
-	});
-};
-
-var NO_RETVAL = {};
-
-prototype.preserve = function(base, ours) {
-	var preserveFunc = this.params.preserve || preserveDef;
-	preserveFunc(base, ours);
-};
-
-prototype.restore = function(theirs) {
-	var restoreFunc = this.params.restore || restoreDef;
-	return restoreDef(theirs);
-};
-
-prototype.rerender = function() {
-	this.setContext({ buffer: this });
 };
 
 function get(state, params) {
@@ -190,10 +199,14 @@ function saveDef(base, ours) {
 	throw new Error('No save function');
 }
 
+function deleteDef(base, ours) {
+	throw new Error('No delete function');
+}
+
 function preserveDef(base, ours) {
 }
 
-function restoreDef(theirs) {
+function restoreDef(base) {
 }
 
 prototype.constructor.get = get;
