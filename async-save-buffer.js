@@ -67,6 +67,7 @@ prototype.save = function() {
 			_this.saved = result;
 			_this.promise = null;
 		}
+		_this.preserve(base, null);
 		return result;
 	});
 };
