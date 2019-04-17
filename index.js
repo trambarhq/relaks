@@ -7,7 +7,7 @@ export default {
 	plant: plant,
 
 	use: use,
-	memo: memo,	
+	memo: memo,
 };
 
 export * from './options';
@@ -16,3 +16,4 @@ export * from './hooks';
 export * from './async-rendering-cycle';
 export * from './async-rendering-interrupted';
 export * from './async-save-buffer';
+export * from './sticky-selection';
