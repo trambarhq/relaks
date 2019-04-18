@@ -92,12 +92,6 @@ prototype.cancelAutosave = function() {
 	}
 };
 
-prototype.cancel =function() {
-	var base = this.original;
-	this.cancelAutosave();
-	this.preserve(base, null);
-};
-
 prototype.delete = function() {
 	var base = this.original;
 	var ours = this.current;

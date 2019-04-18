@@ -17,7 +17,7 @@ function AsyncRenderingCycle(target, prev) {
     this.checked = false;
     this.mounted = false;
     this.initial = true;
-    this.synchronous = true;
+    this.synchronous = false;
     this.prevProps = {};
     this.prevPropsAsync = {};
     this.updateTimeout = 0;
@@ -64,6 +64,7 @@ prototype.isRerendering = function() {
 }
 
 prototype.run = function(f) {
+    this.synchronous = true;
     try {
         var promise = f();
         if (promise && typeof(promise.then) === 'function') {
@@ -223,12 +224,16 @@ prototype.update = function(forced) {
  * throw an exception to end it. Ensure component is mounted as well.
  */
 prototype.check = function() {
-    this.checked = true;
     if (this.noProgress) {
         return;
     }
-    if (this.canceled || this.isRerendering()) {
-            // throw exception to break promise chain
+    if (this.synchronous) {
+        this.checked = true;
+        if (this.isRerendering()) {
+            throw new AsyncRenderingInterrupted;
+        }
+    }
+    if (this.canceled) {
         throw new AsyncRenderingInterrupted;
     }
 };
