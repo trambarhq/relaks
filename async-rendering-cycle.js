@@ -34,15 +34,14 @@ function AsyncRenderingCycle(target, prev) {
     this.reject = this.reject.bind(this);
 
     if (prev) {
-        this.prevProps = prev.props;
+        this.prevProps = prev.target.props;
         if (prev.canceled) {
             this.prevPropsAsync = prev.prevPropsAsync;
-            this.initial = prev.initial;
         } else {
-            this.prevPropsAsync = prev.props;
-            this.initial = false;
+            this.prevPropsAsync = prev.target.props;
         }
         this.elementRendered = prev.elementRendered;
+        this.initial = false;
     }
 }
 
@@ -50,10 +49,6 @@ var prototype = AsyncRenderingCycle.prototype;
 
 prototype.hasEnded = function() {
 	return this.completed || this.canceled;
-};
-
-prototype.isInitial = function() {
-	return this.initial && !this.showingProgress;
 };
 
 prototype.isRerendering = function() {
@@ -112,7 +107,9 @@ prototype.reject = function(err) {
     if (!(err instanceof AsyncRenderingInterrupted)) {
     	if (!this.hasEnded()) {
 			this.deferredError = err;
-			this.rerender();
+            if (this.mounted) {
+                this.rerender();
+            }
 		}
 	}
 };
@@ -183,9 +180,9 @@ prototype.show = function(element, disposition) {
     	delay = 0;
     } else if (disposition === 'always') {
         delay = 0;
-	} else if (disposition === 'initial' && this.isInitial()) {
+	} else if (disposition === 'initial' && !this.elementRendered) {
 		delay = 0;
-    } else if (this.isInitial()) {
+    } else if (!this.elementRendered) {
     	delay = this.delayEmpty;
     } else {
 		delay = this.delayRendered;
@@ -195,15 +192,17 @@ prototype.show = function(element, disposition) {
         if (delay !== Infinity) {
             // show progress after a brief delay, to allow
             // it to be bypassed by fast-resolving promises
-            var _this = this;
-            this.updateTimeout = setTimeout(function() {
-                // if the timeout is 0, then clearTimeout() was called on it
-                // this function might still run on occasion afterward, due to
-                // the way timeouts are scheduled
-                if (_this.updateTimeout !== 0) {
-                    _this.update();
-                }
-            }, delay);
+            if (!this.updateTimeout) {
+                var _this = this;
+                this.updateTimeout = setTimeout(function() {
+                    // if the timeout is 0, then clearTimeout() was called on it
+                    // this function might still run on occasion afterward, due to
+                    // the way timeouts are scheduled
+                    if (_this.updateTimeout !== 0) {
+                        _this.update();
+                    }
+                }, delay);
+            }
         }
         return false;
     } else {
@@ -221,7 +220,12 @@ prototype.show = function(element, disposition) {
 prototype.update = function(forced) {
     this.progressAvailable = true;
     this.progressForced = forced;
-    this.rerender();
+
+    // force rerendering only if the component is mounted or during the
+    // initial rendering cycle (React seems to be able to handle that)
+    if (this.initial || this.mounted) {
+        this.rerender();
+    }
 };
 
 
@@ -317,11 +321,7 @@ prototype.rerender = function() {
 
     if (!this.hasEnded()) {
 		if (this.context.cycle === this) {
-            // don't change the state until after the component has mounted
-            // if an error has occurred, mount() will call this again
-            if (this.mounted) {
-                this.setContext({ cycle: this });
-            }
+            this.setContext({ cycle: this });
 		}
 	}
 };
@@ -378,7 +378,7 @@ function acquire(state, target) {
         cycle = start(state, target);
 
         // see if the contents has been seeded
-        if (cycle.isInitial()) {
+        if (cycle.initial) {
             var seed = Options.findSeed(target);
             if (seed) {
                 cycle.substitute(seed);

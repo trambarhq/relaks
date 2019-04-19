@@ -43,6 +43,18 @@ describe('Hooks', function() {
             await delay(250);
             expect(wrapper.text()).to.equal('Done');
         })
+        it ('should be able handle immediate availability of contents', async function() {
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress();
+                show(<div>Done</div>);
+            });
+
+            const props = {};
+            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+
+            await delay(50);
+            expect(wrapper.text()).to.equal('Done');
+        })
         it ('should not render progress when promise resolve quickly', async function() {
             const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress(200);
