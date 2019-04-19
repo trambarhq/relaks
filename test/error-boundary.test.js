@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Relaks, { AsyncComponent } from '../index';
+import Relaks, { AsyncComponent, useProgress } from '../index';
 
 Enzyme.configure({ adapter: new Adapter() });
 
@@ -72,6 +72,24 @@ describe('Error boundary test', function() {
         const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
         expect(wrapper.text()).to.equal('Initial');
         await delay(250);
+        expect(wrapper.text()).to.equal('Asynchronous error');
+    })
+    it ('should catch error in functional component', function() {
+        function Test() {
+            throw new Error('Synchronous error');
+        }
+
+        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
+        expect(wrapper.text()).to.equal('Synchronous error');
+    })
+    it ('should catch error in async functional component', async function() {
+        const Test = Relaks.memo(async function() {
+            const [ show ] = useProgress();
+            throw new Error('Asynchronous error');
+        });
+
+        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
+        await delay(50);
         expect(wrapper.text()).to.equal('Asynchronous error');
     })
 })

@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import Bluebird from 'bluebird';
+import { delay } from 'bluebird';
 import React, { Component } from 'react';
 import { expect } from 'chai';
 import Enzyme from 'enzyme';
@@ -16,7 +16,7 @@ describe('Hooks', function() {
                 const [ show ] = useProgress();
 
                 show(<div>Initial</div>, 'initial');
-                await Bluebird.delay(100);
+                await delay(100);
                 return <div>Done</div>;
             });
 
@@ -24,7 +24,7 @@ describe('Hooks', function() {
             const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
 
             expect(wrapper.text()).to.equal('Initial');
-            await Bluebird.delay(250);
+            await delay(250);
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should show last progress when undefined is returned', async function() {
@@ -32,7 +32,7 @@ describe('Hooks', function() {
                 const [ show ] = useProgress();
 
                 show(<div>Initial</div>, 'initial');
-                await Bluebird.delay(100);
+                await delay(100);
                 show(<div>Done</div>);
             });
 
@@ -40,7 +40,7 @@ describe('Hooks', function() {
             const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
 
             expect(wrapper.text()).to.equal('Initial');
-            await Bluebird.delay(250);
+            await delay(250);
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should not render progress when promise resolve quickly', async function() {
@@ -48,9 +48,9 @@ describe('Hooks', function() {
                 const [ show ] = useProgress(200);
 
                 show(<div>Initial</div>, 'initial');
-                await Bluebird.delay(25);
+                await delay(25);
                 show(<div>Progress</div>);
-                await Bluebird.delay(50);
+                await delay(50);
                 show(<div>Done</div>);
             });
 
@@ -58,7 +58,7 @@ describe('Hooks', function() {
             const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
 
             expect(wrapper.text()).to.be.equal('Initial');
-            await Bluebird.delay(150);
+            await delay(150);
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should render progress when promise resolve slowly', async function() {
@@ -66,9 +66,9 @@ describe('Hooks', function() {
                 const [ show ] = useProgress(50);
 
                 show(<div>Initial</div>, 'initial');
-                await Bluebird.delay(25);
+                await delay(25);
                 show(<div>Progress</div>);
-                await Bluebird.delay(100);
+                await delay(100);
                 show(<div>Done</div>);
             });
 
@@ -76,9 +76,9 @@ describe('Hooks', function() {
             const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
 
             expect(wrapper.text()).to.be.equal('Initial');
-            await Bluebird.delay(75);
+            await delay(75);
             expect(wrapper.text()).to.be.equal('Progress');
-            await Bluebird.delay(150);
+            await delay(150);
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should throw an error when show() is not called', async function () {
@@ -110,19 +110,64 @@ describe('Hooks', function() {
             const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress(50);
 
-                await Bluebird.delay(25);
+                await delay(25);
                 show(<div>Progress</div>);
-                await Bluebird.delay(100);
+                await delay(50);
                 show(<div>Done</div>);
             });
 
             const props = {};
             const wrapper = Enzyme.mount(<Boundary><Test {...props} /></Boundary>);
-            window.onerror = mochaErrorHandler;
 
+            await delay(100);
+            window.onerror = mochaErrorHandler;
             expect(wrapper.text()).to.equal('ERROR');
         })
-    }) 
+        it ('should error thrown prior to show() to get through', async function () {
+            // suppress Mocha's error handler during test
+            let mochaErrorHandler = window.onerror;
+            window.onerror = null;
+
+            class Boundary extends Component {
+                constructor(props) {
+                    super(props);
+                    this.state = {};
+                }
+
+                static getDerivedStateFromError(error) {
+                    return { error };
+                }
+
+                render() {
+                    const { children } = this.props;
+                    const { error } = this.state;
+                    if (error) {
+                        return error.message;
+                    } else {
+                        return children;
+                    }
+                }
+            }
+
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress(50);
+
+                throw new Error('Early error');
+                show(<div>Initial</div>, 'initial');
+                await delay(25);
+                show(<div>Progress</div>);
+                await delay(50);
+                show(<div>Done</div>);
+            });
+
+            const props = {};
+            const wrapper = Enzyme.mount(<Boundary><Test {...props} /></Boundary>);
+
+            await delay(100);
+            window.onerror = mochaErrorHandler;
+            expect(wrapper.text()).to.equal('Early error');
+        })
+    })
     describe('#useRenderEvent()', function() {
         it ('should fire progress event', async function() {
             const events = [];
@@ -134,16 +179,16 @@ describe('Hooks', function() {
                 });
 
                 show(<div>Initial</div>, 'initial');
-                await Bluebird.delay(25);
+                await delay(25);
                 show(<div>Progress</div>);
-                await Bluebird.delay(100);
+                await delay(100);
                 show(<div>Done</div>);
             });
 
             const props = {};
             const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
 
-            await Bluebird.delay(150);
+            await delay(150);
             expect(wrapper.text()).to.equal('Done');
             expect(events).to.be.an('array').with.lengthOf(3);
             expect(events[1]).to.have.property('target');
@@ -159,16 +204,16 @@ describe('Hooks', function() {
                 });
 
                 show(<div>Initial</div>, 'initial');
-                await Bluebird.delay(25);
+                await delay(25);
                 show(<div>Progress</div>);
-                await Bluebird.delay(100);
+                await delay(100);
                 show(<div>Done</div>);
             });
 
             const props = {};
             const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
 
-            await Bluebird.delay(150);
+            await delay(150);
             expect(wrapper.text()).to.equal('Done');
             expect(events).to.be.an('array').with.lengthOf(1);
             expect(events[0]).to.have.property('target');
@@ -184,16 +229,16 @@ describe('Hooks', function() {
                 });
 
                 show(<div>Initial</div>, 'initial');
-                await Bluebird.delay(25);
+                await delay(25);
                 show(<div>Progress</div>);
-                await Bluebird.delay(100);
+                await delay(100);
                 return <div>Done</div>;
             });
 
             const props = {};
             const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
 
-            await Bluebird.delay(150);
+            await delay(150);
             expect(wrapper.text()).to.equal('Done');
             expect(events).to.be.an('array').with.lengthOf(1);
             expect(events[0]).to.have.property('target');
@@ -237,19 +282,19 @@ describe('Hooks', function() {
             expect(wrapper.find('input').prop('value')).to.equal(story.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
 
-            await Bluebird.delay(50);
+            await delay(50);
             const changes = { title: 'Goodbye cruel world!' };
             draftRef.assign(changes);
-            await Bluebird.delay(50);
+            await delay(50);
 
             wrapper.update();
             expect(wrapper.find('input').prop('value')).to.equal(changes.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: true');
 
-            await Bluebird.delay(150);
+            await delay(150);
             expect(saved).to.have.property('title', changes.title);
             wrapper.setProps({ story: saved });
-            await Bluebird.delay(50);
+            await delay(50);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
         })
     })

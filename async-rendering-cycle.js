@@ -64,13 +64,14 @@ prototype.isRerendering = function() {
 }
 
 prototype.run = function(f) {
+    if (this.deferredError) {
+        // don't bother running the function when we're going to throw anyway
+        return;
+    }
     this.synchronous = true;
     try {
         var promise = f();
         if (promise && typeof(promise.then) === 'function') {
-            if (!this.checked) {
-                throw new Error('Missing call to show() prior to await');
-            }
             promise.then(this.resolve, this.reject);
         } else {
             this.resolve(promise);
@@ -84,6 +85,11 @@ prototype.run = function(f) {
 prototype.resolve = function(element) {
     this.clear();
 	if (!this.hasEnded()) {
+        if (!this.checked) {
+            this.reject(new Error('Missing call to show() prior to await'));
+            return;
+        }
+
         if (element === undefined) {
             // use the last progress element
             if (this.progressElement !== undefined) {
