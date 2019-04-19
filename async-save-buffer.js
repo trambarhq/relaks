@@ -79,7 +79,7 @@ prototype.autosave = function() {
 		this.timeout = setTimeout(function() {
 			if (_this.timeout !== 0) {
 				_this.timeout = 0;
-				_this.commit();
+				_this.save();
 			}
 		}, delay);
 	}

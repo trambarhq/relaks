@@ -1,14 +1,14 @@
 import _ from 'lodash';
-import Bluebird from 'bluebird';
+import { delay } from 'bluebird';
 import { expect } from 'chai';
 
 import { AsyncSaveBuffer } from '../index';
 
 describe('Save buffer', function() {
     it ('should return the original value', async function() {
-        const state = [ 
-            {}, 
-            function(v) { state[0] = v } 
+        const state = [
+            {},
+            function(v) { state[0] = v }
         ];
         const object = {
             hello: 'world'
@@ -22,12 +22,12 @@ describe('Save buffer', function() {
     describe('#set()', function() {
         it ('should set the current value', async function() {
             let updated = false;
-            const state = [ 
-                {}, 
-                function(v) { 
-                    state[0] = v; 
+            const state = [
+                {},
+                function(v) {
+                    state[0] = v;
                     updated = true;
-                } 
+                }
             ];
             const object = {
                 hello: 'world'
@@ -45,9 +45,9 @@ describe('Save buffer', function() {
             expect(updated).to.be.true;
         })
         it ('should set changed to false when given what matches the original', async function() {
-            const state = [ 
-                {}, 
-                function(v) { state[0] = v } 
+            const state = [
+                {},
+                function(v) { state[0] = v }
             ];
             const object = {
                 hello: 'world'
@@ -65,7 +65,7 @@ describe('Save buffer', function() {
             };
             buffer.set(newObject);
             expect(buffer.changed).to.be.true;
-            await Bluebird.delay(50);
+            await delay(50);
             const newerObject = {
                 hello: 'world'
             };
@@ -76,11 +76,11 @@ describe('Save buffer', function() {
     })
     describe('#assign()', function() {
         it ('should assign properties to object', async function() {
-            const state = [ 
-                {}, 
-                function(v) { 
-                    state[0] = v; 
-                } 
+            const state = [
+                {},
+                function(v) {
+                    state[0] = v;
+                }
             ];
             const object = {
                 hello: 'world'
@@ -94,11 +94,11 @@ describe('Save buffer', function() {
             expect(buffer.changed).to.be.true;
         })
         it ('should accept multiple parameters', async function() {
-            const state = [ 
-                {}, 
-                function(v) { 
-                    state[0] = v; 
-                } 
+            const state = [
+                {},
+                function(v) {
+                    state[0] = v;
+                }
             ];
             const object = {
                 hello: 'world'
@@ -110,11 +110,11 @@ describe('Save buffer', function() {
             expect(buffer.current).to.deep.equal({ hello: 'chicken', world: 'beef' });
         })
         it ('should tolerate null and undefined', async function() {
-            const state = [ 
-                {}, 
-                function(v) { 
-                    state[0] = v; 
-                } 
+            const state = [
+                {},
+                function(v) {
+                    state[0] = v;
+                }
             ];
             const object = {
                 hello: 'world'
@@ -126,11 +126,11 @@ describe('Save buffer', function() {
             expect(buffer.current).to.deep.equal({ hello: 'chicken' });
         })
         it ('should trigger autosave', async function() {
-            const state = [ 
-                {}, 
-                function(v) { 
-                    state[0] = v; 
-                } 
+            const state = [
+                {},
+                function(v) {
+                    state[0] = v;
+                }
             ];
             const object = {
                 hello: 'world'
@@ -139,7 +139,7 @@ describe('Save buffer', function() {
             const buffer = AsyncSaveBuffer.get(state, {
                 original: object,
                 save: async function(theirs, ours) {
-                    await Bluebird.delay(50);
+                    await delay(50);
                     saved = ours;
                 },
                 autosave: 50,
@@ -149,17 +149,17 @@ describe('Save buffer', function() {
             expect(buffer.current).to.deep.equal({ hello: 'chicken' });
             expect(buffer.changed).to.be.true;
 
-            await Bluebird.delay(200);
+            await delay(200);
             expect(saved).to.deep.equal({ hello: 'chicken' });
         })
     })
     describe('#reset()', function() {
         it ('should reset the current value back to the original', async function() {
-            const state = [ 
-                {}, 
-                function(v) { 
-                    state[0] = v; 
-                } 
+            const state = [
+                {},
+                function(v) {
+                    state[0] = v;
+                }
             ];
             const object = {
                 hello: 'world'
@@ -177,20 +177,20 @@ describe('Save buffer', function() {
             expect(buffer.changed).to.be.false;
         })
     })
-    describe('#commit()', function() {
+    describe('#save()', function() {
         it ('should call supplied save() function', async function() {
-            const state = [ 
-                {}, 
-                function(v) { 
-                    state[0] = v; 
-                } 
+            const state = [
+                {},
+                function(v) {
+                    state[0] = v;
+                }
             ];
             const object = {
                 hello: 'world'
             };
             let saved;
             const save = async function(theirs, ours) {
-                await Bluebird.delay(50);
+                await delay(50);
                 saved = ours;
                 return saved;
             };
@@ -203,7 +203,7 @@ describe('Save buffer', function() {
             expect(buffer.current).to.deep.equal({ hello: 'chicken' });
             expect(buffer.changed).to.be.true;
 
-            let promise = buffer.commit();
+            let promise = buffer.save();
             expect(buffer.saving).to.be.true;
             await promise;
             expect(saved).to.deep.equal({ hello: 'chicken' });
@@ -211,9 +211,9 @@ describe('Save buffer', function() {
     })
     describe('#use()', function() {
         it ('should set current to new original value when there are no changes', async function() {
-            const state = [ 
-                {}, 
-                function(v) { state[0] = v } 
+            const state = [
+                {},
+                function(v) { state[0] = v }
             ];
             const object = {
                 hello: 'world'
@@ -235,9 +235,9 @@ describe('Save buffer', function() {
             expect(buffer.changed).to.be.false;
         })
         it ('should trigger a merge when there are changes', async function() {
-            const state = [ 
-                {}, 
-                function(v) { state[0] = v } 
+            const state = [
+                {},
+                function(v) { state[0] = v }
             ];
             const object = {
                 hello: 'world'
@@ -277,18 +277,18 @@ describe('Save buffer', function() {
             expect(buffer.changed).to.be.true;
         })
         it ('should call set saving to false when the result shows up', async function() {
-            const state = [ 
-                {}, 
-                function(v) { 
-                    state[0] = v; 
-                } 
+            const state = [
+                {},
+                function(v) {
+                    state[0] = v;
+                }
             ];
             const object = {
                 hello: 'world'
             };
             let saved;
             const save = async function(theirs, ours) {
-                await Bluebird.delay(50);
+                await delay(50);
                 saved = ours;
                 return saved;
             };
@@ -301,7 +301,7 @@ describe('Save buffer', function() {
             expect(buffer.current).to.deep.equal({ hello: 'chicken' });
             expect(buffer.changed).to.be.true;
 
-            let promise = buffer.commit();
+            let promise = buffer.save();
             expect(buffer.saving).to.be.true;
             await promise;
             expect(saved).to.deep.equal({ hello: 'chicken' });

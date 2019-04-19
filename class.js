@@ -34,6 +34,7 @@ prototype.render = function() {
 			return _this.renderAsync(cycle);
 		});
 	}
+    cycle.mounted = true;
 
 	// throw error that had occurred in async code
 	var error = cycle.getError();

@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import { delay } from 'bluebird';
 import React, { Component } from 'react';
 import { expect } from 'chai';
 import Enzyme from 'enzyme';
@@ -64,15 +64,14 @@ describe('Error boundary test', function() {
         class Test extends AsyncComponent {
             async renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
-                await Bluebird.delay(100);
+                await delay(100);
                 throw new Error('Asynchronous error');
             }
         }
 
         const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
         expect(wrapper.text()).to.equal('Initial');
-        await Bluebird.delay(250);
+        await delay(250);
         expect(wrapper.text()).to.equal('Asynchronous error');
     })
 })
-

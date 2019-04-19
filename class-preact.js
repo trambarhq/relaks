@@ -38,6 +38,7 @@ prototype.render = function(props, state, context) {
 			return _this.renderAsync(cycle, props, state, context);
 		});
 	}
+    cycle.mounted = true;
 
 	// throw error that had occurred in async code
 	var error = cycle.getError();

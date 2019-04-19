@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import { delay } from 'bluebird';
 import { expect } from 'chai';
 import PreactRenderSpy from 'preact-render-spy';
 import { h } from 'preact'
@@ -34,11 +34,10 @@ describe('Error handler test', function() {
     })
     it ('should be called when error occurs in synchronous code of async component', async function() {
         class Test extends AsyncComponent {
-            renderAsync(meanwhile) {
+            async renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
-                return Bluebird.delay(100).then(() => {
-                    throw new Error('Asynchronous error');
-                });
+                await delay(100);
+                throw new Error('Asynchronous error');
             }
         }
 
@@ -49,7 +48,7 @@ describe('Error handler test', function() {
         const wrapper = PreactRenderSpy.deep(<Test />);
 
         expect(wrapper.text()).to.equal('Initial');
-        await Bluebird.delay(250);
+        await delay(250);
         expect(errorReceived).to.be.instanceof(Error);
     })
 })

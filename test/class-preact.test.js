@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import { delay } from 'bluebird';
 import { expect } from 'chai';
 import { deep } from 'preact-render-spy';
 import { h } from 'preact'
@@ -7,31 +7,28 @@ import { AsyncComponent } from '../preact';
 /** @jsx h */
 
 describe('AsyncComponent (Preact)', function() {
-    it ('should render the component', function() {
+    it ('should render the component', async function() {
         class Test extends AsyncComponent {
-            renderAsync(meanwhile, props) {
+            async renderAsync(meanwhile, props) {
                 const { text } = props;
                 meanwhile.show(<div>Initial</div>, 'initial');
-                return Bluebird.delay(100).then(() => {
-                    return <div>{text}</div>;
-                });
+                await delay(100);
+                return <div>{text}</div>;
             }
         }
 
         const wrapper = deep(<Test text="Done" />);
 
         expect(wrapper.text()).to.equal('Initial');
-        return Bluebird.delay(250).then(() => {
-            expect(wrapper.text()).to.equal('Done');
-        });
+        await delay(250);
+        expect(wrapper.text()).to.equal('Done');
     })
-    it ('should call componentWillMount()', function() {
+    it ('should call componentWillMount()', async function() {
         class Test extends AsyncComponent {
-            renderAsync(meanwhile, props) {
+            async renderAsync(meanwhile, props) {
                 meanwhile.show(<div>Initial</div>, 'initial');
-                return Bluebird.delay(100).then(() => {
-                    return <div>Done</div>;
-                });
+                await delay(100);
+                return <div>Done</div>;
             }
 
             componentDidMount() {
@@ -58,13 +55,12 @@ describe('AsyncComponent (Preact)', function() {
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
     })
-    it ('should allow unmounting before rendering cycle finishes', function() {
+    it ('should allow unmounting before rendering cycle finishes', async function() {
         class Test extends AsyncComponent {
-            renderAsync(meanwhile, props) {
+            async renderAsync(meanwhile, props) {
                 meanwhile.show(<div>Initial</div>, 'initial');
-                return Bluebird.delay(100).then(() => {
-                    return <div>Done</div>;
-                });
+                await delay(100);
+                return <div>Done</div>;
             }
 
             componentDidMount() {

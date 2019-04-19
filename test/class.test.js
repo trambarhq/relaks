@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import { delay } from 'bluebird';
 import React from 'react';
 import { expect } from 'chai';
 import Enzyme from 'enzyme';
@@ -9,51 +9,42 @@ import { AsyncComponent } from '../index';
 Enzyme.configure({ adapter: new Adapter() });
 
 describe('AsyncComponent', function() {
-    it ('should render the component', function() {
+    it ('should render the component', async function() {
         class Test extends AsyncComponent {
-            renderAsync(meanwhile) {
+            async renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
-                return Bluebird.delay(100).then(() => {
-                    return <div>Done</div>;
-                });
+                await delay(100);
+                return <div>Done</div>;
             }
         }
 
         const wrapper = Enzyme.mount(<Test />);
 
-        return Bluebird.try(() => {
-            expect(wrapper.text()).to.equal('Initial');
-            return Bluebird.delay(250).then(() => {
-                expect(wrapper.text()).to.equal('Done');
-            });
-        });
+        expect(wrapper.text()).to.equal('Initial');
+        await delay(250);
+        expect(wrapper.text()).to.equal('Done');
     })
-    it ('should use last progress when renderAsync() returns undefined', function() {
+    it ('should use last progress when renderAsync() returns undefined', async function() {
         class Test extends AsyncComponent {
-            renderAsync(meanwhile) {
+            async renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
-                return Bluebird.delay(100).then(() => {
-                    meanwhile.show(<div>Done</div>);
-                });
+                await delay(100);
+                meanwhile.show(<div>Done</div>);
             }
         }
 
         const wrapper = Enzyme.mount(<Test />);
 
-        return Bluebird.try(() => {
-            expect(wrapper.text()).to.equal('Initial');
-            return Bluebird.delay(250).then(() => {
-                expect(wrapper.text()).to.equal('Done');
-            });
-        });
+        expect(wrapper.text()).to.equal('Initial');
+        await delay(250);
+        expect(wrapper.text()).to.equal('Done');
     })
-    it ('should call componentWillMount()', function() {
+    it ('should call componentWillMount()', async function() {
         class Test extends AsyncComponent {
-            renderAsync(meanwhile) {
+            async renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
-                return Bluebird.delay(100).then(() => {
-                    return <div>Done</div>;
-                });
+                await delay(100);
+                return <div>Done</div>;
             }
 
             componentDidMount() {
@@ -72,13 +63,12 @@ describe('AsyncComponent', function() {
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
     })
-    it ('should allow unmounting before rendering cycle finishes', function() {
+    it ('should allow unmounting before rendering cycle finishes', async function() {
         class Test extends AsyncComponent {
-            renderAsync(meanwhile) {
+            async renderAsync(meanwhile) {
                 meanwhile.show(<div>Initial</div>, 'initial');
-                return Bluebird.delay(100).then(() => {
-                    return <div>Done</div>;
-                });
+                await delay(100);
+                return <div>Done</div>;
             }
 
             componentDidMount() {
@@ -109,20 +99,5 @@ describe('AsyncComponent', function() {
         expect(wrapper.text()).to.equal('Initial');
         wrapper.unmount();
         expect(mounted).to.be.false;
-    })
-    it ('should work properly when ES7 async/await syntax is used', async function() {
-        class Test extends AsyncComponent {
-            async renderAsync(meanwhile, props) {
-                meanwhile.show(<div>Initial</div>, 'initial');
-                await Bluebird.delay(100);
-                return <div>Done</div>;
-            }
-        }
-
-        const wrapper = Enzyme.mount(<Test />);
-
-        expect(wrapper.text()).to.equal('Initial');
-        await Bluebird.delay(250);
-        expect(wrapper.text()).to.equal('Done');
     })
 })
