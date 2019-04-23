@@ -45,12 +45,13 @@ describe('Hooks', function() {
         })
         it ('should be able handle immediate availability of contents', async function() {
             const Test = Relaks.memo(async (props) => {
-                const [ show ] = useProgress();
+                const [ show ] = useProgress(100);
                 show(<div>Done</div>);
             });
 
+            // wrapper span is needed as Enzyme can't seem to handle the immediate update
             const props = {};
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
 
             await delay(50);
             expect(wrapper.text()).to.equal('Done');
