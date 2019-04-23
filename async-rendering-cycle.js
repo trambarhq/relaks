@@ -116,8 +116,10 @@ prototype.reject = function(err) {
 
 prototype.mount = function() {
     this.mounted = true;
-    if (this.isRerendering()) {
-        this.rerender();
+    if (this.initial) {
+        if (this.isRerendering()) {
+            this.rerender();
+        }
     }
 };
 
