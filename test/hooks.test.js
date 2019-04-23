@@ -2,12 +2,12 @@ import _ from 'lodash';
 import { delay } from 'bluebird';
 import React, { Component } from 'react';
 import { expect } from 'chai';
-import Enzyme from 'enzyme';
+import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
 import Relaks, { useProgress, useRenderEvent, usePreviousProps, useSaveBuffer, useEventTime } from '../index';
 
-Enzyme.configure({ adapter: new Adapter() });
+configure({ adapter: new Adapter() });
 
 describe('Hooks', function() {
     describe('#useProgress()', function() {
@@ -21,7 +21,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
 
             expect(wrapper.text()).to.equal('Initial');
             await delay(250);
@@ -37,7 +37,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
 
             expect(wrapper.text()).to.equal('Initial');
             await delay(250);
@@ -51,7 +51,7 @@ describe('Hooks', function() {
 
             // wrapper span is needed as Enzyme can't seem to handle the immediate update
             const props = {};
-            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+            const wrapper = mount(<span><Test {...props} /></span>);
 
             await delay(50);
             expect(wrapper.text()).to.equal('Done');
@@ -68,7 +68,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
 
             expect(wrapper.text()).to.be.equal('Initial');
             await delay(150);
@@ -86,7 +86,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
 
             expect(wrapper.text()).to.be.equal('Initial');
             await delay(75);
@@ -130,7 +130,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<Boundary><Test {...props} /></Boundary>);
+            const wrapper = mount(<Boundary><Test {...props} /></Boundary>);
 
             await delay(100);
             window.onerror = mochaErrorHandler;
@@ -174,7 +174,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<Boundary><Test {...props} /></Boundary>);
+            const wrapper = mount(<Boundary><Test {...props} /></Boundary>);
 
             await delay(100);
             window.onerror = mochaErrorHandler;
@@ -199,7 +199,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
 
             await delay(150);
             expect(wrapper.text()).to.equal('Done');
@@ -224,7 +224,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
 
             await delay(150);
             expect(wrapper.text()).to.equal('Done');
@@ -249,7 +249,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
 
             await delay(150);
             expect(wrapper.text()).to.equal('Done');
@@ -274,7 +274,7 @@ describe('Hooks', function() {
             });
 
             const props = { text: 'Hello' };
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
             expect(wrapper.text()).to.equal('Current: Hello Previous: ');
             wrapper.setProps({ text: 'World' });
             await delay(50);
@@ -309,7 +309,7 @@ describe('Hooks', function() {
 
             const story = { title: 'Hello world' };
             const props = { story };
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
             expect(wrapper.find('input').prop('value')).to.equal(story.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
 
@@ -348,7 +348,7 @@ describe('Hooks', function() {
 
             const story = { title: 'Hello world' };
             const props = { story };
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
             expect(wrapper.find('input').prop('value')).to.equal(story.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
 
@@ -382,7 +382,7 @@ describe('Hooks', function() {
 
             const story = { title: 'Hello world' };
             const props = { story };
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
             expect(wrapper.find('input').prop('value')).to.equal(story.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
 
@@ -429,7 +429,7 @@ describe('Hooks', function() {
 
             const storyBefore = { title: 'Hello world' };
             const props = { story: storyBefore };
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
             expect(wrapper.find('input').prop('value')).to.equal(storyBefore.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
 
@@ -458,7 +458,7 @@ describe('Hooks', function() {
                 return <div>{date ? date.toISOString() : ''}</div>;
             };
             const props = {};
-            const wrapper = Enzyme.mount(<Test {...props} />);
+            const wrapper = mount(<Test {...props} />);
 
             expect(wrapper.text()).to.equal('');
             func({ type: 'test' });

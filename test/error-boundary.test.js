@@ -1,12 +1,12 @@
 import { delay } from 'bluebird';
 import React, { Component } from 'react';
 import { expect } from 'chai';
-import Enzyme from 'enzyme';
+import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
 import Relaks, { AsyncComponent, useProgress } from '../index';
 
-Enzyme.configure({ adapter: new Adapter() });
+configure({ adapter: new Adapter() });
 
 class Boundary extends Component {
     constructor(props) {
@@ -47,7 +47,7 @@ describe('Error boundary test', function() {
             }
         }
 
-        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
+        const wrapper = mount(<Boundary><Test /></Boundary>);
         expect(wrapper.text()).to.equal('Synchronous error');
     })
     it ('should catch error in synchronous code of async component', function() {
@@ -57,7 +57,7 @@ describe('Error boundary test', function() {
             }
         }
 
-        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
+        const wrapper = mount(<Boundary><Test /></Boundary>);
         expect(wrapper.text()).to.equal('Synchronous error');
     })
     it ('should catch error in asynchronous code', async function() {
@@ -69,7 +69,7 @@ describe('Error boundary test', function() {
             }
         }
 
-        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
+        const wrapper = mount(<Boundary><Test /></Boundary>);
         expect(wrapper.text()).to.equal('Initial');
         await delay(250);
         expect(wrapper.text()).to.equal('Asynchronous error');
@@ -79,7 +79,7 @@ describe('Error boundary test', function() {
             throw new Error('Synchronous error');
         }
 
-        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
+        const wrapper = mount(<Boundary><Test /></Boundary>);
         expect(wrapper.text()).to.equal('Synchronous error');
     })
     it ('should catch error in async functional component', async function() {
@@ -88,7 +88,7 @@ describe('Error boundary test', function() {
             throw new Error('Asynchronous error');
         });
 
-        const wrapper = Enzyme.mount(<Boundary><Test /></Boundary>);
+        const wrapper = mount(<Boundary><Test /></Boundary>);
         await delay(50);
         expect(wrapper.text()).to.equal('Asynchronous error');
     })

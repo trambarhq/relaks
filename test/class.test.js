@@ -1,12 +1,12 @@
 import { delay } from 'bluebird';
 import React from 'react';
 import { expect } from 'chai';
-import Enzyme from 'enzyme';
+import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
 import { AsyncComponent } from '../index';
 
-Enzyme.configure({ adapter: new Adapter() });
+configure({ adapter: new Adapter() });
 
 describe('AsyncComponent', function() {
     it ('should render the component', async function() {
@@ -18,7 +18,7 @@ describe('AsyncComponent', function() {
             }
         }
 
-        const wrapper = Enzyme.mount(<Test />);
+        const wrapper = mount(<Test />);
 
         expect(wrapper.text()).to.equal('Initial');
         await delay(250);
@@ -33,7 +33,7 @@ describe('AsyncComponent', function() {
             }
         }
 
-        const wrapper = Enzyme.mount(<Test />);
+        const wrapper = mount(<Test />);
 
         expect(wrapper.text()).to.equal('Initial');
         await delay(250);
@@ -58,7 +58,7 @@ describe('AsyncComponent', function() {
 
         let mounted;
         const onMount = () => { mounted = true };
-        const wrapper = Enzyme.mount(<Test onMount={onMount} />);
+        const wrapper = mount(<Test onMount={onMount} />);
 
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
@@ -92,7 +92,7 @@ describe('AsyncComponent', function() {
         let mounted;
         const onMount = () => { mounted = true };
         const onUnmount = () => { mounted = false };
-        const wrapper = Enzyme.mount(<Test onMount={onMount} onUnmount={onUnmount} />);
+        const wrapper = mount(<Test onMount={onMount} onUnmount={onUnmount} />);
 
         expect(wrapper.state('mounted')).to.be.true;
         expect(mounted).to.be.true;
