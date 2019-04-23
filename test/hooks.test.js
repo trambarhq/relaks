@@ -21,7 +21,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+            const wrapper = Enzyme.mount(<Test {...props} />);
 
             expect(wrapper.text()).to.equal('Initial');
             await delay(250);
@@ -37,7 +37,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+            const wrapper = Enzyme.mount(<Test {...props} />);
 
             expect(wrapper.text()).to.equal('Initial');
             await delay(250);
@@ -50,7 +50,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+            const wrapper = Enzyme.mount(<Test {...props} />);
 
             await delay(50);
             expect(wrapper.text()).to.equal('Done');
@@ -67,7 +67,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+            const wrapper = Enzyme.mount(<Test {...props} />);
 
             expect(wrapper.text()).to.be.equal('Initial');
             await delay(150);
@@ -85,7 +85,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+            const wrapper = Enzyme.mount(<Test {...props} />);
 
             expect(wrapper.text()).to.be.equal('Initial');
             await delay(75);
@@ -198,7 +198,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+            const wrapper = Enzyme.mount(<Test {...props} />);
 
             await delay(150);
             expect(wrapper.text()).to.equal('Done');
@@ -223,7 +223,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+            const wrapper = Enzyme.mount(<Test {...props} />);
 
             await delay(150);
             expect(wrapper.text()).to.equal('Done');
@@ -248,7 +248,7 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = Enzyme.mount(<span><Test {...props} /></span>);
+            const wrapper = Enzyme.mount(<Test {...props} />);
 
             await delay(150);
             expect(wrapper.text()).to.equal('Done');
@@ -259,7 +259,25 @@ describe('Hooks', function() {
     })
     describe('#usePreviousProps()', function() {
         it ('should retrieve previous set of props', async function() {
-            /* waiting for hook support */
+            const Test = Relaks.memo((props) => {
+                const { text } = props;
+                const { text: prevText } = usePreviousProps();
+                const [ show ] = useProgress();
+                show(
+                    <div>
+                        <div>Current: {text}</div>
+                        {' '}
+                        <div>Previous: {prevText}</div>
+                    </div>
+                );
+            });
+
+            const props = { text: 'Hello' };
+            const wrapper = Enzyme.mount(<Test {...props} />);
+            expect(wrapper.text()).to.equal('Current: Hello Previous: ');
+            wrapper.setProps({ text: 'World' });
+            await delay(50);
+            expect(wrapper.text()).to.equal('Current: World Previous: Hello');
         })
     })
     describe('#useSaveBuffer()', function() {
@@ -297,8 +315,6 @@ describe('Hooks', function() {
             await delay(50);
             const changes = { title: 'Goodbye cruel world!' };
             draftRef.assign(changes);
-            await delay(50);
-
             wrapper.update();
             expect(wrapper.find('input').prop('value')).to.equal(changes.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: true');
@@ -308,6 +324,128 @@ describe('Hooks', function() {
             wrapper.setProps({ story: saved });
             await delay(50);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
+        })
+        it ('should replace current value when there is are local changes', async function() {
+            let draftRef;
+            const Test = (props) => {
+                const { story } = props;
+                const draft = draftRef = useSaveBuffer({
+                    original: story,
+                    compare: _.isEqual,
+                    autosave: 100,
+                });
+                const handleChange = (evt) => {
+                    draft.assign({ title: evt.target.value });
+                };
+                return (
+                    <div>
+                        <input value={draft.current.title} onChange={handleChange} />
+                        <div id="changed">Changed: {draft.changed + ''}</div>
+                    </div>
+                );
+            };
+
+            const story = { title: 'Hello world' };
+            const props = { story };
+            const wrapper = Enzyme.mount(<Test {...props} />);
+            expect(wrapper.find('input').prop('value')).to.equal(story.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: false');
+
+            await delay(50);
+            const storyAfter = { title: 'Dingo ate my baby!' };
+            wrapper.setProps({ story: storyAfter });
+            await delay(50);
+
+            expect(wrapper.find('input').prop('value')).to.equal(storyAfter.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: false');
+        })
+        it ('should replace current value when there are local changes by default', async function() {
+            let draftRef;
+            const Test = (props) => {
+                const { story } = props;
+                const draft = draftRef = useSaveBuffer({
+                    original: story,
+                    compare: _.isEqual,
+                    autosave: 100,
+                });
+                const handleChange = (evt) => {
+                    draft.assign({ title: evt.target.value });
+                };
+                return (
+                    <div>
+                        <input value={draft.current.title} onChange={handleChange} />
+                        <div id="changed">Changed: {draft.changed + ''}</div>
+                    </div>
+                );
+            };
+
+            const story = { title: 'Hello world' };
+            const props = { story };
+            const wrapper = Enzyme.mount(<Test {...props} />);
+            expect(wrapper.find('input').prop('value')).to.equal(story.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: false');
+
+            await delay(50);
+            const changes = { title: 'Goodbye cruel world!' };
+            draftRef.assign(changes);
+            wrapper.update();
+            expect(wrapper.find('input').prop('value')).to.equal(changes.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: true');
+
+            await delay(50);
+            const storyAfter = { title: 'Dingo ate my baby!' };
+            wrapper.setProps({ story: storyAfter });
+            await delay(50);
+
+            expect(wrapper.find('input').prop('value')).to.equal(storyAfter.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: false');
+        })
+        it ('should invoke merge() when there are local changes', async function() {
+            let draftRef;
+            const storyMerged = { title: 'Merged' };
+            const Test = (props) => {
+                const { story } = props;
+                const draft = draftRef = useSaveBuffer({
+                    original: story,
+                    compare: _.isEqual,
+                    merge: (base, ours, theirs) => {
+                        expect(base.title).to.equal(storyBefore.title);
+                        expect(ours.title).to.equal(changes.title);
+                        expect(theirs.title).to.equal(storyAfter.title);
+                        return storyMerged;
+                    },
+                });
+                const handleChange = (evt) => {
+                    draft.assign({ title: evt.target.value });
+                };
+                return (
+                    <div>
+                        <input value={draft.current.title} onChange={handleChange} />
+                        <div id="changed">Changed: {draft.changed + ''}</div>
+                    </div>
+                );
+            };
+
+            const storyBefore = { title: 'Hello world' };
+            const props = { story: storyBefore };
+            const wrapper = Enzyme.mount(<Test {...props} />);
+            expect(wrapper.find('input').prop('value')).to.equal(storyBefore.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: false');
+
+            await delay(50);
+            const changes = { title: 'Goodbye cruel world!' };
+            draftRef.assign(changes);
+            wrapper.update();
+            expect(wrapper.find('input').prop('value')).to.equal(changes.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: true');
+
+            await delay(50);
+            const storyAfter = { title: 'Dingo ate my baby!' };
+            wrapper.setProps({ story: storyAfter });
+            await delay(50);
+
+            expect(wrapper.find('input').prop('value')).to.equal(storyMerged.title);
+            expect(wrapper.find('#changed').text()).to.equal('Changed: true');
         })
     })
     describe('#useEventTime()', function() {
