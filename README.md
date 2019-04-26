@@ -64,7 +64,6 @@ const component = Relaks.memo(FilmPage);
 export {
     component as FilmPage,
 };
-
 ```
 
 A Relaks component is an asynchronous function that uses the `useProgress` hook. The hook provides `show()`, a function for updating the component. In the code above, the task of rendering the page contents is delegated to the inner function `render()`. It makes use of variable declared outside it. Initially, they're all undefined. The function therefore renders a loading animation. `FilmPage()` then requests the film object and wait for it to arrive. When it does, `render()` is called again to display the information about the film. Then the character objects are fetched and `render()` is called yet again. And so on, until everything become available.
@@ -93,7 +92,7 @@ When an error is not explicitly handled in a component's render function, Relaks
 
 In the example above, if one of the requested objects does not exist, `swapi.fetchXXX()` would throw asynchronously (i.e. rejection of the promise it has returned). If a component further up the tree has set an error boundary, the error would be caught there.
 
-## More rules of hooks
+## Additional rules of hooks
 
 In addition to React's [rules of hooks](https://reactjs.org/docs/hooks-rules.html#only-call-hooks-from-react-functions), Relaks imposes two rules:
 
