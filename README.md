@@ -1,11 +1,11 @@
 Relaks
 ======
 
-Relaks is a minimalist library that enables the use of asynchronous functions in [React](https://reactjs.org/) components. It lets you perform data retrieval part of the rendering sequence, greatly simplifying your front-end logics. 
+Relaks is a light-weight library that enables the use of asynchronous functions in [React](https://reactjs.org/) components. It lets you perform data retrieval as a part of the rendering sequence. This greatly simplifying your front-end logics.
 
 ## Basic usage
 
-The following code comes from [one of the examples](https://github.com/trambarhq/relaks-starwars-example-sequel). The component display information about a Starwars film, using data from [swapi.co](https://swapi.co/).
+The following code comes from [one of the examples](https://github.com/trambarhq/relaks-starwars-example-sequel). The component display information about one of the Star Wars films. It uses data from [swapi.co](https://swapi.co/).
 
 ```javascript
 import React, { Component } from 'react';
@@ -67,7 +67,7 @@ export {
 
 ```
 
-A Relaks component is an asynchronous function that uses the `useProgress` hook. The hook provides `show()`, a function for updating the component. In the code above, the task of rendering the page contents is delegated to the inner function `render()`. It makes use of variable declared outside it. Initially, they're all empty. The function therefore renders a loading animation. `FilmPage()` then requests the film object and wait for it to arrive. When it does, `render()` is called again to display the information about the film. Then the character objects are fetched and `render()` is called yet again. And so on, until everything become available.
+A Relaks component is an asynchronous function that uses the `useProgress` hook. The hook provides `show()`, a function for updating the component. In the code above, the task of rendering the page contents is delegated to the inner function `render()`. It makes use of variable declared outside it. Initially, they're all undefined. The function therefore renders a loading animation. `FilmPage()` then requests the film object and wait for it to arrive. When it does, `render()` is called again to display the information about the film. Then the character objects are fetched and `render()` is called yet again. And so on, until everything become available.
 
 At the bottom, we call `Relaks.memo()` to create something that looks like a normal functional component to React and export it.  
 
@@ -75,15 +75,15 @@ You can see the code in action [here](https://trambar.io/examples/starwars-v/#/f
 
 ## Progressive rendering delay
 
-By default, progressive rendering will not start immediately. A component has a small window of time to fully itself. Only if it fails to do so would progressive rendering commerce. If all `await` operations took minimal amount of time (because all needed data is cached), then only the contents passed to the last call to `show()` would get rendered.
+Progressive rendering makes a component feels more responsive. It doesn't start immediately by default. A component has a small window of time to retrieve everything it needs and fully render itself. Only if it fails to do so would progressive rendering commerce. If all `await` operations took minimal amount of time (because all data is cached), then only the contents passed to the last call to `show()` would be rendered.
 
-The default delay is 50ms during the initial rendering cycle and infinity in subsequent cycles. Basically, progressive rendering is turned off once a component manages to fully render itself. You can supply different delay intervals to `useProgress()`. You can change the default values with calls to `Relaks.set()`.
+The default delay is 50ms during the initial rendering cycle and infinity in subsequent cycles. Basically, progressive rendering is turned off once a component manages to fully render itself. You can supply different delay intervals to `useProgress()`.
 
 For a very brief moment a Relaks component will be blank. If this causes layout or visual glitches, you can force Relaks to render the progress element initially by passing `'initial'` as the second parameter to `show()`.
 
 ## Interruption of rendering
 
-When a Relaks component receives new props (or experiences a state change), its render function is called and a new rendering cycle starts. If the component was still in the middle of rendering--i.e. the promise returned earlier had not yet been fulfilled--this earlier rendering cycle would be canceled. A rendering cycle could also get canceled when the component is unmounted. 
+When a Relaks component receives new props (or experiences a state change), its render function is called and a new rendering cycle starts. If the component was still in the middle of rendering--i.e. the promise returned earlier had not yet been fulfilled--this earlier rendering cycle would be canceled. An asynchronous rendering cycle could also get canceled when the component is unmounted.
 
 A call to `show()` in the defunct rendering cycle would trigger an `AsyncRenderingInterrupted` exception, causing the function to bail out. In the example above, if the component gets unmounted while it's fetching the film object, the second call to `render()` will throw. We won't end up wasting bandwidth fetching related data we no longer need. Relaks will silently swallow the exception.
 
@@ -95,16 +95,73 @@ In the example above, if one of the requested objects does not exist, `swapi.fet
 
 ## More rules of hooks
 
-In addition to React's [rules of hooks](https://reactjs.org/docs/hooks-rules.html#only-call-hooks-from-react-functions), Relaks imposes two more rules:
+In addition to React's [rules of hooks](https://reactjs.org/docs/hooks-rules.html#only-call-hooks-from-react-functions), Relaks imposes two rules:
 
 * `show()` from `useProgress` must be called once before the first use of `await`.
 * All hooks must be called prior to the call to `show()`.
 
-These rules ensure that hooks will be called in proper order.
+These rules ensure that hooks will be called in the proper order.
+
+## Asynchronous loop
+
+Relaks makes it easy to deal with long running operations. It lets you wait for something to occur in a loop. Suppose you're building a front-end of a cloud hosting application. After the addition of a new virtual machine, the user is sent to its summary page. Creation of the VM takes time, during which we want display its progress. We could write something like the following:
+
+```javascript
+    let vm, vmCreation;
+    while (!vm) {
+        const response = await fetch(vmInfoURL);
+        if (response.status === 200) {
+            vm = await response.json();
+            render();
+        } else if (response.status === 202) {
+            vmCreation = await response.json();
+            render();
+            await delay(1000);
+        } else {
+            throw new Error(`Unexpect HTTP status code ${response.status}`);
+        }
+    }
+```
+
+When the VM is ready, we receive the status code 200 and information about the VM. When it's still being created, we receive 202 and information about the creation process, after which we pause for a second and try again.
+
+See the [media capture example](https://github.com/trambarhq/relaks-media-capture-example) for a demonstration of how loops can simplify coding.
 
 ## Isomorphic front-end
 
-## Synchronous loop
+Relaks is designed from the ground up to support server-side rendering (SSR). SSR is natural and intuitive as asynchronous components have a definite end state. A component is "ready" when the asynchronous function ends--i.e. the promise it returned is fulfilled.
+
+In the [Star Wars example above](#basic-usage), `FilmPage` is not yet ready when all it has is the film object. It's not ready when it has the character list. It's ready when it has fetched all information related to the film. This occurs with the last call to `render()`. The contents given to this final call is what we want.
+
+Please consult the [final Star Wars example](https://github.com/trambarhq/relaks-starwars-example-isomorphic) if you're interested in the technique. The [WordPress example](https://github.com/trambarhq/relaks-wordpress-example) provides a more sophisticated demonstration of what's achievable in a real-world situation.
+
+## Saving data
+
+Relaks provides the utility hook `useSaveBuffer` to facilitate data entry. It returns an object that holds locally made changes prior to their transfer to the remote server:
+
+From the [Django todo list example](https://github.com/trambarhq/relaks-django-todo-example):
+
+```javascript
+    const draft = useSaveBuffer({
+        original: _.defaults(todo, { title: '', description: '' }),
+        compare: _.isEqual,
+        merge: mergeObjects,
+        save: async (base, ours) => {
+            return django.saveOne('/', ours);
+        },
+        delete: async (base, ours) => {
+            return django.deleteOne('/', base);
+        },
+        preserve: (base, ours) => {
+            preserveObject('todo', ours);
+        },
+        restore: (base) => {
+            return restoreObject('todo', base);
+        },
+    });
+```
+
+Please consult the example for more information on using the hook.
 
 ## Building a complete front-end
 
@@ -150,7 +207,7 @@ Data providers need not be coded specifically for Relaks. They're just classes t
 
 ### Root-level component
 
-`FrontEnd` is the root-level React component. It receives a set of data providers as props. Its render function creates proxy objects around these data providers and pass them down the component tree in in lieu of the providers themselves. 
+`FrontEnd` is the root-level React component. It receives a set of data providers as props. It creates proxy objects around these data providers and pass them down the component tree in in lieu of the providers themselves.
 
 From [our Starwars example](https://github.com/trambarhq/relaks-starwars-example-sequel):
 
@@ -242,18 +299,71 @@ Proxy objects make debugging easier. You can easily stick `console.log()` and co
 
 ## Class-based component
 
-## Preact support
-
-Relaks has built-in support for [Preact](https://preactjs.com/). Simply import from 'relaks/preact' instead of 'relaks'. `renderAsync()` will receive `props`, `state`, and `context` in addition to the meanwhile object.
-
-Import from `'relaks/preact'` instead of `'relaks'`:
+Relaks was developed initially for class-based React. Version 2 retains this support. A class-based Relaks component inherits from `AsyncComponent` and implemnts `renderAsync(meanwhile)`. It receives the `show()` function from the argument `meanwhile`:
 
 ```javascript
-import { h, Component } from 'preact';
+import React from 'react';
+import { AsyncComponent } from 'relaks';
+
+class FilePage extends AsyncComponent {
+    async renderAsync(meanwhile) {
+        const { route, swapi } = this.props;
+
+        render();
+        const film = await swapi.fetchOne(`/films/${route.params.id}/`);
+        render();
+        const characters = await swapi.fetchMultiple(film.characters);
+        render();
+        const species = await swapi.fetchMultiple(film.species);
+        render();
+        const planets = await swapi.fetchMultiple(film.planets);
+        render();
+        const vehicles = await swapi.fetchMultiple(film.vehicles);
+        render();
+        const starships = await swapi.fetchMultiple(film.starships);
+        render();
+
+        function render() {
+            if (!film) {
+                meanwhile.show(<Loading />);
+            } else {
+                meanwhile.show(
+                    <div>
+                        <h1>{film.title}</h1>
+                        <p>{film.opening_crawl}</p>
+                        <div>Director: {film.director}</div>
+                        <div>Producer: {film.producer}</div>
+                        <div>Release date: {film.release_date}</div>
+                        <h2>Characters</h2>
+                        <List urls={film.characters} items={characters} pageName="character-summary" route={route} />
+                        <h2>Species</h2>
+                        <List urls={film.species} items={species} pageName="species-summary" route={route} />
+                        <h2>Planets</h2>
+                        <List urls={film.planets} items={planets} pageName="planet-summary" route={route} />
+                        <h2>Vehicles</h2>
+                        <List urls={film.vehicles} items={vehicles} pageName="vehicle-summary" route={route} />
+                        <h2>Starships</h2>
+                        <List urls={film.starships} items={starships} pageName="starship-summary" route={route} />
+                    </div>
+                );
+            }
+        }
+    }
+}
+```
+
+## Preact support
+
+Relaks has built-in support for [Preact](https://preactjs.com/). Simply import from 'relaks/preact' instead of 'relaks':
+
+```javascript
+import { h } from 'preact';
 import { AsyncComponent } from 'relaks/preact';
 
 /** @jsx h */
 ```
+
+`renderAsync()` will receive `props` and `state` in addition to the meanwhile object.
 
 ## Libraries & add-ons
 
