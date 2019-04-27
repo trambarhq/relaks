@@ -1,11 +1,11 @@
 Relaks
 ======
 
-Relaks is a light-weight library that enables the use of asynchronous functions in [React](https://reactjs.org/) components. It lets you perform data retrieval as a part of the rendering sequence. This greatly simplifying your front-end logics.
+Relaks is a light-weight library that enables the use of asynchronous functions in [React](https://reactjs.org/) components. It lets you perform data retrieval as a part of the rendering sequence. This can greatly simplify your front-end logic.
 
 ## Basic usage
 
-The following code comes from [one of the examples](https://github.com/trambarhq/relaks-starwars-example-sequel). The component display information about one of the Star Wars films. It uses data from [swapi.co](https://swapi.co/).
+The following code comes from [one of the examples](https://github.com/trambarhq/relaks-starwars-example-sequel). The component display information about a Star Wars film. It makes use of data from [swapi.co](https://swapi.co/).
 
 ```javascript
 import React, { Component } from 'react';
@@ -66,7 +66,7 @@ export {
 };
 ```
 
-A Relaks component is an asynchronous function that uses the `useProgress` hook. The hook provides `show()`, a function for updating the component. In the code above, the task of rendering the page contents is delegated to the inner function `render()`. It makes use of variable declared outside it. Initially, they're all undefined. The function therefore renders a loading animation. `FilmPage()` then requests the film object and wait for it to arrive. When it does, `render()` is called again to display the information about the film. Then the character objects are fetched and `render()` is called yet again. And so on, until everything become available.
+A Relaks component is an asynchronous function that uses the `useProgress` hook. The hook provides `show()`, a function for updating the component. In the code above, the task of rendering the page contents is delegated to the inner function `render()`. It uses variables declared outside it. Initially, they're all undefined. Accordingly, the function renders a loading animation. `FilmPage()` then requests the film object and wait for it to arrive. When it does, `render()` is called again to display the newly available information. Then a request for the character list is made. When this list arrives, `render()` is called again. And so on, until everything becomes available.
 
 At the bottom, we call `Relaks.memo()` to create something that looks like a normal functional component to React and export it.  
 
@@ -74,7 +74,7 @@ You can see the code in action [here](https://trambar.io/examples/starwars-v/#/f
 
 ## Progressive rendering delay
 
-Progressive rendering makes a component feels more responsive. It doesn't start immediately by default. A component has a small window of time to retrieve everything it needs and fully render itself. Only if it fails to do so would progressive rendering commerce. If all `await` operations took minimal amount of time (because all data is cached), then only the contents passed to the last call to `show()` would be rendered.
+Progressive rendering makes a component feel more responsive. By default, it doesn't start immediately. A component has a small window of time to retrieve everything it needs and fully render itself. Only if it fails to do so would progressive rendering commerce. If all `await` operations took minimal amount of time (because all data is cached), then only the contents passed to the last call to `show()` would be rendered.
 
 The default delay is 50ms during the initial rendering cycle and infinity in subsequent cycles. Basically, progressive rendering is turned off once a component manages to fully render itself. You can supply different delay intervals to `useProgress()`.
 
@@ -82,13 +82,13 @@ For a very brief moment a Relaks component will be blank. If this causes layout 
 
 ## Interruption of rendering
 
-When a Relaks component receives new props (or experiences a state change), its render function is called and a new rendering cycle starts. If the component was still in the middle of rendering--i.e. the promise returned earlier had not yet been fulfilled--this earlier rendering cycle would be canceled. An asynchronous rendering cycle could also get canceled when the component is unmounted.
+When a Relaks component receives new props (or experiences a state change), its render function is called and a new rendering cycle starts. If the component was still in the middle of rendering--i.e. the promise returned earlier had not yet been fulfilled--this earlier rendering cycle would be canceled. An asynchronous rendering cycle would also get canceled when the component is unmounted.
 
-A call to `show()` in the defunct rendering cycle would trigger an `AsyncRenderingInterrupted` exception, causing the function to bail out. In the example above, if the component gets unmounted while it's fetching the film object, the second call to `render()` will throw. We won't end up wasting bandwidth fetching related data we no longer need. Relaks will silently swallow the exception.
+A call to `show()` in the defunct rendering cycle would trigger an `AsyncRenderingInterrupted` exception, causing the function to bail out. In the example above, if the component gets unmounted while it's fetching the film object, the second call to `render()` would throw. We won't end up wasting bandwidth fetching related data we no longer need. Relaks will silently swallow the exception.
 
 ## Error handling
 
-When an error is not explicitly handled in a component's render function, Relaks will catch the error, force the component to refresh, then promptly throw the error object again. Doing so permits React's [error boundary](https://reactjs.org/docs/error-boundaries.html) mechanism to capture the error as it would catch errors occurring in synchronous code.
+When an error is not explicitly handled in a component's render function, Relaks will catch the error, force the component to refresh then promptly throw the error object again. Doing so permits React's [error boundary](https://reactjs.org/docs/error-boundaries.html) mechanism to capture the error as it would catch errors occurring in synchronous code.
 
 In the example above, if one of the requested objects does not exist, `swapi.fetchXXX()` would throw asynchronously (i.e. rejection of the promise it has returned). If a component further up the tree has set an error boundary, the error would be caught there.
 
@@ -103,7 +103,7 @@ These rules ensure that hooks will be called in the proper order.
 
 ## Asynchronous loop
 
-Relaks makes it easy to deal with long running operations. It lets you wait for something to occur in a loop. Suppose you're building a front-end of a cloud hosting application. After the addition of a new virtual machine, the user is sent to its summary page. Creation of the VM takes time, during which we want display its progress. We could write something like the following:
+Relaks makes it easy to deal with long running operations. It lets you wait in a loop for something to occur. Suppose you're building a front-end of a cloud hosting site. After the addition of a new virtual machine, the user is sent to its summary page. Creation of the VM takes time, during which we want show what progress is being made. We could write something like the following:
 
 ```javascript
     let vm, vmCreation;
@@ -122,21 +122,21 @@ Relaks makes it easy to deal with long running operations. It lets you wait for 
     }
 ```
 
-When the VM is ready, we receive the status code 200 and information about the VM. When it's still being created, we receive 202 and information about the creation process, after which we pause for a second and try again.
+When the VM is ready, we receive the status code 200 and information about the VM. When it's still being created, we receive 202 and information about the creation process. In the latter case we pause for a second and try again.
 
-See the [media capture example](https://github.com/trambarhq/relaks-media-capture-example) for a demonstration of how loops can simplify coding.
+See the [media capture example](https://github.com/trambarhq/relaks-media-capture-example) for a demonstration on how loops can simplify coding.
 
 ## Isomorphic front-end
 
-Relaks is designed from the ground up to support server-side rendering (SSR). SSR is natural and intuitive as asynchronous components have a definite end state. A component is "ready" when the asynchronous function ends--i.e. the promise it returned is fulfilled.
+Relaks is designed from the ground up to support server-side rendering (SSR). SSR is natural and intuitive as asynchronous Relaks components have a definite end state. A component is "ready" when the asynchronous function ends--i.e. the promise it returned is fulfilled.
 
-In the [Star Wars example above](#basic-usage), `FilmPage` is not yet ready when all it has is the film object. It's not ready when it has the character list. It's ready when it has fetched all information related to the film. This occurs with the last call to `render()`. The contents given to this final call is what we want.
+In the [Star Wars example above](#basic-usage), `FilmPage` is not ready yet when all it has is the film object. It's not ready when it has the character list. It's ready when it has fetched all information related to the film. This occurs with the last call to `render()`. The contents passed to this final call is what we want.
 
 Please consult the [final Star Wars example](https://github.com/trambarhq/relaks-starwars-example-isomorphic) if you're interested in the technique. The [WordPress example](https://github.com/trambarhq/relaks-wordpress-example) provides a more sophisticated demonstration of what's achievable in a real-world situation.
 
 ## Saving data
 
-Relaks provides the utility hook `useSaveBuffer` to facilitate data entry. It returns an object that holds locally made changes prior to their transfer to the remote server:
+Relaks provides the utility hook `useSaveBuffer` to facilitate data entry. It returns an object that holds locally made changes prior to their transfer to the remote server.
 
 From the [Django todo list example](https://github.com/trambarhq/relaks-django-todo-example):
 
@@ -257,11 +257,9 @@ export {
 
 The `useEventTime` hook works like `useState`, but its setter function sets the variable to the current time (instead of the value given). Using the setter as an event handler means the date is changed everytime the event occurs. That in turns forces `useMemo` to recalculate its result (since the date is listed as a dependency). The use of `useEventTime` here allows us to respond to both prop changes and events using the same code.
 
-`useDemo` is used to recreate a proxy object whenever the associated data provider indicates new data is available.
-
 ### Proxy objects
 
-Proxy objects serve a number of purposes. First and foremost, they're used to trigger rerendering of [memoized components](https://reactjs.org/docs/react-api.html#reactmemo).  A memoized component is rendered only when a shallow comparison indicates that its props have changed. Recreation of proxy objects when `change` events occur triggers that, ensuring that new data is propagated through the component tree.
+Proxy objects serve a number of purposes. First and foremost, they're used to trigger rerendering of [memoized components](https://reactjs.org/docs/react-api.html#reactmemo). A memoized component get updated only when a shallow comparison indicates that its props have changed. Recreation of proxy objects when `change` events occur triggers that, ensuring that new data is propagated through the component tree.
 
 Proxy objects also insulate your code from third-party code. You can tailor them to fit your preferred convention and phraseology. For example, [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source) provides a `fetchOne()` method that accepts an URL as parameter. Instead of calling this everywhere, you can implement a set of methods specific to your app's database schema. For example:
 
