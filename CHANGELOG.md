@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.0.0
+
+* Implemented hook support
+* Completely reworked rendering cycle
+* Using ESM import to allow proper tree-shaking (Babel env preset needs to set to modules = false)
+
 ## 1.1.9
 
 * Added plant()
