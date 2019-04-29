@@ -8,7 +8,7 @@ Relaks is a light-weight library that enables the use of asynchronous functions 
 The following code comes from [one of the examples](https://github.com/trambarhq/relaks-starwars-example-sequel). The component display information about a Star Wars film. It makes use of data from [swapi.co](https://swapi.co/).
 
 ```javascript
-import React, { Component } from 'react';
+import React from 'react';
 import Relaks, { useProgress } from 'relaks';
 
 import { List } from 'widgets/list';
