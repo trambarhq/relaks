@@ -17,6 +17,7 @@ function AsyncRenderingCycle(target, prev) {
     this.checked = false;
     this.mounted = false;
     this.initial = true;
+    this.fulfilled = false;
     this.synchronous = false;
     this.prevProps = {};
     this.prevPropsAsync = {};
@@ -42,6 +43,7 @@ function AsyncRenderingCycle(target, prev) {
         }
         this.elementRendered = prev.elementRendered;
         this.initial = false;
+        this.fulfilled = prev.fulfilled;
     }
 }
 
@@ -79,6 +81,7 @@ prototype.run = function(f) {
 
 prototype.resolve = function(element) {
     this.clear();
+    this.fulfilled = true;
 	if (!this.hasEnded()) {
         if (!this.checked) {
             this.reject(new Error('Missing call to show() prior to await'));
@@ -184,7 +187,7 @@ prototype.show = function(element, disposition) {
         delay = 0;
 	} else if (disposition === 'initial' && !this.elementRendered) {
 		delay = 0;
-    } else if (!this.elementRendered) {
+    } else if (!this.fulfilled) {
     	delay = this.delayEmpty;
     } else {
 		delay = this.delayRendered;
