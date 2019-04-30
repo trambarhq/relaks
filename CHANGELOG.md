@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.1
+
+* Fixed progressive rendering
+
 ## 2.0.0
 
 * Implemented hook support
