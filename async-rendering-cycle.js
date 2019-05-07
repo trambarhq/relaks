@@ -84,8 +84,10 @@ prototype.resolve = function(element) {
     this.fulfilled = true;
 	if (!this.hasEnded()) {
         if (!this.checked) {
-            this.reject(new Error('Missing call to show() prior to await'));
-            return;
+            if (!this.noCheck) {
+                this.reject(new Error('Missing call to show() prior to await'));
+                return;
+            }
         }
 
         if (element === undefined) {

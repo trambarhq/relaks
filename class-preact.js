@@ -31,6 +31,7 @@ prototype.constructor.prototype = prototype;
  */
 prototype.render = function(props, state, context) {
 	var cycle = AsyncRenderingCycle.acquire(this.relaks, this);
+    cycle.noCheck = true;
 	if (!cycle.isRerendering()) {
 		// call async function
 		var _this = this;
