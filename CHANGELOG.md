@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.2
+
+* Disabled check for show() call in class-based component.
+
 ## 2.0.1
 
 * Fixed progressive rendering
