@@ -135,6 +135,10 @@ prototype.use = function(params) {
 			this.current = ours;
 			this.changed = true;
 		} else {
+            if (process.env.NODE_ENV !== 'production') {
+                // invoke compare() now so that syntax error would throw immediately
+                this.compare(theirs, theirs);
+            }
 			this.current = theirs;
 		}
 	} else if (this.saving) {
