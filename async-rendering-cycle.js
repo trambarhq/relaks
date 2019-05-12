@@ -115,7 +115,11 @@ prototype.reject = function(err) {
             if (this.mounted) {
                 this.rerender();
             }
-		}
+		} else {
+            if (process.env.NODE_ENV !== 'production') {
+                console.error(err);
+            }
+        }
 	}
 };
 

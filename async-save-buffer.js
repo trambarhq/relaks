@@ -39,7 +39,7 @@ prototype.assign = function(values /* ... */) {
 	this.set(newObject);
 };
 
-prototype.reset =function() {
+prototype.reset = function() {
 	var base = this.original;
 	this.cancelAutosave();
 	this.current = base;
