@@ -91,10 +91,12 @@ prototype.assign = function(values /* ... */) {
 prototype.reset = function() {
 	var base = this.check();
 	this.cancelAutosave();
-	this.current = base;
-	this.changed = false;
-	this.preserve(base, null);
-	this.rerender();
+	if (this.changed) {
+		this.current = base;
+		this.changed = false;
+		this.preserve(base, null);
+		this.rerender();
+	}
 };
 
 var NO_RETVAL = {};
@@ -183,6 +185,12 @@ prototype.check = function() {
 prototype.use = function(params) {
 	this.params = params;
 	this.base(params.original);
+	if (params.reset && this.ready && this.changed) {
+		var base = this.original;
+		this.current = base;
+		this.changed = false;
+		this.preserve(base, null);
+	}
 };
 
 function get(state, params) {
