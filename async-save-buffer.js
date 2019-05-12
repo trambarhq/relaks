@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 
 function AsyncSaveBuffer() {
-	this.params = undefined;
+	this.ready = false;
 	this.original = undefined;
 	this.current = undefined;
 	this.changed = false;
 	this.saving = false;
-	this.saved = undefined;
+
+	this.params = undefined;
 	this.promise = null;
-	this.error = null;
+	this.saved = undefined;
 	this.timeout = 0;
 	this.context = undefined;
 	this.setContext = undefined;
@@ -16,8 +17,56 @@ function AsyncSaveBuffer() {
 
 var prototype = AsyncSaveBuffer.prototype;
 
+prototype.base = function(theirs) {
+    if (theirs == null) {
+		return;
+	}
+	if (!this.ready) {
+		var ours = this.restore(theirs);
+		if (ours !== undefined && !this.compare(ours, theirs)) {
+			this.current = ours;
+			this.changed = true;
+		} else {
+            if (process.env.NODE_ENV !== 'production') {
+                // invoke compare() now so that syntax error would
+				// throw immediately
+                this.compare(theirs, theirs);
+            }
+			this.current = theirs;
+		}
+		this.ready = true;
+	} else if (this.saving) {
+		if (this.saved === NO_RETVAL || this.compare(this.saved, theirs)) {
+			this.current = theirs;
+			this.changed = false;
+			this.saving = false;
+			this.saved = undefined;
+		}
+	} else {
+		var base = this.original;
+		var ours = this.current;
+		if (!this.compare(base, theirs)) {
+			if (this.changed) {
+				var merged = this.merge(base, ours, theirs);
+				if (!this.compare(merged, theirs)) {
+					this.current = merged;
+					this.preserve(theirs, ours);
+				} else {
+					this.current = theirs;
+					this.changed = false;
+					this.cancelAutosave();
+					this.preserve(base, null);
+				}
+			} else {
+				this.current = theirs;
+			}
+		}
+	}
+	this.original = theirs;
+}
+
 prototype.set = function(ours) {
-	var base = this.original;
+	var base = this.check();
 	this.cancelAutosave();
 	if (this.compare(base, ours)) {
 		this.current = ours = base;
@@ -40,7 +89,7 @@ prototype.assign = function(values /* ... */) {
 };
 
 prototype.reset = function() {
-	var base = this.original;
+	var base = this.check();
 	this.cancelAutosave();
 	this.current = base;
 	this.changed = false;
@@ -51,7 +100,7 @@ prototype.reset = function() {
 var NO_RETVAL = {};
 
 prototype.save = function() {
-	var base = this.original;
+	var base = this.check();
 	var ours = this.current;
 	var saveFunc = this.params.save || saveDef;
 	var promise = Promise.resolve(saveFunc(base, ours));
@@ -93,7 +142,7 @@ prototype.cancelAutosave = function() {
 };
 
 prototype.delete = function() {
-	var base = this.original;
+	var base = this.check();
 	var ours = this.current;
 	this.preserve(base, null);
 	var deleteFunc = this.params.delete || deleteDef;
@@ -124,51 +173,16 @@ prototype.rerender = function() {
 	this.setContext({ buffer: this });
 };
 
-prototype.use = function(params) {
-	var initial = !this.params;
-	this.params = params;
-
-	var theirs = params.original;
-	if (initial) {
-		var ours = this.restore(theirs);
-		if (ours !== undefined && !this.compare(ours, theirs)) {
-			this.current = ours;
-			this.changed = true;
-		} else {
-            if (process.env.NODE_ENV !== 'production') {
-                // invoke compare() now so that syntax error would throw immediately
-                this.compare(theirs, theirs);
-            }
-			this.current = theirs;
-		}
-	} else if (this.saving) {
-		if (this.saved === NO_RETVAL || this.compare(this.saved, theirs)) {
-			this.current = theirs;
-			this.changed = false;
-			this.saving = false;
-			this.saved = undefined;
-		}
-	} else {
-		var base = this.original;
-		var ours = this.current;
-		if (!this.compare(base, theirs)) {
-			if (this.changed) {
-				var merged = this.merge(base, ours, theirs);
-				if (!this.compare(merged, theirs)) {
-					this.current = merged;
-					this.preserve(theirs, ours);
-				} else {
-					this.current = theirs;
-					this.changed = false;
-					this.cancelAutosave();
-					this.preserve(base, null);
-				}
-			} else {
-				this.current = theirs;
-			}
-		}
+prototype.check = function() {
+	if (!this.ready) {
+		throw new Error('Original value has not been set');
 	}
-	this.original = theirs;
+	return this.original;
+};
+
+prototype.use = function(params) {
+	this.params = params;
+	this.base(params.original);
 };
 
 function get(state, params) {
