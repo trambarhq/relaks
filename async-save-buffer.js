@@ -7,7 +7,7 @@ function AsyncSaveBuffer() {
 	this.current = undefined;
 	this.changed = false;
 	this.saving = false;
-	this.deleting = false;
+	this.removing = false;
 	this.error = undefined;
 
 	this.params = undefined;
@@ -153,28 +153,28 @@ prototype.cancelAutosave = function() {
 	}
 };
 
-prototype.delete = function() {
-	if (_this.deleting) {
+prototype.remove = prototype.delete = function() {
+	if (_this.removing) {
 		return Promise.resolve();
 	}
 	var base = this.check();
 	var ours = this.current;
 	this.preserve(base, null);
-	var deleteFunc = this.params.delete || deleteDef;
+	var removeFunc = this.params.remove || this.params.delete || removeDef;
 	var args = [ base, ours ];
 	for (var i = 0; i < arguments.length; i++) {
 		args.push(arguments[i]);
 	}
-	var promise = deleteFunc.apply(this, args);
-	_this.deleting = true;
+	var promise = removeFunc.apply(this, args);
+	_this.removing = true;
 	_this.rerender();
 	return Promise.resolve(promise).then(function(result) {
-		_this.deleting = false;
+		_this.removing = false;
 		_this.rerender();
 		return result;
 	}).catch(function(err) {
 		var canceled = err instanceof Cancellation;
-		_this.deleting = false;
+		_this.removing = false;
 		_this.error = (canceled) ? undefined : err;
 		_this.rerender();
 		if (!canceled) {
@@ -252,8 +252,8 @@ function saveDef(base, ours) {
 	throw new Error('No save function');
 }
 
-function deleteDef(base, ours) {
-	throw new Error('No delete function');
+function removeDef(base, ours) {
+	throw new Error('No remove function');
 }
 
 function preserveDef(base, ours) {
@@ -267,6 +267,7 @@ prototype.constructor.acquire = acquire;
 function useSaveBuffer(params) {
 	var cycle = AsyncRenderingCycle.get();
 	if (cycle && cycle.isRerendering()) {
+		// don't initialize when called during rerendering
 		params = null;
 	} else if (!params) {
 		params = {};
