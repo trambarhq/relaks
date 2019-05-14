@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
 
-// variable used for communicating between wrapper functions and hook functions
-var state;
-
 function use(asyncFunc) {
 	// create synchronous function wrapper
 	var syncFunc = function(props) {
-		state = useState({});
+		var state = useState({});
 		var target = { func: syncFunc, props };
-		var cycle = AsyncRenderingCycle.acquire(state, target);
+		var options = { showProgress: true, performCheck: true };
+		var cycle = AsyncRenderingCycle.acquire(state, target, options);
 
 		// cancel current cycle on unmount
 		useEffect(function() {
@@ -26,7 +24,7 @@ function use(asyncFunc) {
 			return asyncFunc(props);
 		});
 
-        state = undefined;
+        AsyncRenderingCycle.release();
 
 		// throw error that had occurred in async code
 		var error = cycle.getError();
@@ -41,12 +39,12 @@ function use(asyncFunc) {
 
 	// attach async function (that returns a promise to the final result)
 	syncFunc.renderAsyncEx = function(props) {
-		state = [ {}, function(v) {} ];
+		var state = [ {}, function(v) {} ];
 		var target = { func: syncFunc, props };
-		var cycle = AsyncRenderingCycle.start(state, target);
-		cycle.noProgress = true;
+		var options = { performCheck: true };
+		var cycle = AsyncRenderingCycle.acquire(state, target, options);
 		var promise = asyncFunc(props);
-		state = undefined;
+		AsyncRenderingCycle.release();
 		if (promise && typeof(promise.then) === 'function') {
 			return promise.then(function(element) {
 				if (element === undefined) {
@@ -84,7 +82,7 @@ function memo(asyncFunc, areEqual) {
 
 function useProgress(delayEmpty, delayRendered) {
 	// set delays
-	var cycle = AsyncRenderingCycle.get(state);
+	var cycle = AsyncRenderingCycle.need();
 	cycle.delay(delayEmpty, delayRendered, true);
 
 	// return functions (bound in constructor)
@@ -92,12 +90,12 @@ function useProgress(delayEmpty, delayRendered) {
 }
 
 function useRenderEvent(name, f) {
-	var cycle = AsyncRenderingCycle.get(state);
+	var cycle = AsyncRenderingCycle.need();
 	cycle.on(name, f);
 }
 
 function usePreviousProps(asyncCycle) {
-	var cycle = AsyncRenderingCycle.get(state);
+	var cycle = AsyncRenderingCycle.need();
 	return cycle.getPrevProps(asyncCycle);
 }
 

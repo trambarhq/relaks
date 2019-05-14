@@ -26,8 +26,8 @@ prototype.constructor.prototype = prototype;
  * @return {ReactElement|null}
  */
 prototype.render = function() {
-	var cycle = AsyncRenderingCycle.acquire(this.relaks, this);
-    cycle.noCheck = true;
+    var options = { showProgress: true };
+	var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
 	if (!cycle.isRerendering()) {
 		// call async function
 		var _this = this;
@@ -35,6 +35,7 @@ prototype.render = function() {
 			return _this.renderAsync(cycle);
 		});
 	}
+    AsyncRenderingCycle.release();
     cycle.mounted = true;
 
 	// throw error that had occurred in async code
@@ -56,9 +57,9 @@ prototype.render = function() {
 };
 
 prototype.renderAsyncEx = function() {
-    var cycle = AsyncRenderingCycle.acquire(this.relaks, this);
-    cycle.noProgress = true;
+    var cycle = AsyncRenderingCycle.acquire(this.relaks, this, {});
     var promise = this.renderAsync(cycle);
+    AsyncRenderingCycle.release();
     if (promise && typeof(promise.then) === 'function') {
         return promise.then(function(element) {
             if (element === undefined) {

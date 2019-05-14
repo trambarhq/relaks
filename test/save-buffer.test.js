@@ -13,7 +13,7 @@ describe('Save buffer', function() {
         const object = {
             hello: 'world'
         };
-        const buffer = AsyncSaveBuffer.get(state, {
+        const buffer = AsyncSaveBuffer.acquire(state, {
             original: object,
         });
         expect(buffer.original).to.equal(object);
@@ -32,7 +32,7 @@ describe('Save buffer', function() {
             const object = {
                 hello: 'world'
             };
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
             });
             const newObject = {
@@ -53,7 +53,7 @@ describe('Save buffer', function() {
                 hello: 'world'
             };
             let compared = false;
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
                 compare: (ours, theirs) => {
                     compared = true;
@@ -85,7 +85,7 @@ describe('Save buffer', function() {
             const object = {
                 hello: 'world'
             };
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
             });
             buffer.assign({ hello: 'chicken' });
@@ -103,7 +103,7 @@ describe('Save buffer', function() {
             const object = {
                 hello: 'world'
             };
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
             });
             buffer.assign({ hello: 'chicken' }, { world: 'beef' });
@@ -119,7 +119,7 @@ describe('Save buffer', function() {
             const object = {
                 hello: 'world'
             };
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
             });
             buffer.assign(null, undefined, { hello: 'chicken' });
@@ -136,7 +136,7 @@ describe('Save buffer', function() {
                 hello: 'world'
             };
             let saved;
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
                 save: async function(theirs, ours) {
                     await delay(50);
@@ -164,7 +164,7 @@ describe('Save buffer', function() {
             const object = {
                 hello: 'world'
             };
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
             });
             buffer.assign({ hello: 'chicken' });
@@ -194,7 +194,7 @@ describe('Save buffer', function() {
                 saved = ours;
                 return saved;
             };
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
                 save,
             });
@@ -218,7 +218,7 @@ describe('Save buffer', function() {
             const object = {
                 hello: 'world'
             };
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
             });
             expect(buffer.original).to.equal(object);
@@ -242,7 +242,7 @@ describe('Save buffer', function() {
             const object = {
                 hello: 'world'
             };
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
             });
             expect(buffer.original).to.equal(object);
@@ -292,7 +292,7 @@ describe('Save buffer', function() {
                 saved = ours;
                 return saved;
             };
-            const buffer = AsyncSaveBuffer.get(state, {
+            const buffer = AsyncSaveBuffer.acquire(state, {
                 original: object,
                 save,
             });

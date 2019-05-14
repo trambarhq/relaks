@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function AsyncSaveBuffer() {
 	this.ready = false;
@@ -6,12 +7,13 @@ function AsyncSaveBuffer() {
 	this.current = undefined;
 	this.changed = false;
 	this.saving = false;
+	this.deleting = false;
+	this.error = undefined;
 
 	this.params = undefined;
 	this.promise = null;
 	this.saved = undefined;
 	this.timeout = 0;
-	this.context = undefined;
 	this.setContext = undefined;
 }
 
@@ -36,7 +38,7 @@ prototype.base = function(theirs) {
 		}
 		this.ready = true;
 	} else if (this.saving) {
-		if (this.saved === NO_RETVAL || this.compare(this.saved, theirs)) {
+		if (this.saved === undefined || this.compare(this.saved, theirs)) {
 			this.current = theirs;
 			this.changed = false;
 			this.saving = false;
@@ -99,27 +101,35 @@ prototype.reset = function() {
 	}
 };
 
-var NO_RETVAL = {};
-
 prototype.save = function() {
 	var base = this.check();
 	var ours = this.current;
 	var saveFunc = this.params.save || saveDef;
-	var promise = Promise.resolve(saveFunc(base, ours));
+	var args = [ base, ours ];
+	for (var i = 0; i < arguments.length; i++) {
+		args.push(arguments[i]);
+	}
+	var promise = saveFunc.apply(this, args);
 	var _this = this;
 	_this.saving = true;
 	_this.promise = promise;
 	_this.rerender();
-	return promise.then(function(result) {
-		if (result === undefined) {
-			result = NO_RETVAL;
-		}
+	return Promise.resolve(promise).then(function(result) {
 		if (_this.promise === promise) {
 			_this.saved = result;
 			_this.promise = null;
+			_this.preserve(base, null);
 		}
-		_this.preserve(base, null);
 		return result;
+	}).catch(function(err) {
+		var canceled = err instanceof Cancellation;
+		_this.saving = false;
+		_this.promise = null;
+		_this.error = (canceled) ? undefined : err;
+		_this.rerender();
+		if (!canceled) {
+			throw err;
+		}
 	});
 };
 
@@ -144,11 +154,33 @@ prototype.cancelAutosave = function() {
 };
 
 prototype.delete = function() {
+	if (_this.deleting) {
+		return Promise.resolve();
+	}
 	var base = this.check();
 	var ours = this.current;
 	this.preserve(base, null);
 	var deleteFunc = this.params.delete || deleteDef;
-	return deleteFunc(base, ours);
+	var args = [ base, ours ];
+	for (var i = 0; i < arguments.length; i++) {
+		args.push(arguments[i]);
+	}
+	var promise = deleteFunc.apply(this, args);
+	_this.deleting = true;
+	_this.rerender();
+	return Promise.resolve(promise).then(function(result) {
+		_this.deleting = false;
+		_this.rerender();
+		return result;
+	}).catch(function(err) {
+		var canceled = err instanceof Cancellation;
+		_this.deleting = false;
+		_this.error = (canceled) ? undefined : err;
+		_this.rerender();
+		if (!canceled) {
+			throw err;
+		}
+	});
 };
 
 prototype.compare = function(ours, theirs) {
@@ -172,7 +204,9 @@ prototype.restore = function(theirs) {
 };
 
 prototype.rerender = function() {
-	this.setContext({ buffer: this });
+	if (this.setContext) {
+		this.setContext({ buffer: this });
+	}
 };
 
 prototype.check = function() {
@@ -193,18 +227,16 @@ prototype.use = function(params) {
 	}
 };
 
-function get(state, params) {
-	if (!state) {
-		throw new Error('Unable to obtain state variable');
-	}
+function acquire(state, params) {
 	var context = state[0];
 	var buffer = context.buffer;
 	if (!buffer) {
 		buffer = context.buffer = new AsyncSaveBuffer;
+		buffer.setContext = state[1];
 	}
-	buffer.context = context;
-	buffer.setContext = state[1];
-	buffer.use(params || {});
+	if (params) {
+		buffer.use(params);
+	}
 	return buffer;
 };
 
@@ -230,14 +262,33 @@ function preserveDef(base, ours) {
 function restoreDef(base) {
 }
 
-prototype.constructor.get = get;
+prototype.constructor.acquire = acquire;
 
 function useSaveBuffer(params) {
+	var cycle = AsyncRenderingCycle.get();
+	if (cycle && cycle.isRerendering()) {
+		params = null;
+	} else if (!params) {
+		params = {};
+	}
 	var state = useState({});
-	return AsyncSaveBuffer.get(state, params);
+	var buffer = acquire(state, params);
+	useEffect(function() {
+		return function() { buffer.setContext = null };
+	}, []);
+	return buffer;
 }
+
+function Cancellation() {
+    this.message = 'Operation cancelled';
+}
+
+var prototype = Object.create(Error.prototype)
+prototype.constructor = Cancellation;
+prototype.constructor.prototype = prototype;
 
 export {
 	AsyncSaveBuffer,
+	Cancellation,
 	useSaveBuffer,
 };

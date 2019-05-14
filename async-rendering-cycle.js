@@ -1,7 +1,7 @@
-import { AsyncRenderingInterrupted } from './async-rendering-interrupted';
 import * as Options from './options';
 
-function AsyncRenderingCycle(target, prev) {
+function AsyncRenderingCycle(target, prev, options) {
+    this.options = options;
     this.progressElement = undefined;
     this.progressAvailable = false;
     this.progressForced = false;
@@ -84,7 +84,7 @@ prototype.resolve = function(element) {
     this.fulfilled = true;
 	if (!this.hasEnded()) {
         if (!this.checked) {
-            if (!this.noCheck) {
+            if (this.options.performCheck) {
                 this.reject(new Error('Missing call to show() prior to await'));
                 return;
             }
@@ -182,7 +182,7 @@ prototype.show = function(element, disposition) {
     // save the element so it can be rendered eventually
     this.progressElement = element;
 
-    if (this.noProgress) {
+    if (!this.options.showProgress) {
         return false;
     }
 
@@ -245,7 +245,7 @@ prototype.update = function(forced) {
  * throw an exception to end it. Ensure component is mounted as well.
  */
 prototype.check = function() {
-    if (this.noProgress) {
+    if (!this.options.showProgress) {
         return;
     }
     if (this.synchronous) {
@@ -350,10 +350,15 @@ prototype.notify = function(name) {
 	}
 };
 
+var currentState;
+
 function get(state) {
-	if (!state) {
-		throw new Error('Unable to obtain state variable');
-	}
+    if (!state) {
+        state = currentState;
+    }
+    if (!state) {
+        return null;
+    }
 	var context = state[0];
 	var cycle = context.cycle;
 	if (cycle) {
@@ -363,17 +368,15 @@ function get(state) {
 	return cycle;
 }
 
-function start(state, target) {
-	var context = state[0];
-	var prev = context.cycle;
-	var cycle = new AsyncRenderingCycle(target, prev);
-	cycle.context = context;
-	cycle.setContext = state[1];
-	context.cycle = cycle;
-	return cycle;
+function need(state) {
+    var cycle = get(state);
+    if (!cycle) {
+        throw new Error('Unable to obtain state variable');
+    }
+    return cycle;
 }
 
-function acquire(state, target) {
+function acquire(state, target, options) {
     var cycle = get(state);
     if (cycle) {
         if (cycle.hasEnded()) {
@@ -386,7 +389,12 @@ function acquire(state, target) {
     }
     if (!cycle) {
         // start a new cycle
-        cycle = start(state, target);
+        var context = state[0];
+    	var prev = context.cycle;
+    	var cycle = new AsyncRenderingCycle(target, prev, options);
+    	cycle.context = context;
+    	cycle.setContext = state[1];
+    	context.cycle = cycle;
 
         // see if the contents has been seeded
         if (cycle.initial) {
@@ -396,13 +404,28 @@ function acquire(state, target) {
             }
         }
     }
+    currentState = state;
     return cycle;
 }
 
+function release() {
+    currentState = null;
+}
+
 prototype.constructor.get = get;
-prototype.constructor.start = start;
+prototype.constructor.need = need;
 prototype.constructor.acquire = acquire;
+prototype.constructor.release = release;
+
+function AsyncRenderingInterrupted() {
+    this.message = 'Async rendering interrupted';
+}
+
+var prototype = Object.create(Error.prototype)
+prototype.constructor = AsyncRenderingInterrupted;
+prototype.constructor.prototype = prototype;
 
 export {
     AsyncRenderingCycle,
+    AsyncRenderingInterrupted,
 };

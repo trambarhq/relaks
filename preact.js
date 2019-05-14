@@ -9,4 +9,3 @@ export default {
 export * from './options';
 export * from './class-preact';
 export * from './async-rendering-cycle';
-export * from './async-rendering-interrupted';

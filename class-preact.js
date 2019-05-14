@@ -30,7 +30,8 @@ prototype.constructor.prototype = prototype;
  * @return {VNode|null}
  */
 prototype.render = function(props, state, context) {
-	var cycle = AsyncRenderingCycle.acquire(this.relaks, this);
+    var options = { showProgress: true };
+	var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
     cycle.noCheck = true;
 	if (!cycle.isRerendering()) {
 		// call async function
@@ -39,6 +40,7 @@ prototype.render = function(props, state, context) {
 			return _this.renderAsync(cycle, props, state, context);
 		});
 	}
+    AsyncRenderingCycle.release();
     cycle.mounted = true;
 
 	// throw error that had occurred in async code
@@ -56,9 +58,9 @@ prototype.render = function(props, state, context) {
 };
 
 prototype.renderAsyncEx = function() {
-    var cycle = AsyncRenderingCycle.acquire(this.relaks, this);
-    cycle.noProgress = true;
+    var cycle = AsyncRenderingCycle.acquire(this.relaks, this, {});
     var promise = this.renderAsync(cycle, this.props, this.state, this.context);
+    AsyncRenderingCycle.release();
     if (promise && typeof(promise.then) === 'function') {
         return promise.then(function(element) {
             if (element === undefined) {
