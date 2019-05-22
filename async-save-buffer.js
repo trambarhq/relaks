@@ -24,7 +24,13 @@ prototype.base = function(theirs) {
 		return;
 	}
 	if (!this.ready) {
-		var ours = this.restore(theirs);
+		var ours;
+		var preserved = this.restore(theirs);
+		if (ours !== undefined) {
+			ours = preserved;
+		} else {
+			ours = this.prefill(theirs);
+		}
 		if (ours !== undefined && !this.compare(ours, theirs)) {
 			this.current = ours;
 			this.changed = true;
@@ -203,6 +209,11 @@ prototype.restore = function(theirs) {
 	return restoreFunc(theirs);
 };
 
+prototype.prefill = function(theirs) {
+	var prefillFunc = this.params.prefill || prefillDef;
+	return prefillFunc(theirs);
+};
+
 prototype.rerender = function() {
 	if (this.setContext) {
 		this.setContext({ buffer: this });
@@ -260,6 +271,9 @@ function preserveDef(base, ours) {
 }
 
 function restoreDef(base) {
+}
+
+function prefillDef(base) {
 }
 
 prototype.constructor.acquire = acquire;
