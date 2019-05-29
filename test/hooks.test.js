@@ -5,7 +5,14 @@ import { expect } from 'chai';
 import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Relaks, { useProgress, useRenderEvent, usePreviousProps, useSaveBuffer, useEventTime } from '../index';
+import Relaks, {
+    useProgress,
+    useRenderEvent,
+    usePreviousProps,
+    useSaveBuffer,
+    useEventTime,
+    useErrorCatcher,
+} from '../index';
 
 configure({ adapter: new Adapter() });
 
@@ -465,4 +472,101 @@ describe('Hooks', function() {
             expect(wrapper.text()).to.match(/^\d{4}-\d{2}-\d{2}/);
         })
     })
+    describe('#useErrorCatcher()', function() {
+        it ('should catch error from synchronous code', async function() {
+            let test1, test2;
+            const Test = (props) => {
+                const [ error, run ] = useErrorCatcher();
+
+                test1 = () => {
+                    run(() => {
+                        throw new Error('Error 1');
+                    });
+                };
+                test2 = () => {
+                    run(() => {
+                        throw new Error('Error 2');
+                    });
+                };
+
+                return <div>{error ? error.message : 'None'}</div>;
+            };
+
+            const wrapper = mount(<Test />);
+            expect(wrapper.text()).to.equal('None');
+            test1();
+            expect(wrapper.text()).to.equal('Error 1');
+            test2();
+            expect(wrapper.text()).to.equal('Error 2');
+        });
+        it ('should catch error from asynchronous code', async function() {
+            let test1, test2;
+            const Test = (props) => {
+                const [ error, run ] = useErrorCatcher();
+
+                test1 = async () => {
+                    await run(async () => {
+                        throw new Error('Error 1');
+                    });
+                };
+                test2 = async () => {
+                    await run(async () => {
+                        throw new Error('Error 2');
+                    });
+                };
+
+                return <div>{error ? error.message : 'None'}</div>;
+            };
+
+            const wrapper = mount(<Test />);
+            expect(wrapper.text()).to.equal('None');
+            await test1();
+            expect(wrapper.text()).to.equal('Error 1');
+            await test2();
+            expect(wrapper.text()).to.equal('Error 2');
+        });
+        it ('should return value from synchronous function', async function() {
+            let test1, test2;
+            const Test = (props) => {
+                const [ error, run ] = useErrorCatcher();
+
+                test1 = () => {
+                    return run(() => 1);
+                };
+                test2 = () => {
+                    return run(() => 2);
+                };
+
+                return <div>{error ? error.message : 'None'}</div>;
+            };
+
+            const wrapper = mount(<Test />);
+            expect(wrapper.text()).to.equal('None');
+            expect(test1()).to.equal(1);
+            expect(test2()).to.equal(2);
+        });
+        it ('should return value from asynchronous function', async function() {
+            let test1, test2;
+            const Test = (props) => {
+                const [ error, run ] = useErrorCatcher();
+
+                test1 = () => {
+                    return run(async () => 1);
+                };
+                test2 = () => {
+                    return run(async () => {
+                        await delay(50);
+                        return 2;
+                    });
+                };
+
+                return <div>{error ? error.message : 'None'}</div>;
+            };
+
+            const wrapper = mount(<Test />);
+            expect(wrapper.text()).to.equal('None');
+            expect(await test1()).to.equal(1);
+            expect(await test2()).to.equal(2);
+        });
+    });
 })
