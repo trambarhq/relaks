@@ -121,7 +121,6 @@ function useAsyncEffect(f, deps) {
 	useEffect(function() {
 		var cleanup;
 		var unmounted = false;
-		var fulfilled = false;
 		var promise = f();
 		Promise.resolve(promise).then(function(ret) {
 			cleanup = ret;
@@ -133,10 +132,6 @@ function useAsyncEffect(f, deps) {
 			unmounted = true;
 			if (cleanup) {
 				cleanup();
-			} else if (!fulfilled) {
-				if (promise && promise.cancel instanceof Function) {
-					promise.cancel();
-				}
 			}
 		};
 	}, deps);

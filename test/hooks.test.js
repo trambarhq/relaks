@@ -13,6 +13,7 @@ import Relaks, {
     useEventTime,
     useErrorCatcher,
     useListener,
+    useAsyncEffect,
 } from '../index';
 
 configure({ adapter: new Adapter() });
@@ -600,4 +601,115 @@ describe('Hooks', function() {
             expect(_.size(_.uniq(funcs))).to.equal(1);
         })
     });
+    describe('#useAsyncEffect', function() {
+        it ('should call function on dependecy change', async function() {
+            let redrawNoEffect;
+            let redrawWithEffect;
+            let effectCounts = [];
+            const Test = (props) => {
+                const [ state1, setState1 ] = useState(1);
+                const [ state2, setState2 ] = useState(1);
+
+                redrawNoEffect = () => {
+                    setState1(state1 + 1);
+                };
+                redrawWithEffect = () => {
+                    setState2(state2 + 1);
+                };
+
+                useAsyncEffect(async () => {
+                    await delay(20);
+                    effectCounts.push(state2);
+                }, [ state2 ]);
+
+                return <div />;
+            };
+            const wrapper = mount(<Test />);
+            await delay(50);
+            expect(effectCounts).to.deep.equal([ 1 ]);
+            redrawNoEffect();
+            await delay(50);
+            expect(effectCounts).to.deep.equal([ 1 ]);
+            redrawWithEffect();
+            await delay(50);
+            expect(effectCounts).to.deep.equal([ 1, 2 ]);
+        })
+        it ('should call clean-up function on dependecy change', async function() {
+            let redrawNoEffect;
+            let redrawWithEffect;
+            let effectCounts = [];
+            let cleanupCounts = [];
+            const Test = (props) => {
+                const [ state1, setState1 ] = useState(1);
+                const [ state2, setState2 ] = useState(1);
+
+                redrawNoEffect = () => {
+                    setState1(state1 + 1);
+                };
+                redrawWithEffect = () => {
+                    setState2(state2 + 1);
+                };
+
+                useAsyncEffect(async () => {
+                    await delay(20);
+                    effectCounts.push(state2);
+
+                    return () => {
+                        cleanupCounts.push(state2);
+                    };
+                }, [ state2 ]);
+
+                return <div />;
+            };
+            const wrapper = mount(<Test />);
+            await delay(50);
+            expect(effectCounts).to.deep.equal([ 1 ]);
+            expect(cleanupCounts).to.deep.equal([]);
+            redrawWithEffect();
+            await delay(50);
+            expect(effectCounts).to.deep.equal([ 1, 2 ]);
+            expect(cleanupCounts).to.deep.equal([ 1 ]);
+        })
+        it ('should call clean-up function eventually', async function() {
+            let redrawNoEffect;
+            let redrawWithEffect;
+            let effectCounts = [];
+            let cleanupCounts = [];
+            const Test = (props) => {
+                const [ state1, setState1 ] = useState(1);
+                const [ state2, setState2 ] = useState(1);
+
+                redrawNoEffect = () => {
+                    setState1(state1 + 1);
+                };
+                redrawWithEffect = () => {
+                    setState2(state2 + 1);
+                };
+
+                useAsyncEffect(async () => {
+                    effectCounts.push(state2);
+                    await delay(50);
+
+                    return () => {
+                        cleanupCounts.push(state2);
+                    };
+                }, [ state2 ]);
+
+                return <div />;
+            };
+            const wrapper = mount(<Test />);
+            // initial effect
+            expect(effectCounts).to.deep.equal([ 1 ]);
+            expect(cleanupCounts).to.deep.equal([]);
+            redrawWithEffect();
+            await delay(25);
+            // triggered effect
+            expect(effectCounts).to.deep.equal([ 1, 2 ]);
+            // clean-up function returned initially not yet available
+            expect(cleanupCounts).to.deep.equal([]);
+            await delay(100);
+            // clean-up function became available and was called
+            expect(cleanupCounts).to.deep.equal([ 1 ]);
+        })
+    })
 })
