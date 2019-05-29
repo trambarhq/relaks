@@ -114,7 +114,7 @@ function useListener(f) {
 	obj.f = f;
 	return useCallback(function () {
 		obj.f.apply(null, arguments);
-	});
+	}, []);
 }
 
 function useAsyncEffect(f, deps) {

@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { delay } from 'bluebird';
-import React, { Component } from 'react';
+import React, { Component, useState } from 'react';
 import { expect } from 'chai';
 import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
@@ -12,6 +12,7 @@ import Relaks, {
     useSaveBuffer,
     useEventTime,
     useErrorCatcher,
+    useListener,
 } from '../index';
 
 configure({ adapter: new Adapter() });
@@ -498,7 +499,7 @@ describe('Hooks', function() {
             expect(wrapper.text()).to.equal('Error 1');
             test2();
             expect(wrapper.text()).to.equal('Error 2');
-        });
+        })
         it ('should catch error from asynchronous code', async function() {
             let test1, test2;
             const Test = (props) => {
@@ -524,7 +525,7 @@ describe('Hooks', function() {
             expect(wrapper.text()).to.equal('Error 1');
             await test2();
             expect(wrapper.text()).to.equal('Error 2');
-        });
+        })
         it ('should return value from synchronous function', async function() {
             let test1, test2;
             const Test = (props) => {
@@ -544,7 +545,7 @@ describe('Hooks', function() {
             expect(wrapper.text()).to.equal('None');
             expect(test1()).to.equal(1);
             expect(test2()).to.equal(2);
-        });
+        })
         it ('should return value from asynchronous function', async function() {
             let test1, test2;
             const Test = (props) => {
@@ -567,6 +568,36 @@ describe('Hooks', function() {
             expect(wrapper.text()).to.equal('None');
             expect(await test1()).to.equal(1);
             expect(await test2()).to.equal(2);
-        });
+        })
+    });
+    describe('#useListener', function() {
+        it ('should always return the same function', function() {
+            let test;
+            let counts = [];
+            let funcs = [];
+            const Test = (props) => {
+                const [ count, setCount ] = useState(1);
+                const f = useListener(() => {
+                    counts.push(count);
+                });
+
+                test = () => {
+                    f();
+                    setCount(count + 1);
+                };
+                funcs.push(f);
+
+                return <div>{count}</div>;
+            };
+            const wrapper = mount(<Test />);
+            expect(wrapper.text()).to.equal('1');
+            test();
+            expect(wrapper.text()).to.equal('2');
+            test();
+            expect(wrapper.text()).to.equal('3');
+            test();
+            expect(counts).to.deep.equal([ 1, 2, 3 ]);
+            expect(_.size(_.uniq(funcs))).to.equal(1);
+        })
     });
 })
