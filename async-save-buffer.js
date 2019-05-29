@@ -6,15 +6,21 @@ function AsyncSaveBuffer() {
 	this.original = undefined;
 	this.current = undefined;
 	this.changed = false;
+	this.unsaved = false;
 	this.saving = false;
 	this.removing = false;
-	this.error = undefined;
 
 	this.params = undefined;
 	this.promise = null;
 	this.saved = undefined;
 	this.timeout = 0;
 	this.setContext = undefined;
+
+	this.set = this.set.bind(this);
+	this.assign = this.assign.bind(this);
+	this.reset = this.reset.bind(this);
+	this.save = this.save.bind(this);
+	this.remove = this.remove.bind(this);
 }
 
 var prototype = AsyncSaveBuffer.prototype;
@@ -34,6 +40,7 @@ prototype.base = function(theirs) {
 		if (ours !== undefined && !this.compare(ours, theirs)) {
 			this.current = ours;
 			this.changed = true;
+			this.unsaved = true;
 		} else {
             if (process.env.NODE_ENV !== 'production') {
                 // invoke compare() now so that syntax error would
@@ -43,13 +50,6 @@ prototype.base = function(theirs) {
 			this.current = theirs;
 		}
 		this.ready = true;
-	} else if (this.saving) {
-		if (this.saved === undefined || this.compare(this.saved, theirs)) {
-			this.current = theirs;
-			this.changed = false;
-			this.saving = false;
-			this.saved = undefined;
-		}
 	} else {
 		var base = this.original;
 		var ours = this.current;
@@ -62,6 +62,7 @@ prototype.base = function(theirs) {
 				} else {
 					this.current = theirs;
 					this.changed = false;
+					this.unsaved = false;
 					this.cancelAutosave();
 					this.preserve(base, null);
 				}
@@ -79,9 +80,11 @@ prototype.set = function(ours) {
 	if (this.compare(base, ours)) {
 		this.current = ours = base;
 		this.changed = false;
+		this.unsaved = false;
 	} else {
 		this.current = ours;
 		this.changed = true;
+		this.unsaved = true;
 		this.autosave();
 	}
 	this.preserve(base, ours);
@@ -102,6 +105,7 @@ prototype.reset = function() {
 	if (this.changed) {
 		this.current = base;
 		this.changed = false;
+		this.unsaved = false;
 		this.preserve(base, null);
 		this.rerender();
 	}
@@ -120,22 +124,29 @@ prototype.save = function() {
 	_this.saving = true;
 	_this.promise = promise;
 	_this.rerender();
-	return Promise.resolve(promise).then(function(result) {
+	return Promise.resolve(promise).then(function(theirs) {
 		if (_this.promise === promise) {
-			_this.saved = result;
+			_this.saving = false;
 			_this.promise = null;
+            if (theirs !== undefined) {
+			    _this.current = theirs;
+            }
+			_this.unsaved = false;
 			_this.preserve(base, null);
-		}
-		return result;
+   		    _this.rerender();
+  		    return true;
+		} else {
+            return false;
+        }
 	}).catch(function(err) {
 		var canceled = err instanceof Cancellation;
 		_this.saving = false;
 		_this.promise = null;
-		_this.error = (canceled) ? undefined : err;
 		_this.rerender();
 		if (!canceled) {
 			throw err;
 		}
+        return false;
 	});
 };
 
@@ -160,6 +171,7 @@ prototype.cancelAutosave = function() {
 };
 
 prototype.remove = prototype.delete = function() {
+    var _this = this;
 	if (_this.removing) {
 		return Promise.resolve();
 	}
@@ -177,15 +189,15 @@ prototype.remove = prototype.delete = function() {
 	return Promise.resolve(promise).then(function(result) {
 		_this.removing = false;
 		_this.rerender();
-		return result;
+		return true;
 	}).catch(function(err) {
 		var canceled = err instanceof Cancellation;
 		_this.removing = false;
-		_this.error = (canceled) ? undefined : err;
 		_this.rerender();
 		if (!canceled) {
 			throw err;
 		}
+        return false;
 	});
 };
 
@@ -234,6 +246,7 @@ prototype.use = function(params) {
 		var base = this.original;
 		this.current = base;
 		this.changed = false;
+		this.unsaved = false;
 		this.preserve(base, null);
 	}
 };

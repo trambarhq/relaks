@@ -109,6 +109,57 @@ function useEventTime() {
 	return [ date, callback ];
 }
 
+function useListener(f) {
+	var [ obj ] = useState({});
+	obj.f = f;
+	return useCallback(function () {
+		obj.f.apply(null, arguments);
+	});
+}
+
+function useAsyncEffect(f, deps) {
+	useEffect(function() {
+		var cleanup;
+		var unmounted = false;
+		var fulfilled = false;
+		var promise = f();
+		Promise.resolve(promise).then(function(ret) {
+			cleanup = ret;
+			if (unmounted) {
+				cleanup();
+			}
+		});
+		return function() {
+			unmounted = true;
+			if (cleanup) {
+				cleanup();
+			} else if (!fulfilled) {
+				if (promise && promise.cancel instanceof Function) {
+					promise.cancel();
+				}
+			}
+		};
+	}, deps);
+}
+
+function useErrorCatcher() {
+	var [ error, setError ] = useState();
+	var run = useCallback(function(f) {
+		try {
+			var promise = f();
+			if (promise && promise.catch instanceof Function) {
+				promise = promise.catch(function(err) {
+					setError(err);
+				});
+			}
+			return promise;
+		} catch (err) {
+			setError(err);
+		}
+	});
+	return [ error, run ];
+}
+
 export {
 	use,
 	memo,
@@ -117,4 +168,7 @@ export {
 	useRenderEvent,
 	usePreviousProps,
 	useEventTime,
+	useListener,
+	useAsyncEffect,
+	useErrorCatcher,
 };
