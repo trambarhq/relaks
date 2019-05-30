@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { delay } from 'bluebird';
-import React, { Component, useState } from 'react';
+import React, { useState, useRef, useImperativeHandle, Component } from 'react';
 import { expect } from 'chai';
 import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
@@ -712,4 +712,41 @@ describe('Hooks', function() {
             expect(cleanupCounts).to.deep.equal([ 1 ]);
         })
     })
+    describe('#useImperativeHandle()', function() {
+        it ('should render the component', async function() {
+            const Test = Relaks.forwardRef(async (props, ref) => {
+                const [ text, setText ] = useState('Unchanged');
+                const [ show ] = useProgress();
+
+                useImperativeHandle(ref, () => {
+                    function change(value) {
+                        setText(value);
+                    }
+                    return { change };
+                });
+
+                show(<div>Initial</div>, 'initial');
+                await delay(50);
+                return <div>{text}</div>;
+            });
+            let test;
+            const Container = function(props) {
+                const ref = useRef();
+
+                test = () => {
+                    ref.current.change('Changed');
+                };
+
+                return <Test ref={ref} />;
+            }
+
+            const wrapper = mount(<Container />);
+            expect(wrapper.text()).to.equal('Initial');
+            await delay(100);
+            expect(wrapper.text()).to.equal('Unchanged');
+            test();
+            await delay(100);
+            expect(wrapper.text()).to.equal('Changed');
+        })
+    });
 })

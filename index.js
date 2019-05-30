@@ -1,5 +1,5 @@
 import { get, set, plant } from './options';
-import { use, memo } from './hooks';
+import { use, memo, forwardRef } from './hooks';
 
 export default {
 	get: get,
@@ -8,6 +8,7 @@ export default {
 
 	use: use,
 	memo: memo,
+	forwardRef: forwardRef,
 };
 
 export * from './options';

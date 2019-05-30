@@ -3,7 +3,7 @@ import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function use(asyncFunc) {
 	// create synchronous function wrapper
-	var syncFunc = function(props) {
+	var syncFunc = function(props, ref) {
 		var state = useState({});
 		var target = { func: syncFunc, props };
 		var options = { showProgress: true, performCheck: true };
@@ -21,7 +21,7 @@ function use(asyncFunc) {
 
 		// call async function
 		cycle.run(function() {
-			return asyncFunc(props);
+			return asyncFunc(props, ref);
 		});
 
         AsyncRenderingCycle.release();
@@ -72,12 +72,12 @@ function use(asyncFunc) {
 
 function memo(asyncFunc, areEqual) {
 	var syncFunc = use(asyncFunc);
-	var memoizedFunc = React.memo(syncFunc, areEqual);
+	return React.memo(syncFunc, areEqual);
+}
 
-	if (!memoizedFunc.defaultProps) {
-		memoizedFunc.defaultProps = syncFunc.defaultProps;
-	}
-	return memoizedFunc;
+function forwardRef(asyncFunc, areEqual) {
+	var syncFunc = use(asyncFunc);
+	return React.memo(React.forwardRef(syncFunc), areEqual);
 }
 
 function useProgress(delayEmpty, delayRendered) {
@@ -158,6 +158,7 @@ function useErrorCatcher() {
 export {
 	use,
 	memo,
+	forwardRef,
 
 	useProgress,
 	useRenderEvent,
