@@ -65,12 +65,14 @@ describe('Save buffer', function() {
             };
             buffer.set(newObject);
             expect(buffer.changed).to.be.true;
+            expect(buffer.unsaved).to.be.true;
             await delay(50);
             const newerObject = {
                 hello: 'world'
             };
             buffer.set(newerObject);
             expect(buffer.changed).to.be.false;
+            expect(buffer.unsaved).to.be.false;
             expect(compared).to.be.true;
         })
     })
@@ -276,7 +278,7 @@ describe('Save buffer', function() {
             expect(buffer.current).to.equal(merged);
             expect(buffer.changed).to.be.true;
         })
-        it ('should call set saving to false when the result shows up', async function() {
+        it ('should call set unsaved to false after save() is called', async function() {
             const state = [
                 {},
                 function(v) {
@@ -300,12 +302,15 @@ describe('Save buffer', function() {
             expect(buffer.original).to.equal(object);
             expect(buffer.current).to.deep.equal({ hello: 'chicken' });
             expect(buffer.changed).to.be.true;
+            expect(buffer.unsaved).to.be.true;
 
             let promise = buffer.save();
             expect(buffer.saving).to.be.true;
             await promise;
             expect(saved).to.deep.equal({ hello: 'chicken' });
-            expect(buffer.saving).to.be.true;
+            expect(buffer.saving).to.be.false;
+            expect(buffer.unsaved).to.be.false;
+            expect(buffer.changed).to.be.true;
 
             buffer.use({
                 original: saved,
@@ -313,7 +318,31 @@ describe('Save buffer', function() {
             });
             expect(buffer.original).to.equal(saved);
             expect(buffer.current).to.equal(saved);
-            expect(buffer.saving).to.be.false;
+            expect(buffer.changed).to.be.false;
         })
+    })
+    it ('should invoke prefill provided as param', async function() {
+        const state = [
+            {},
+            function(v) { state[0] = v }
+        ];
+        const object = {
+            hello: 'world'
+        };
+        const changes = {
+            dingo: 'baby'
+        };
+        const prefill = (base) => {
+            expect(base).to.equal(object);
+            return changes;
+        };
+        const buffer = AsyncSaveBuffer.acquire(state, {
+            original: object,
+            prefill
+        });
+        expect(buffer.original).to.equal(object);
+        expect(buffer.current).to.equal(changes);
+        expect(buffer.changed).to.be.true;
+        expect(buffer.unsaved).to.be.true;
     })
 })
