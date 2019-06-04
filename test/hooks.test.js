@@ -10,6 +10,7 @@ import Relaks, {
     useRenderEvent,
     usePreviousProps,
     useSaveBuffer,
+    useAutoSave,
     useEventTime,
     useErrorCatcher,
     useListener,
@@ -292,18 +293,12 @@ describe('Hooks', function() {
     })
     describe('#useSaveBuffer()', function() {
         it ('should update value in input field', async function() {
-            let saved;
             let draftRef;
             const Test = (props) => {
                 const { story } = props;
                 const draft = draftRef = useSaveBuffer({
                     original: story,
-                    save: (base, ours) => {
-                        saved = ours;
-                        return _.clone(ours);
-                    },
                     compare: _.isEqual,
-                    autosave: 100,
                 });
                 const handleChange = (evt) => {
                     draft.assign({ title: evt.target.value });
@@ -328,12 +323,6 @@ describe('Hooks', function() {
             wrapper.update();
             expect(wrapper.find('input').prop('value')).to.equal(changes.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: true');
-
-            await delay(150);
-            expect(saved).to.have.property('title', changes.title);
-            wrapper.setProps({ story: saved });
-            await delay(50);
-            expect(wrapper.find('#changed').text()).to.equal('Changed: false');
         })
         it ('should replace current value when there is are local changes', async function() {
             let draftRef;
@@ -342,7 +331,6 @@ describe('Hooks', function() {
                 const draft = draftRef = useSaveBuffer({
                     original: story,
                     compare: _.isEqual,
-                    autosave: 100,
                 });
                 const handleChange = (evt) => {
                     draft.assign({ title: evt.target.value });
@@ -376,7 +364,6 @@ describe('Hooks', function() {
                 const draft = draftRef = useSaveBuffer({
                     original: story,
                     compare: _.isEqual,
-                    autosave: 100,
                 });
                 const handleChange = (evt) => {
                     draft.assign({ title: evt.target.value });
@@ -748,5 +735,75 @@ describe('Hooks', function() {
             await delay(100);
             expect(wrapper.text()).to.equal('Changed');
         })
-    });
+    })
+    describe('#useAutoSave', function() {
+        it ('should invoke save function after some time', async function() {
+            let buffer;
+            let saved = [];
+            const Test = (props) => {
+                buffer = useSaveBuffer({
+                    original: '',
+                });
+                useAutoSave(buffer, 100, async () => {
+                    saved.push(buffer.current);
+                });
+                return <div />;
+            };
+
+            const wrapper = mount(<Test />);
+            buffer.set('hello');
+            await delay(50);
+            expect(saved).to.deep.equal([]);
+            await delay(125);
+            expect(saved).to.deep.equal([ 'hello' ]);
+            buffer.set('world');
+            await delay(50);
+            expect(saved).to.deep.equal([ 'hello' ]);
+            await delay(125);
+            expect(saved).to.deep.equal([ 'hello', 'world' ]);
+        })
+        it ('should cancel saving of earlier changes', async function() {
+            let buffer;
+            let saved = [];
+            const Test = (props) => {
+                buffer = useSaveBuffer({
+                    original: '',
+                });
+                useAutoSave(buffer, 100, async () => {
+                    saved.push(buffer.current);
+                });
+                return <div />;
+            };
+
+            const wrapper = mount(<Test />);
+            buffer.set('hello');
+            await delay(50);
+            expect(saved).to.deep.equal([]);
+            buffer.set('world');
+            await delay(75);
+            expect(saved).to.deep.equal([]);
+            await delay(75);
+            expect(saved).to.deep.equal([ 'world' ]);
+        })
+        it ('should call save function on unmount', async function() {
+            let buffer;
+            let saved = [];
+            const Test = (props) => {
+                buffer = useSaveBuffer({
+                    original: '',
+                });
+                useAutoSave(buffer, 100, async () => {
+                    saved.push(buffer.current);
+                });
+                return <div />;
+            };
+
+            const wrapper = mount(<Test />);
+            buffer.set('hello');
+            await delay(50);
+            expect(saved).to.deep.equal([]);
+            wrapper.unmount();
+            expect(saved).to.deep.equal([ 'hello' ]);
+        })
+    })
 })

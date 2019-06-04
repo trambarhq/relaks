@@ -6,21 +6,14 @@ function AsyncSaveBuffer() {
 	this.original = undefined;
 	this.current = undefined;
 	this.changed = false;
-	this.unsaved = false;
-	this.saving = false;
 	this.removing = false;
 
 	this.params = undefined;
-	this.promise = null;
-	this.saved = undefined;
-	this.timeout = 0;
 	this.setContext = undefined;
 
 	this.set = this.set.bind(this);
 	this.assign = this.assign.bind(this);
 	this.reset = this.reset.bind(this);
-	this.save = this.save.bind(this);
-	this.remove = this.remove.bind(this);
 }
 
 var prototype = AsyncSaveBuffer.prototype;
@@ -40,7 +33,6 @@ prototype.base = function(theirs) {
 		if (ours !== undefined && !this.compare(ours, theirs)) {
 			this.current = ours;
 			this.changed = true;
-			this.unsaved = true;
 		} else {
             if (process.env.NODE_ENV !== 'production') {
                 // invoke compare() now so that syntax error would
@@ -62,8 +54,6 @@ prototype.base = function(theirs) {
 				} else {
 					this.current = theirs;
 					this.changed = false;
-					this.unsaved = false;
-					this.cancelAutosave();
 					this.preserve(base, null);
 				}
 			} else {
@@ -76,16 +66,12 @@ prototype.base = function(theirs) {
 
 prototype.set = function(ours) {
 	var base = this.check();
-	this.cancelAutosave();
 	if (this.compare(base, ours)) {
 		this.current = ours = base;
 		this.changed = false;
-		this.unsaved = false;
 	} else {
 		this.current = ours;
 		this.changed = true;
-		this.unsaved = true;
-		this.autosave();
 	}
 	this.preserve(base, ours);
 	this.rerender();
@@ -101,104 +87,12 @@ prototype.assign = function(values /* ... */) {
 
 prototype.reset = function() {
 	var base = this.check();
-	this.cancelAutosave();
 	if (this.changed) {
 		this.current = base;
 		this.changed = false;
-		this.unsaved = false;
 		this.preserve(base, null);
 		this.rerender();
 	}
-};
-
-prototype.save = function() {
-	var base = this.check();
-	var ours = this.current;
-	var saveFunc = this.params.save || saveDef;
-	var args = [ base, ours ];
-	for (var i = 0; i < arguments.length; i++) {
-		args.push(arguments[i]);
-	}
-	var promise = saveFunc.apply(this, args);
-	var _this = this;
-	_this.saving = true;
-	_this.promise = promise;
-	_this.rerender();
-	return Promise.resolve(promise).then(function(theirs) {
-		if (_this.promise === promise) {
-			_this.saving = false;
-			_this.promise = null;
-            if (theirs !== undefined) {
-			    _this.current = theirs;
-            }
-			_this.unsaved = false;
-			_this.preserve(base, null);
-   		    _this.rerender();
-  		    return true;
-		} else {
-            return false;
-        }
-	}).catch(function(err) {
-		var canceled = err instanceof Cancellation;
-		_this.saving = false;
-		_this.promise = null;
-		_this.rerender();
-		if (!canceled) {
-			throw err;
-		}
-        return false;
-	});
-};
-
-prototype.autosave = function() {
-	var delay = this.params.autosave || this.params.autoSave;
-	if (typeof(delay) === 'number') {
-		var _this = this;
-		this.timeout = setTimeout(function() {
-			if (_this.timeout !== 0) {
-				_this.timeout = 0;
-				_this.save();
-			}
-		}, delay);
-	}
-};
-
-prototype.cancelAutosave = function() {
-	if (this.timeout) {
-		clearTimeout(this.timeout);
-		this.timeout = 0;
-	}
-};
-
-prototype.remove = prototype.delete = function() {
-    var _this = this;
-	if (_this.removing) {
-		return Promise.resolve();
-	}
-	var base = this.check();
-	var ours = this.current;
-	this.preserve(base, null);
-	var removeFunc = this.params.remove || this.params.delete || removeDef;
-	var args = [ base, ours ];
-	for (var i = 0; i < arguments.length; i++) {
-		args.push(arguments[i]);
-	}
-	var promise = removeFunc.apply(this, args);
-	_this.removing = true;
-	_this.rerender();
-	return Promise.resolve(promise).then(function(result) {
-		_this.removing = false;
-		_this.rerender();
-		return true;
-	}).catch(function(err) {
-		var canceled = err instanceof Cancellation;
-		_this.removing = false;
-		_this.rerender();
-		if (!canceled) {
-			throw err;
-		}
-        return false;
-	});
 };
 
 prototype.compare = function(ours, theirs) {
@@ -246,7 +140,6 @@ prototype.use = function(params) {
 		var base = this.original;
 		this.current = base;
 		this.changed = false;
-		this.unsaved = false;
 		this.preserve(base, null);
 	}
 };
@@ -270,14 +163,6 @@ function compareDef(ours, theirs) {
 
 function mergeDef(base, ours, theirs) {
 	return theirs;
-}
-
-function saveDef(base, ours) {
-	throw new Error('No save function');
-}
-
-function removeDef(base, ours) {
-	throw new Error('No remove function');
 }
 
 function preserveDef(base, ours) {
@@ -307,16 +192,33 @@ function useSaveBuffer(params) {
 	return buffer;
 }
 
-function Cancellation() {
-    this.message = 'Operation cancelled';
+function useAutoSave(saveBuffer, wait, f) {
+	var [ context ] = useState({});
+	context.f = f;
+	useEffect(function() {
+		if (saveBuffer.changed) {
+			var timeout = setTimeout(function() {
+				if (timeout && saveBuffer.changed) {
+					context.f();
+				}
+			}, wait);
+			return function() {
+				clearTimeout(timeout);
+				timeout = 0;
+			};
+		}
+	}, [ saveBuffer.current ]);
+	useEffect(function() {
+		return function() {
+			if (saveBuffer.changed) {
+				context.f();
+			}
+		};
+	}, []);
 }
-
-var prototype = Object.create(Error.prototype)
-prototype.constructor = Cancellation;
-prototype.constructor.prototype = prototype;
 
 export {
 	AsyncSaveBuffer,
-	Cancellation,
 	useSaveBuffer,
+	useAutoSave,
 };

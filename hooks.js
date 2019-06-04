@@ -110,10 +110,10 @@ function useEventTime() {
 }
 
 function useListener(f) {
-	var [ obj ] = useState({});
-	obj.f = f;
+	var [ context ] = useState({});
+	context.f = f;
 	return useCallback(function () {
-		obj.f.apply(null, arguments);
+		context.f.apply(null, arguments);
 	}, []);
 }
 
