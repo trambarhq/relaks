@@ -196,7 +196,7 @@ function useAutoSave(saveBuffer, wait, f) {
 	var [ context ] = useState({});
 	context.f = f;
 	useEffect(function() {
-		if (saveBuffer.changed) {
+		if (saveBuffer.changed && typeof(wait) === 'number') {
 			var timeout = setTimeout(function() {
 				if (timeout && saveBuffer.changed) {
 					context.f();
