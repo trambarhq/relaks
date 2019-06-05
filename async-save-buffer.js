@@ -25,7 +25,7 @@ prototype.base = function(theirs) {
 	if (!this.ready) {
 		var ours;
 		var preserved = this.restore(theirs);
-		if (ours !== undefined) {
+		if (preserved !== undefined) {
 			ours = preserved;
 		} else {
 			ours = this.prefill(theirs);
