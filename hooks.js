@@ -139,23 +139,20 @@ function useAsyncEffect(f, deps) {
 
 function useErrorCatcher(rethrow) {
 	var [ error, setError ] = useState();
+	if (rethrow && error) {
+		throw error;
+	}
 	var run = useCallback(function(f) {
 		try {
 			var promise = f();
 			if (promise && promise.catch instanceof Function) {
 				promise = promise.catch(function(err) {
 					setError(err);
-					if (rethrow) {
-						throw err;
-					}
 				});
 			}
 			return promise;
 		} catch (err) {
 			setError(err);
-			if (rethrow) {
-				throw err;
-			}
 		}
 	});
 	return [ error, run ];
