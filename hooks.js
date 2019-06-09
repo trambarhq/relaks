@@ -111,7 +111,9 @@ function useEventTime() {
 
 function useListener(f) {
 	var [ context ] = useState({});
-	context.f = f;
+	if (!AsyncRenderingCycle.skip()) {
+		context.f = f;
+	}
 	return useCallback(function () {
 		context.f.apply(null, arguments);
 	}, []);

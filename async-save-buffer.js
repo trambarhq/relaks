@@ -6,14 +6,9 @@ function AsyncSaveBuffer() {
 	this.original = undefined;
 	this.current = undefined;
 	this.changed = false;
-	this.removing = false;
 
 	this.params = undefined;
 	this.setContext = undefined;
-
-	this.set = this.set.bind(this);
-	this.assign = this.assign.bind(this);
-	this.reset = this.reset.bind(this);
 }
 
 var prototype = AsyncSaveBuffer.prototype;
@@ -144,11 +139,11 @@ prototype.use = function(params) {
 	}
 };
 
-function acquire(state, params) {
+function acquire(state, params, bufferClass) {
 	var context = state[0];
 	var buffer = context.buffer;
 	if (!buffer) {
-		buffer = context.buffer = new AsyncSaveBuffer;
+		buffer = context.buffer = new bufferClass;
 		buffer.setContext = state[1];
 	}
 	if (params) {
@@ -176,16 +171,15 @@ function prefillDef(base) {
 
 prototype.constructor.acquire = acquire;
 
-function useSaveBuffer(params) {
-	var cycle = AsyncRenderingCycle.get();
-	if (cycle && cycle.isRerendering()) {
+function useSaveBuffer(params, customClass) {
+	if (AsyncRenderingCycle.skip()) {
 		// don't initialize when called during rerendering
 		params = null;
 	} else if (!params) {
 		params = {};
 	}
 	var state = useState({});
-	var buffer = acquire(state, params);
+	var buffer = acquire(state, params, customClass || AsyncSaveBuffer);
 	useEffect(function() {
 		return function() { buffer.setContext = null };
 	}, []);
@@ -194,7 +188,9 @@ function useSaveBuffer(params) {
 
 function useAutoSave(saveBuffer, wait, f) {
 	var [ context ] = useState({});
-	context.f = f;
+	if (!AsyncRenderingCycle.skip()) {
+		context.f = f;
+	}
 	useEffect(function() {
 		if (saveBuffer.changed && typeof(wait) === 'number') {
 			var timeout = setTimeout(function() {

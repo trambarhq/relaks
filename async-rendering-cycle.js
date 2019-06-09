@@ -408,6 +408,11 @@ function acquire(state, target, options) {
     return cycle;
 }
 
+function skip() {
+    var cycle = get();
+    return (cycle && cycle.isRerendering());
+}
+
 function release() {
     currentState = null;
 }
@@ -416,6 +421,7 @@ prototype.constructor.get = get;
 prototype.constructor.need = need;
 prototype.constructor.acquire = acquire;
 prototype.constructor.release = release;
+prototype.constructor.skip = skip;
 
 function AsyncRenderingInterrupted() {
     this.message = 'Async rendering interrupted';
