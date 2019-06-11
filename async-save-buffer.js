@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function AsyncSaveBuffer() {
@@ -59,8 +59,9 @@ prototype.base = function(theirs) {
 	this.original = theirs;
 }
 
-prototype.set = function(ours) {
+prototype.update = function(ours) {
 	var base = this.check();
+	ours = this.transform(ours);
 	if (this.compare(base, ours)) {
 		this.current = ours = base;
 		this.changed = false;
@@ -72,12 +73,14 @@ prototype.set = function(ours) {
 	this.rerender();
 };
 
+prototype.set = prototype.update;
+
 prototype.assign = function(values /* ... */) {
 	var newObject = Object.assign({}, this.current);
 	for (var i = 0; i < arguments.length; i++) {
 		Object.assign(newObject, arguments[i]);
 	}
-	this.set(newObject);
+	this.update(newObject);
 };
 
 prototype.reset = function() {
@@ -113,6 +116,11 @@ prototype.restore = function(theirs) {
 prototype.prefill = function(theirs) {
 	var prefillFunc = this.params.prefill || prefillDef;
 	return prefillFunc(theirs);
+};
+
+prototype.transform = function(ours) {
+	var transformFunc = this.params.transform || transformDef;
+	return transformFunc(ours);
 };
 
 prototype.rerender = function() {
@@ -169,6 +177,10 @@ function restoreDef(base) {
 function prefillDef(base) {
 }
 
+function transformDef(ours) {
+	return ours;
+}
+
 prototype.constructor.acquire = acquire;
 
 function useSaveBuffer(params, customClass) {
@@ -195,7 +207,9 @@ function useAutoSave(saveBuffer, wait, f) {
 		if (saveBuffer.changed && typeof(wait) === 'number') {
 			var timeout = setTimeout(function() {
 				if (timeout && saveBuffer.changed) {
-					context.f();
+					if (context.saved !== saveBuffer.current) {
+						context.f();
+					}
 				}
 			}, wait);
 			return function() {
@@ -211,6 +225,11 @@ function useAutoSave(saveBuffer, wait, f) {
 			}
 		};
 	}, []);
+	const save = useCallback(() => {
+		context.saved = saveBuffer.current;
+		context.f();
+	});
+	return save;
 }
 
 export {
