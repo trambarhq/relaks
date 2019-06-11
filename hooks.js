@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useDebugValue } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function use(asyncFunc) {
@@ -35,6 +35,7 @@ function use(asyncFunc) {
         // return either the promised element or progress
 		var element = cycle.getElement();
         return element;
+
 	};
 
 	// attach async function (that returns a promise to the final result)
@@ -106,6 +107,7 @@ function useEventTime() {
 	var callback = useCallback(function(evt) {
 		setDate(new Date);
 	});
+	useDebugValue(date);
 	return [ date, callback ];
 }
 
@@ -114,6 +116,7 @@ function useListener(f) {
 	if (!AsyncRenderingCycle.skip()) {
 		context.f = f;
 	}
+	useDebugValue(f);
 	return useCallback(function () {
 		context.f.apply(null, arguments);
 	}, []);
@@ -137,6 +140,7 @@ function useAsyncEffect(f, deps) {
 			}
 		};
 	}, deps);
+	useDebugValue(f);
 }
 
 function useErrorCatcher(rethrow) {
@@ -157,6 +161,7 @@ function useErrorCatcher(rethrow) {
 			setError(err);
 		}
 	});
+	useDebugValue(error);
 	return [ error, run ];
 }
 

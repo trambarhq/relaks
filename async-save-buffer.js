@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useDebugValue } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function AsyncSaveBuffer() {
@@ -195,6 +195,7 @@ function useSaveBuffer(params, customClass) {
 	useEffect(function() {
 		return function() { buffer.setContext = null };
 	}, []);
+	useDebugValue(buffer.current);
 	return buffer;
 }
 
@@ -229,6 +230,7 @@ function useAutoSave(saveBuffer, wait, f) {
 		context.saved = saveBuffer.current;
 		context.f();
 	});
+	useDebugValue(wait);
 	return save;
 }
 
