@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useDebugValue } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useDebugValue } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function AsyncSaveBuffer() {
@@ -62,6 +62,9 @@ prototype.base = function(theirs) {
 prototype.update = function(ours) {
 	var base = this.check();
 	ours = this.transform(ours);
+	if (this.changed && this.compare(this.current, ours)) {
+		return;
+	}
 	if (this.compare(base, ours)) {
 		this.current = ours = base;
 		this.changed = false;
@@ -148,6 +151,9 @@ prototype.use = function(params) {
 };
 
 function acquire(state, params, bufferClass) {
+	if (!bufferClass) {
+		bufferClass = AsyncSaveBuffer;
+	}
 	var context = state[0];
 	var buffer = context.buffer;
 	if (!buffer) {
@@ -191,7 +197,7 @@ function useSaveBuffer(params, customClass) {
 		params = {};
 	}
 	var state = useState({});
-	var buffer = acquire(state, params, customClass || AsyncSaveBuffer);
+	var buffer = acquire(state, params, customClass);
 	useEffect(function() {
 		return function() { buffer.setContext = null };
 	}, []);
@@ -200,16 +206,16 @@ function useSaveBuffer(params, customClass) {
 }
 
 function useAutoSave(saveBuffer, wait, f) {
-	var [ context ] = useState({});
+	var ref = useRef({});
 	if (!AsyncRenderingCycle.skip()) {
-		context.f = f;
+		ref.current.f = f;
 	}
 	useEffect(function() {
 		if (saveBuffer.changed && typeof(wait) === 'number') {
 			var timeout = setTimeout(function() {
 				if (timeout && saveBuffer.changed) {
-					if (context.saved !== saveBuffer.current) {
-						context.f();
+					if (ref.current.saved !== saveBuffer.current) {
+						ref.current.f();
 					}
 				}
 			}, wait);
@@ -222,13 +228,13 @@ function useAutoSave(saveBuffer, wait, f) {
 	useEffect(function() {
 		return function() {
 			if (saveBuffer.changed) {
-				context.f();
+				ref.current.f();
 			}
 		};
 	}, []);
 	const save = useCallback(() => {
-		context.saved = saveBuffer.current;
-		context.f();
+		ref.current.saved = saveBuffer.current;
+		ref.current.f();
 	});
 	useDebugValue(wait);
 	return save;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useDebugValue } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback, useDebugValue } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function use(asyncFunc) {
@@ -112,13 +112,13 @@ function useEventTime() {
 }
 
 function useListener(f) {
-	var [ context ] = useState({});
+	var ref = useRef({});
 	if (!AsyncRenderingCycle.skip()) {
-		context.f = f;
+		ref.current.f = f;
 	}
 	useDebugValue(f);
 	return useCallback(function () {
-		context.f.apply(null, arguments);
+		ref.current.f.apply(null, arguments);
 	}, []);
 }
 
@@ -165,6 +165,32 @@ function useErrorCatcher(rethrow) {
 	return [ error, run ];
 }
 
+function usePrevious(value) {
+	var ref = useRef();
+  	useEffect(function() {
+		ref.current = value;
+	}, [ value ]);
+  	return ref.current;
+}
+
+function useComputed(f, deps) {
+	var pair = useState({});
+	var state = pair[0];
+	var setState = pair[1];
+	if (deps instanceof Array) {
+		deps = deps.concat(state);
+	} else {
+		deps = [ state ];
+	}
+	var value = useMemo(function() {
+		return (state.current = f(state.current));
+	}, deps);
+	var recalc = useCallback(function() {
+		setState({ value: state.value });
+	}, []);
+	return [ value, recalc ];
+}
+
 export {
 	use,
 	memo,
@@ -177,4 +203,6 @@ export {
 	useListener,
 	useAsyncEffect,
 	useErrorCatcher,
+	usePrevious,
+	useComputed,
 };
