@@ -118,7 +118,7 @@ function useListener(f) {
 	}
 	useDebugValue(f);
 	return useCallback(function () {
-		ref.current.f.apply(null, arguments);
+		return ref.current.f.apply(null, arguments);
 	}, []);
 }
 
@@ -165,8 +165,11 @@ function useErrorCatcher(rethrow) {
 	return [ error, run ];
 }
 
-function usePrevious(value) {
+function usePrevious(value, valid) {
 	var ref = useRef();
+	if (valid !== undefined && !valid) {
+		value = ref.current;
+	}
   	useEffect(function() {
 		ref.current = value;
 	}, [ value ]);
