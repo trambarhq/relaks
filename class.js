@@ -26,14 +26,15 @@ prototype.constructor.prototype = prototype;
  * @return {ReactElement|null}
  */
 prototype.render = function() {
-    var options = { showProgress: true };
-	var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
+    AsyncRenderingCycle.target(this, { showProgress: true });
+	var cycle = AsyncRenderingCycle.acquire(this.relaks);
 	if (!cycle.isRerendering()) {
 		// call async function
-		var _this = this;
-		cycle.run(function() {
-			return _this.renderAsync(cycle);
-		});
+        try {
+            cycle.wait(this.renderAsync(cycle));
+        } catch (err) {
+            cycle.reject(err);
+        }
 	}
     AsyncRenderingCycle.release();
     cycle.mounted = true;
@@ -57,7 +58,8 @@ prototype.render = function() {
 };
 
 prototype.renderAsyncEx = function() {
-    var cycle = AsyncRenderingCycle.acquire(this.relaks, this, {});
+    AsyncRenderingCycle.target(this, {});
+    var cycle = AsyncRenderingCycle.acquire(this.relaks);
     var promise = this.renderAsync(cycle);
     AsyncRenderingCycle.release();
     if (promise && typeof(promise.then) === 'function') {

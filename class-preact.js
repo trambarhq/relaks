@@ -30,15 +30,15 @@ prototype.constructor.prototype = prototype;
  * @return {VNode|null}
  */
 prototype.render = function(props, state, context) {
-    var options = { showProgress: true };
-	var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
-    cycle.noCheck = true;
+    AsyncRenderingCycle.target(this, { showProgress: true });
+	var cycle = AsyncRenderingCycle.acquire(this.relaks);
 	if (!cycle.isRerendering()) {
 		// call async function
-		var _this = this;
-		cycle.run(function() {
-			return _this.renderAsync(cycle, props, state, context);
-		});
+        try {
+            cycle.wait(this.renderAsync(cycle, props, state, context));
+        } catch (err) {
+            cycle.reject(err);
+        }
 	}
     AsyncRenderingCycle.release();
     cycle.mounted = true;

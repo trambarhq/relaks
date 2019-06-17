@@ -1,6 +1,6 @@
 import * as Options from './options';
 
-function AsyncRenderingCycle(target, prev, options) {
+function AsyncRenderingCycle(target, options, prev) {
     this.options = options;
     this.progressElement = undefined;
     this.progressAvailable = false;
@@ -18,9 +18,7 @@ function AsyncRenderingCycle(target, prev, options) {
     this.mounted = false;
     this.initial = true;
     this.fulfilled = false;
-    this.synchronous = false;
-    this.prevProps = {};
-    this.prevPropsAsync = {};
+    this.synchronous = true;
     this.updateTimeout = 0;
     this.startTime = new Date;
     this.handlers = {};
@@ -35,12 +33,6 @@ function AsyncRenderingCycle(target, prev, options) {
     this.reject = this.reject.bind(this);
 
     if (prev) {
-        this.prevProps = prev.target.props;
-        if (prev.canceled) {
-            this.prevPropsAsync = prev.prevPropsAsync;
-        } else {
-            this.prevPropsAsync = prev.target.props;
-        }
         this.elementRendered = prev.elementRendered;
         this.initial = false;
         this.fulfilled = prev.fulfilled;
@@ -60,21 +52,11 @@ prototype.isRerendering = function() {
     return this.promisedAvailable || this.progressAvailable || this.deferredError;
 }
 
-prototype.run = function(f) {
-    if (this.deferredError) {
-        // don't bother running the function when we're going to throw anyway
-        return;
-    }
-    this.synchronous = true;
-    try {
-        var promise = f();
-        if (promise && typeof(promise.then) === 'function') {
-            promise.then(this.resolve, this.reject);
-        } else {
-            this.resolve(promise);
-        }
-    } catch (err) {
-        this.reject(err);
+prototype.wait = function(promise) {
+    if (promise && typeof(promise.then) === 'function') {
+        promise.then(this.resolve, this.reject);
+    } else {
+        this.resolve(promise);
     }
     this.synchronous = false;
 };
@@ -120,7 +102,7 @@ prototype.reject = function(err) {
                 console.error(err);
             }
         }
-	}
+    }
 };
 
 prototype.mount = function() {
@@ -154,10 +136,6 @@ prototype.getError = function() {
 		this.cancel();
 		return error;
 	}
-};
-
-prototype.getPrevProps = function(asyncCycle) {
-	return asyncCycle ? this.prevPropsAsync : this.prevProps;
 };
 
 prototype.substitute = function(element) {
@@ -351,6 +329,13 @@ prototype.notify = function(name) {
 };
 
 var currentState;
+var currentTarget;
+var currentOptions;
+
+function target(target, options) {
+    currentTarget = target;
+    currentOptions = options;
+}
 
 function get(state) {
     if (!state) {
@@ -371,12 +356,12 @@ function get(state) {
 function need(state) {
     var cycle = get(state);
     if (!cycle) {
-        throw new Error('Unable to obtain state variable');
+        throw new Error('Unable to obtain asynchronous rendering cycle');
     }
     return cycle;
 }
 
-function acquire(state, target, options) {
+function acquire(state) {
     var cycle = get(state);
     if (cycle) {
         if (cycle.hasEnded()) {
@@ -385,13 +370,18 @@ function acquire(state, target, options) {
             // cancel the current cycle
             cycle.cancel();
             cycle = undefined;
+        } else {
+            cycle.synchronous = true;
         }
     }
     if (!cycle) {
+        if (!currentTarget || !currentOptions) {
+            throw new Error('Calling useProgress() in component not created by Relaks.memo()');
+        }
         // start a new cycle
         var context = state[0];
     	var prev = context.cycle;
-    	var cycle = new AsyncRenderingCycle(target, prev, options);
+    	var cycle = new AsyncRenderingCycle(currentTarget, currentOptions, prev);
     	cycle.context = context;
     	cycle.setContext = state[1];
     	context.cycle = cycle;
@@ -415,13 +405,32 @@ function skip() {
 
 function release() {
     currentState = null;
+    currentTarget = null;
+    currentOptions = null;
 }
 
-prototype.constructor.get = get;
-prototype.constructor.need = need;
-prototype.constructor.acquire = acquire;
-prototype.constructor.release = release;
-prototype.constructor.skip = skip;
+function format(cycle) {
+    if (cycle.completed) {
+        if (cycle.showingProgress) {
+            return 'shown';
+        } else {
+            return 'not shown';
+        }
+    } else if (cycle.showingProgress) {
+        return 'showing';
+    } else {
+        return 'pending';
+    }
+}
+
+var constructor = prototype.constructor;
+constructor.target = target;
+constructor.get = get;
+constructor.need = need;
+constructor.acquire = acquire;
+constructor.release = release;
+constructor.skip = skip;
+constructor.format = format;
 
 function AsyncRenderingInterrupted() {
     this.message = 'Async rendering interrupted';
