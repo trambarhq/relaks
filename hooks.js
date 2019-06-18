@@ -91,13 +91,10 @@ function useProgress(delayEmpty, delayRendered) {
 }
 
 function useRenderEvent(name, f) {
-	var cycle = AsyncRenderingCycle.need();
-	cycle.on(name, f);
-}
-
-function usePreviousProps(asyncCycle) {
-	var cycle = AsyncRenderingCycle.need();
-	return cycle.getPrevProps(asyncCycle);
+	if (!AsyncRenderingCycle.skip()) {
+		var cycle = AsyncRenderingCycle.need();
+		cycle.on(name, f);
+	}
 }
 
 function useEventTime() {
@@ -165,17 +162,6 @@ function useErrorCatcher(rethrow) {
 	return [ error, run ];
 }
 
-function usePrevious(value, valid) {
-	var ref = useRef();
-	if (valid !== undefined && !valid) {
-		value = ref.current;
-	}
-  	useEffect(function() {
-		ref.current = value;
-	}, [ value ]);
-  	return ref.current;
-}
-
 function useComputed(f, deps) {
 	var pair = useState({});
 	var state = pair[0];
@@ -191,7 +177,20 @@ function useComputed(f, deps) {
 	var recalc = useCallback(function() {
 		setState({ value: state.value });
 	}, []);
+	useDebugValue(value);
 	return [ value, recalc ];
+}
+
+function useLastAcceptable(value, acceptable) {
+	var ref = useRef();
+	if (typeof(acceptable) === 'function') {
+		acceptable = acceptable(value);
+	}
+	if (acceptable) {
+		ref.current = value;
+	}
+	useDebugValue(ref.current);
+	return ref.current;
 }
 
 export {
@@ -201,11 +200,10 @@ export {
 
 	useProgress,
 	useRenderEvent,
-	usePreviousProps,
 	useEventTime,
 	useListener,
 	useAsyncEffect,
 	useErrorCatcher,
-	usePrevious,
 	useComputed,
+	useLastAcceptable,
 };

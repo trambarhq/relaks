@@ -8,13 +8,14 @@ import Adapter from 'enzyme-adapter-react-16';
 import Relaks, {
     useProgress,
     useRenderEvent,
-    usePreviousProps,
     useSaveBuffer,
     useAutoSave,
     useEventTime,
     useErrorCatcher,
     useListener,
     useAsyncEffect,
+    useComputed,
+    useLastAcceptable,
 } from '../index';
 
 configure({ adapter: new Adapter() });
@@ -266,29 +267,6 @@ describe('Hooks', function() {
             expect(events).to.be.an('array').with.lengthOf(1);
             expect(events[0]).to.have.property('target');
             expect(events[0]).to.have.property('elapsed').that.is.above(100);
-        })
-    })
-    describe('#usePreviousProps()', function() {
-        it ('should retrieve previous set of props', async function() {
-            const Test = Relaks.memo((props) => {
-                const { text } = props;
-                const { text: prevText } = usePreviousProps();
-                const [ show ] = useProgress();
-                show(
-                    <div>
-                        <div>Current: {text}</div>
-                        {' '}
-                        <div>Previous: {prevText}</div>
-                    </div>
-                );
-            });
-
-            const props = { text: 'Hello' };
-            const wrapper = mount(<Test {...props} />);
-            expect(wrapper.text()).to.equal('Current: Hello Previous: ');
-            wrapper.setProps({ text: 'World' });
-            await delay(50);
-            expect(wrapper.text()).to.equal('Current: World Previous: Hello');
         })
     })
     describe('#useSaveBuffer()', function() {
@@ -804,6 +782,83 @@ describe('Hooks', function() {
             expect(saved).to.deep.equal([]);
             wrapper.unmount();
             expect(saved).to.deep.equal([ 'hello' ]);
+        })
+    })
+    describe('#useLastAcceptable', function() {
+        it ('should return the last acceptable value', function() {
+            const Test = (props) => {
+                const { name, acceptable } = props;
+                const acceptableName = useLastAcceptable(name, acceptable);
+                return <div>{acceptableName}</div>;
+            };
+
+            const props = { name: 'Alice', acceptable: true };
+            const wrapper = mount(<Test {...props} />);
+            expect(wrapper.text()).to.equal('Alice');
+            wrapper.setProps({ name: 'Bob', acceptable: false });
+            expect(wrapper.text()).to.equal('Alice');
+            wrapper.setProps({ name: 'Charlie', acceptable: true });
+            expect(wrapper.text()).to.equal('Charlie');
+        })
+        it ('should use function to check for acceptability', function() {
+            const Test = (props) => {
+                const { name } = props;
+                const acceptableName = useLastAcceptable(name, n => n.length > 3);
+                return <div>{acceptableName}</div>;
+            };
+
+            const props = { name: 'Alice' };
+            const wrapper = mount(<Test {...props} />);
+            expect(wrapper.text()).to.equal('Alice');
+            wrapper.setProps({ name: 'Bob' });
+            expect(wrapper.text()).to.equal('Alice');
+            wrapper.setProps({ name: 'Charlie' });
+            expect(wrapper.text()).to.equal('Charlie');
+        })
+    })
+    describe('#useComputed', function() {
+        it ('should not rerun function when dependencies are unchanged', function() {
+            let counterA = 0, counterB = 0;
+            const Test = (props) => {
+                const { number } = props;
+                const [ value, recalc ] = useComputed(() => {
+                    counterA++;
+                    return number * number;
+                }, [ number ]);
+                counterB++;
+                return <div>{value}</div>;
+            };
+            const props = { number: 9 };
+            const wrapper = mount(<Test {...props} />);
+            expect(wrapper.text()).to.equal('81');
+            expect(counterA).to.equal(1);
+            wrapper.setProps({ number: 9 });
+            expect(wrapper.text()).to.equal('81');
+            expect(counterA).to.equal(1);
+            expect(counterB).to.equal(2);
+            wrapper.setProps({ number: 10 });
+            expect(wrapper.text()).to.equal('100');
+        })
+        it ('should rerun function when returned function is invoked', function() {
+            let counterA = 0, counterB = 0;
+            let runRecalc;
+            const Test = (props) => {
+                const { number } = props;
+                const [ value, recalc ] = useComputed(() => {
+                    counterA++;
+                    return number * number;
+                }, [ number ]);
+                counterB++;
+                runRecalc = recalc;
+                return <div>{value}</div>;
+            };
+            const props = { number: 9 };
+            const wrapper = mount(<Test {...props} />);
+            expect(wrapper.text()).to.equal('81');
+            expect(counterA).to.equal(1);
+            runRecalc();
+            expect(counterA).to.equal(2);
+            expect(counterB).to.equal(2);
         })
     })
 })
