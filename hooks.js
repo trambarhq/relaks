@@ -1,32 +1,29 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback, useDebugValue } from 'react';
-import { AsyncRenderingCycle, AsyncRenderingInterrupted } from './async-rendering-cycle';
+import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function use(asyncFunc) {
 	// create synchronous function wrapper
 	var syncFunc = function(props, ref) {
-		// set target
-		AsyncRenderingCycle.target({ func: syncFunc, props }, {
-			showProgress: true,
-			performCheck: true
-		});
+		var state = useState({});
+		var target = { func: syncFunc, props };
+		var options = { showProgress: true, performCheck: true };
+		var cycle = AsyncRenderingCycle.acquire(state, target, options);
+
+		// cancel current cycle on unmount
+		useEffect(function() {
+			cycle.mount();
+			return function() {
+				if (!cycle.hasEnded()) {
+					cycle.cancel();
+				}
+			};
+		}, [ cycle ]);
 
 		// call async function
-		var promise, error;
-		try {
-			promise = asyncFunc(props, ref);
-		} catch (err) {
-			error = err;
-		}
+		cycle.run(function() {
+			return asyncFunc(props, ref);
+		});
 
-		// get cycle
-		var cycle = AsyncRenderingCycle.need();
-		if (error) {
-			cycle.reject(error);
-		} else if (promise) {
-			cycle.wait(promise);
-		}
-
-		// release cycle
         AsyncRenderingCycle.release();
 
 		// throw error that had occurred in async code
@@ -38,16 +35,16 @@ function use(asyncFunc) {
         // return either the promised element or progress
 		var element = cycle.getElement();
         return element;
+
 	};
 
 	// attach async function (that returns a promise to the final result)
 	syncFunc.renderAsyncEx = function(props) {
-		AsyncRenderingCycle.target({ func: syncFunc, props }, {
-			performCheck: true
-		});
+		var state = [ {}, function(v) {} ];
+		var target = { func: syncFunc, props };
+		var options = { performCheck: true };
+		var cycle = AsyncRenderingCycle.acquire(state, target, options);
 		var promise = asyncFunc(props);
-		var cycle = AsyncRenderingCycle.need();
-		cycle.wait(promise);
 		AsyncRenderingCycle.release();
 		if (promise && typeof(promise.then) === 'function') {
 			return promise.then(function(element) {
@@ -85,36 +82,22 @@ function forwardRef(asyncFunc, areEqual) {
 }
 
 function useProgress(delayEmpty, delayRendered) {
-	var state = useState({});
-	var cycle = AsyncRenderingCycle.acquire(state);
-
-	// cancel current cycle on unmount
-	useEffect(function() {
-		cycle.mount();
-		return function() {
-			if (!cycle.hasEnded()) {
-				cycle.cancel();
-			}
-		};
-	}, [ cycle ]);
-
-	useDebugValue(cycle, AsyncRenderingCycle.format);
-
-	// set delay
-	cycle.delay(delayEmpty, delayRendered);
+	// set delays
+	var cycle = AsyncRenderingCycle.need();
+	cycle.delay(delayEmpty, delayRendered, true);
 
 	// return functions (bound in constructor)
 	return [ cycle.show, cycle.check, cycle.delay ];
 }
 
 function useRenderEvent(name, f) {
-	if (!AsyncRenderingCycle.skip()) {
-		var cycle = AsyncRenderingCycle.need();
-		cycle.on(name, f);
-	}
-	// just so that React inspector recognizes that it's a hook
-	useCallback(f);
-	useDebugValue(f);
+	var cycle = AsyncRenderingCycle.need();
+	cycle.on(name, f);
+}
+
+function usePreviousProps(asyncCycle) {
+	var cycle = AsyncRenderingCycle.need();
+	return cycle.getPrevProps(asyncCycle);
 }
 
 function useEventTime() {
@@ -184,7 +167,7 @@ function useErrorCatcher(rethrow) {
 
 function usePrevious(value, valid) {
 	var ref = useRef();
-	if (AsyncRenderingCycle.skip() || (valid !== undefined && !valid)) {
+	if (valid !== undefined && !valid) {
 		value = ref.current;
 	}
   	useEffect(function() {
@@ -218,6 +201,7 @@ export {
 
 	useProgress,
 	useRenderEvent,
+	usePreviousProps,
 	useEventTime,
 	useListener,
 	useAsyncEffect,

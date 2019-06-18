@@ -8,6 +8,7 @@ import Adapter from 'enzyme-adapter-react-16';
 import Relaks, {
     useProgress,
     useRenderEvent,
+    usePreviousProps,
     useSaveBuffer,
     useAutoSave,
     useEventTime,
@@ -145,44 +146,6 @@ describe('Hooks', function() {
             window.onerror = mochaErrorHandler;
             expect(wrapper.text()).to.equal('ERROR');
         })
-        it ('should throw an error when async function is not processed by Relaks.memo()', async function () {
-            // suppress Mocha's error handler during test
-            let mochaErrorHandler = window.onerror;
-            window.onerror = null;
-
-            class Boundary extends Component {
-                constructor(props) {
-                    super(props);
-                    this.state = {};
-                }
-
-                static getDerivedStateFromError(error) {
-                    return { error };
-                }
-
-                render() {
-                    const { children } = this.props;
-                    const { error } = this.state;
-                    if (error) {
-                        return 'ERROR';
-                    } else {
-                        return children;
-                    }
-                }
-            }
-
-            const Test = (props) => {
-                const [ show ] = useProgress(50);
-                return <div>Done</div>;
-            };
-
-            const props = {};
-            const wrapper = mount(<Boundary><Test {...props} /></Boundary>);
-
-            await delay(100);
-            window.onerror = mochaErrorHandler;
-            expect(wrapper.text()).to.equal('ERROR');
-        })
         it ('should error thrown prior to show() to get through', async function () {
             // suppress Mocha's error handler during test
             let mochaErrorHandler = window.onerror;
@@ -303,6 +266,29 @@ describe('Hooks', function() {
             expect(events).to.be.an('array').with.lengthOf(1);
             expect(events[0]).to.have.property('target');
             expect(events[0]).to.have.property('elapsed').that.is.above(100);
+        })
+    })
+    describe('#usePreviousProps()', function() {
+        it ('should retrieve previous set of props', async function() {
+            const Test = Relaks.memo((props) => {
+                const { text } = props;
+                const { text: prevText } = usePreviousProps();
+                const [ show ] = useProgress();
+                show(
+                    <div>
+                        <div>Current: {text}</div>
+                        {' '}
+                        <div>Previous: {prevText}</div>
+                    </div>
+                );
+            });
+
+            const props = { text: 'Hello' };
+            const wrapper = mount(<Test {...props} />);
+            expect(wrapper.text()).to.equal('Current: Hello Previous: ');
+            wrapper.setProps({ text: 'World' });
+            await delay(50);
+            expect(wrapper.text()).to.equal('Current: World Previous: Hello');
         })
     })
     describe('#useSaveBuffer()', function() {
