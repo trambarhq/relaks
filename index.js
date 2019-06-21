@@ -16,4 +16,5 @@ export * from './class';
 export * from './hooks';
 export * from './async-rendering-cycle';
 export * from './async-save-buffer';
+export * from './async-event-proxy';
 export * from './sticky-selection';
