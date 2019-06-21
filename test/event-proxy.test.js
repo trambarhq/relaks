@@ -82,6 +82,46 @@ describe('Event Proxy', function() {
             expect(results.transitionEnd).to.have.property('timeout2', true);
         })
     })
+    describe('#some()', function() {
+        it ('should wait for selected promises', async function() {
+            const proxy = new AsyncEventProxy;
+            expect(proxy.transitionStart).to.be.a('function');
+            expect(proxy.transitionEnd).to.be.a('function');
+
+            let timeout1 = false, timeout2 = false;
+            setTimeout(() => { timeout1 = true }, 50);
+            setTimeout(() => { timeout2 = true }, 150);
+            setTimeout(() => { proxy.transitionStart({ timeout1, timeout2 }) }, 100);
+            setTimeout(() => { proxy.transitionEnd({ timeout1, timeout2 }) }, 200);
+            const results = await proxy.some([ 'transitionStart', 'transitionEnd', 'bogus' ]);
+            expect(timeout1).to.be.true;
+            expect(timeout2).to.be.true;
+            expect(results.transitionStart).to.have.property('timeout1', true);
+            expect(results.transitionStart).to.have.property('timeout2', false);
+            expect(results.transitionEnd).to.have.property('timeout1', true);
+            expect(results.transitionEnd).to.have.property('timeout2', true);
+            expect(results.bogus).to.be.an('undefined');
+        })
+    })
+    describe('#match()', function() {
+        it ('should wait for matching promises', async function() {
+            const proxy = new AsyncEventProxy;
+            expect(proxy.transitionStart).to.be.a('function');
+            expect(proxy.transitionEnd).to.be.a('function');
+
+            let timeout1 = false, timeout2 = false;
+            setTimeout(() => { timeout1 = true }, 50);
+            setTimeout(() => { timeout2 = true }, 150);
+            setTimeout(() => { proxy.transitionStart({ timeout1, timeout2 }) }, 100);
+            setTimeout(() => { proxy.transitionEnd({ timeout1, timeout2 }) }, 200);
+            const results = await proxy.match(/Start$/);
+            expect(timeout1).to.be.true;
+            expect(timeout2).to.be.false;
+            expect(results.transitionStart).to.have.property('timeout1', true);
+            expect(results.transitionStart).to.have.property('timeout2', false);
+            expect(results.transitionEnd).to.be.an('undefined');;
+        })
+    })
     describe('#race()', function() {
         it ('should resolve when one handler is called', async function() {
             const proxy = new AsyncEventProxy;

@@ -16,6 +16,7 @@ import Relaks, {
     useAsyncEffect,
     useComputed,
     useLastAcceptable,
+    useEventProxy,
 } from '../index';
 
 configure({ adapter: new Adapter() });
@@ -859,6 +860,38 @@ describe('Hooks', function() {
             runRecalc();
             expect(counterA).to.equal(2);
             expect(counterB).to.equal(2);
+        })
+    })
+    describe('#useEventProxy', function() {
+        it ('should create an event handler that fulfills a promise', async function() {
+            let filterCalled = false;
+            let classNameOnLoad = '';
+
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress();
+                const proxy = useEventProxy([]);
+
+                proxy.filter('load', (evt) => {
+                    filterCalled = true;
+                    classNameOnLoad = evt.target.className;
+                    return true;
+                });
+
+                const url = 'http://placehold.it/200x120&text=' + (new Date).toISOString();
+                show(<img className="loading" src={url} onLoad={proxy.load} />, 'initial');
+                await proxy.all();
+                show(<img className="ready" src={url} onLoad={proxy.load} />);
+            });
+
+            const wrapper = mount(<div><Test /></div>);
+            await delay(500);
+            const container = wrapper.instance();
+            const element = container.getElementsByTagName('IMG')[0];
+            expect(filterCalled).to.be.true;
+            expect(classNameOnLoad).to.equal('loading');
+            expect(element).to.have.property('className', 'ready');
+            expect(element).to.have.property('naturalWidth', 200);
+            expect(element).to.have.property('naturalHeight', 120);
         })
     })
 })

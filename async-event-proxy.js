@@ -1,7 +1,4 @@
-var handlers = {
-    get: get,
-    set: set,
-};
+import React, { useMemo, useDebugValue } from 'react';
 
 function get(target, key) {
     var f = target.methods[key] || target.handlers[key];
@@ -19,15 +16,6 @@ function set(target, key, value) {
     throw new Error('Cannot modify properties of proxy object');
 }
 
-var methods = {
-    one: one,
-    all: all,
-    race: race,
-    filter: filter,
-    isFulfilled: isFulfilled,
-    isPending: isPending,
-};
-
 function handle(key, evt) {
     if (this.statuses[key] !== true) {
         var f = this.filters[key];
@@ -42,24 +30,40 @@ function handle(key, evt) {
     }
 }
 
+function one(key) {
+    return this.promises[key];
+}
+
 function all() {
-    var list = [];
     var keys = [];
     for (var key in this.promises) {
-        list.push(this.promises[key]);
         keys.push(key);
+    }
+    return some.call(this, keys);
+}
+
+function some(keys) {
+    var list = [];
+    for (var i = 0; i < keys.length; i++) {
+        list.push(this.promises[keys[i]]);
     }
     return Promise.all(list).then(function(values) {
         var hash = {};
-        for (var i = 0; i < values.length; i++) {
+        for (var i = 0; i < keys.length; i++) {
             hash[keys[i]] = values[i];
         }
         return hash;
     });
 }
 
-function one(key) {
-    return this.promises[key];
+function match(re) {
+    var keys = [];
+    for (var key in this.promises) {
+        if (re.test(key)) {
+            keys.push(key);
+        }
+    }
+    return some.call(this, keys);
 }
 
 function race() {
@@ -74,6 +78,14 @@ function filter(key, f) {
     this.filters[key] = f;
 }
 
+function list() {
+    var list = [];
+    for (var key in this.promises) {
+        list.push(key)
+    }
+    return list;
+}
+
 function isFulfilled(key) {
     return (this.statuses[key] === true);
 }
@@ -81,6 +93,23 @@ function isFulfilled(key) {
 function isPending(key) {
     return (this.statuses[key] === false);
 }
+
+var traps = {
+    get: get,
+    set: set,
+};
+
+var methods = {
+    one: one,
+    all: all,
+    some: some,
+    match: match,
+    race: race,
+    filter: filter,
+    list: list,
+    isFulfilled: isFulfilled,
+    isPending: isPending,
+};
 
 function AsyncEventProxy() {
     var target = {
@@ -93,9 +122,29 @@ function AsyncEventProxy() {
     for (var name in methods) {
         target.methods[name] = methods[name].bind(target);
     }
-    this.__proto__ = new Proxy(target, handlers);
+    this.__proto__ = new Proxy(target, traps);
+}
+
+function useEventProxy(deps) {
+    var proxy = useMemo(function() {
+        return new AsyncEventProxy;
+    }, deps);
+    useDebugValue(proxy, formatDebugValue);
+    return proxy;
+}
+
+function formatDebugValue(proxy) {
+    var keys = proxy.list();
+    var fired = [];
+    for (var i = 0; i < keys.length; i++) {
+        if (proxy.isFulfilled(keys[i])) {
+            fired.push(keys[i]);
+        }
+    }
+    return fired.join(' ');
 }
 
 export {
     AsyncEventProxy,
+    useEventProxy,
 };
