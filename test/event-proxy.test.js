@@ -17,7 +17,6 @@ describe('Event Proxy', function() {
         const evt = {
             persist: () => {
                 persisting = true;
-                return {};
             },
         };
         proxy.transitionStart(evt);
@@ -30,7 +29,6 @@ describe('Event Proxy', function() {
         const evt = {
             persist: () => {
                 count++;
-                return {};
             },
         };
         proxy.transitionStart(evt);

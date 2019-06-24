@@ -124,12 +124,12 @@ function compare(prevSet, nextSet) {
 }
 
 function clone(element, props) {
-	if (props instanceof Preact.VNode || typeof(props) !== 'object') {
+	if (Preact.isValidElement(props)) {
 		return props;
-	} else if (element instanceof Preact.VNode) {
+	} else if (Peact.isValidElement(element)) {
 		return Preact.cloneElement(element, props);
 	} else {
-		return element;
+		return null;
 	}
 }
 

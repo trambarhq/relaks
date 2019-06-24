@@ -22,7 +22,7 @@ function handle(key, evt) {
         if (!f || f(evt)) {
             var promise = this.promises[key];
             if (evt && typeof(evt.persist) === 'function') {
-                evt = evt.persist();
+                evt.persist();
             }
             this.statuses[key] = true;
             promise.resolve(evt);

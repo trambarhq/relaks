@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect, useCallback, useDebugValue } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback, useDebugValue, ReactElement } from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function use(asyncFunc) {
@@ -18,6 +18,9 @@ function use(asyncFunc) {
 				}
 			};
 		}, [ cycle ]);
+		useEffect(function() {
+			cycle.fulfill();
+		});
 
 		// call async function
 		cycle.run(function() {
@@ -82,12 +85,12 @@ function forwardRef(asyncFunc, areEqual) {
 }
 
 function clone(element, props) {
-	if (props instanceof React.ReactElement || typeof(props) !== 'object') {
+	if (React.isValidElement(props)) {
 		return props;
-	} else if (element instanceof React.ReactElement) {
+	} else if (React.isValidElement(element)) {
 		return React.cloneElement(element, props);
 	} else {
-		return element;
+		return null;
 	}
 }
 

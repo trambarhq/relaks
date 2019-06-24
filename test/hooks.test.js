@@ -7,6 +7,7 @@ import Adapter from 'enzyme-adapter-react-16';
 
 import Relaks, {
     useProgress,
+    useProgressTransition,
     useRenderEvent,
     useSaveBuffer,
     useAutoSave,
@@ -20,6 +21,7 @@ import Relaks, {
 } from '../index';
 
 configure({ adapter: new Adapter() });
+
 
 describe('Hooks', function() {
     describe('#useProgress()', function() {
@@ -886,12 +888,163 @@ describe('Hooks', function() {
             const wrapper = mount(<div><Test /></div>);
             await delay(500);
             const container = wrapper.instance();
-            const element = container.getElementsByTagName('IMG')[0];
+            const element = container.firstChild;
             expect(filterCalled).to.be.true;
             expect(classNameOnLoad).to.equal('loading');
             expect(element).to.have.property('className', 'ready');
             expect(element).to.have.property('naturalWidth', 200);
             expect(element).to.have.property('naturalHeight', 120);
+        })
+    })
+    describe('#useProgressTransition()', function() {
+        it ('should wait for progress to be rendered', async function() {
+            let initialPromise, donePromise;
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress();
+                const [ transition, hasRendered ] = useProgressTransition();
+
+                show(<div>Initial</div>);
+                initialPromise = hasRendered();
+                await delay(100);
+                show(<div>Done</div>);
+                donePromise = hasRendered();
+            });
+
+            const props = {};
+            const wrapper = mount(<div><Test {...props} /></div>);
+
+            expect(initialPromise).to.be.an.instanceOf(Promise);
+            const initial = await initialPromise;
+            expect(initial).to.be.true;
+            expect(wrapper.text()).to.equal('Initial');
+            await delay(150);
+            expect(donePromise).to.be.an.instanceOf(Promise);
+            const done = await donePromise;
+            expect(done).to.be.true;
+            expect(wrapper.text()).to.equal('Done');
+        })
+        it ('should report progress was not rendered', async function() {
+            let initialPromise, donePromise;
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress(100);
+                const [ transition, hasRendered ] = useProgressTransition();
+
+                show(<div>Initial</div>);
+                initialPromise = hasRendered();
+                await delay(50);
+                show(<div>Done</div>);
+                donePromise = hasRendered();
+            });
+
+            const props = {};
+            const wrapper = mount(<div><Test {...props} /></div>);
+
+            expect(initialPromise).to.be.an.instanceOf(Promise);
+            const initial = await initialPromise;
+            expect(initial).to.be.false;
+            await delay(250);
+            expect(donePromise).to.be.an.instanceOf(Promise);
+            const done = await donePromise;
+            expect(done).to.be.true;
+            expect(wrapper.text()).to.equal('Done');
+        })
+        it ('should replace element immediately', async function() {
+            let initialPromise, transitionPromise, donePromise;
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress();
+                const [ transition, hasRendered ] = useProgressTransition();
+
+                show(<div>Initial</div>);
+                initialPromise = hasRendered();
+                transition(<div>Transition</div>);
+                transitionPromise = hasRendered();
+                await delay(100);
+                show(<div>Done</div>);
+                donePromise = hasRendered();
+            });
+
+            const props = {};
+            const wrapper = mount(<div><Test {...props} /></div>);
+
+            expect(initialPromise).to.be.an.instanceOf(Promise);
+            const initial = await initialPromise;
+            expect(initial).to.be.true;
+            expect(transitionPromise).to.be.an.instanceOf(Promise);
+            const transition = await transitionPromise;
+            expect(transition).to.be.true;
+            expect(wrapper.text()).to.equal('Transition');
+            await delay(200);
+            expect(donePromise).to.be.an.instanceOf(Promise);
+            const done = await donePromise;
+            expect(done).to.be.true;
+            expect(wrapper.text()).to.equal('Done');
+        })
+        it ('should change prop of rendered element', async function() {
+            let initialPromise, transitionPromise, donePromise;
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress();
+                const [ transition, hasRendered ] = useProgressTransition();
+
+                show(<div className="initial">Initial</div>);
+                initialPromise = hasRendered();
+                transition({ className: "transition" });
+                transitionPromise = hasRendered();
+                await delay(100);
+                show(<div>Done</div>);
+                donePromise = hasRendered();
+            });
+
+            const props = {};
+            const wrapper = mount(<div><Test {...props} /></div>);
+
+            expect(initialPromise).to.be.an.instanceOf(Promise);
+            const initial = await initialPromise;
+            expect(initial).to.be.true;
+            expect(transitionPromise).to.be.an.instanceOf(Promise);
+            const transition = await transitionPromise;
+            expect(transition).to.be.true;
+            expect(wrapper.instance().firstChild.className).to.equal('transition');
+            await delay(200);
+            expect(donePromise).to.be.an.instanceOf(Promise);
+            const done = await donePromise;
+            expect(done).to.be.true;
+        })
+        it ('should initiate CSS transition', async function() {
+            let transitionEvent;
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress(25);
+                const [ transition, hasRendered ] = useProgressTransition();
+                const eventProxy = useEventProxy();
+
+                const style = {
+                    transition: `opacity 0.25s`,
+                    opacity: 0,
+                };
+                const styleAfter = _.assign({}, style, { opacity: 1 });
+                show(<div style={style} onTransitionEnd={eventProxy.end}>Hello</div>);
+                transition({ style: styleAfter });
+                transitionEvent = await eventProxy.race();
+                show(<div>World</div>);
+            });
+
+            // need to attach to document for transition to actually happen
+            let testNode = document.createElement('DIV');
+            try {
+                document.body.appendChild(testNode);
+                const wrapper = mount(<div><Test /></div>, { attachTo: testNode });
+                await delay(50);
+                expect(wrapper.text()).to.equal('Hello');
+                const container = wrapper.getDOMNode();
+                const opacity = parseFloat(getComputedStyle(container.firstChild).opacity);
+                expect(opacity).to.be.above(0);
+                await delay(100);
+                expect(wrapper.text()).to.equal('Hello');
+                await delay(200);
+                expect(wrapper.text()).to.equal('World');
+                expect(transitionEvent).to.have.property('propertyName', 'opacity');
+            } finally {
+                document.body.removeChild(testNode);
+            }
         })
     })
 })

@@ -7,6 +7,7 @@ function AsyncRenderingCycle(target, prev, options) {
     this.progressForced = false;
     this.progressPromise = undefined;
     this.transitionPromise = undefined;
+    this.lastPromise = undefined;
     this.promisedElement = undefined;
     this.promisedAvailable = false;
     this.elementRendered = (prev) ? prev.elementRendered : null;
@@ -95,18 +96,16 @@ prototype.resolve = function(element) {
         }
 
         if (element === undefined) {
-            // use the last progress element
-            if (this.progressElement !== undefined) {
-                if (this.transitionPromise) {
+            // wait for the action to complete
+            if (this.lastPromise && !this.lastPromise.fulfilled) {
+                if (this.progressElement) {
+                    // draw the last progress element
                     this.update();
-
-                    var _this = this;
-                    this.transitionPromise.then(function() {
-                        _this.complete();
-                    });
-                } else {
-                    this.finalize(this.progressElement);
                 }
+                var _this = this;
+                this.lastPromise.then(function() {
+                    _this.complete();
+                });
             } else {
                 this.complete();
             }
@@ -137,11 +136,15 @@ prototype.mount = function() {
     if (this.initial) {
         if (this.isRerendering()) {
             this.rerender();
-            return;
         }
     }
-    if (this.progressPromise) {
-        this.progressPromise.resolve(true);
+};
+
+prototype.fulfill = function() {
+    if (this.progressPromise && !this.progressPromise.fulfilled) {
+        if (!this.progressElement) {
+            this.progressPromise.resolve(true);
+        }
     }
 };
 
@@ -195,15 +198,17 @@ prototype.show = function(element, disposition) {
     // save the element so it can be rendered eventually
     this.progressElement = element;
 
-    if (this.progressPromise) {
+    if (this.progressPromise && !this.progressPromise.fulfilled) {
         this.progressPromise.resolve(false);
     }
     var r, _this = this;
-    this.progressPromise = new Promise(function(resolve) { r = resolve });
-    this.progressPromise.resolve = function(value) {
-        _this.progressPromise = undefined;
+    var promise = new Promise(function(resolve) { r = resolve });
+    promise.fulfilled = false;
+    promise.resolve = function(value) {
+        promise.fulfilled = true;
         r(value);
     };
+    this.progressPromise = this.lastPromise = promise;
 
     if (!this.options.showProgress) {
         return false;
@@ -316,11 +321,11 @@ prototype.delay = function(empty, rendered) {
  * @return {Promise}
  */
 prototype.hasRendered = function() {
-    var promise = this.transitionPromise || this.progressPromise;
+    var promise = this.lastPromise;
     if (!promise) {
         throw new Error('No pending operation');
     }
-    return rromise;
+    return promise;
 };
 
 /**
@@ -330,19 +335,21 @@ prototype.hasRendered = function() {
  */
 prototype.transition = function(props) {
     var _this = this;
-    this.transitionPromise = this.hasRendered().then(function(shown) {
-        if (!shown) {
+    var promise = this.hasRendered().then(function(shown) {
+        if (shown) {
             var clone = _this.options.clone;
-            var element = clone(props, _this.elementRendered);
+            var element = clone(_this.elementRendered, props);
             _this.show(element);
             return _this.progressPromise.then(function(shown) {
-                _this.transitionPromise = undefined;
+                promise.fulfilled = true;
                 return shown;
             });
         } else {
             return false;
         }
     });
+    promise.fulfilled = false;
+    this.transitionPromise = this.lastPromise = promise;
 };
 
 /**

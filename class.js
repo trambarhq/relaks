@@ -84,12 +84,12 @@ prototype.componentWillUnmount = function() {
 };
 
 function clone(element, props) {
-	if (props instanceof React.ReactElement || typeof(props) !== 'object') {
+	if (React.isValidElement(props)) {
 		return props;
-	} else if (element instanceof React.ReactElement) {
+	} else if (React.isValidElement(element)) {
 		return React.cloneElement(element, props);
 	} else {
-		return element;
+		return null;
 	}
 }
 
