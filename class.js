@@ -26,7 +26,7 @@ prototype.constructor.prototype = prototype;
  * @return {ReactElement|null}
  */
 prototype.render = function() {
-    var options = { showProgress: true };
+    var options = { showProgress: true, clone: clone };
 	var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
 	if (!cycle.isRerendering()) {
 		// call async function
@@ -57,7 +57,8 @@ prototype.render = function() {
 };
 
 prototype.renderAsyncEx = function() {
-    var cycle = AsyncRenderingCycle.acquire(this.relaks, this, {});
+    var options = { clone: clone };
+    var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
     var promise = this.renderAsync(cycle);
     AsyncRenderingCycle.release();
     if (promise && typeof(promise.then) === 'function') {
@@ -81,6 +82,16 @@ prototype.componentWillUnmount = function() {
 		cycle.cancel();
 	}
 };
+
+function clone(element, props) {
+	if (props instanceof React.ReactElement || typeof(props) !== 'object') {
+		return props;
+	} else if (element instanceof React.ReactElement) {
+		return React.cloneElement(element, props);
+	} else {
+		return element;
+	}
+}
 
 export {
 	AsyncComponent as default,

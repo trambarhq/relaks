@@ -5,6 +5,8 @@ function AsyncRenderingCycle(target, prev, options) {
     this.progressElement = undefined;
     this.progressAvailable = false;
     this.progressForced = false;
+    this.progressPromise = undefined;
+    this.transitionPromise = undefined;
     this.promisedElement = undefined;
     this.promisedAvailable = false;
     this.elementRendered = (prev) ? prev.elementRendered : null;
@@ -33,6 +35,8 @@ function AsyncRenderingCycle(target, prev, options) {
     this.delay = this.delay.bind(this);
     this.resolve = this.resolve.bind(this);
     this.reject = this.reject.bind(this);
+    this.hasRendered = this.hasRendered.bind(this);
+    this.transition = this.transition.bind(this);
 
     if (prev) {
         this.prevProps = prev.target.props;
@@ -93,17 +97,22 @@ prototype.resolve = function(element) {
         if (element === undefined) {
             // use the last progress element
             if (this.progressElement !== undefined) {
-                element = this.progressElement;
-            } else if (this.elementRendered) {
+                if (this.transitionPromise) {
+                    this.update();
+
+                    var _this = this;
+                    this.transitionPromise.then(function() {
+                        _this.complete();
+                    });
+                } else {
+                    this.finalize(this.progressElement);
+                }
+            } else {
                 this.complete();
-                return;
             }
+        } else {
+            this.finalize(element);
         }
-        this.progressElement = undefined;
-        this.progressAvailable = false;
-		this.promisedElement = element;
-		this.promisedAvailable = true;
-		this.rerender();
 	}
 };
 
@@ -128,7 +137,11 @@ prototype.mount = function() {
     if (this.initial) {
         if (this.isRerendering()) {
             this.rerender();
+            return;
         }
+    }
+    if (this.progressPromise) {
+        this.progressPromise.resolve(true);
     }
 };
 
@@ -182,21 +195,31 @@ prototype.show = function(element, disposition) {
     // save the element so it can be rendered eventually
     this.progressElement = element;
 
+    if (this.progressPromise) {
+        this.progressPromise.resolve(false);
+    }
+    var r, _this = this;
+    this.progressPromise = new Promise(function(resolve) { r = resolve });
+    this.progressPromise.resolve = function(value) {
+        _this.progressPromise = undefined;
+        r(value);
+    };
+
     if (!this.options.showProgress) {
         return false;
     }
 
-    var delay;
+    var delay, forced = false;
     if (this.showingProgress) {
     	delay = 0;
-    } else if (disposition === 'always') {
-        delay = 0;
-	} else if (disposition === 'initial' && !this.elementRendered) {
-		delay = 0;
     } else if (!this.fulfilled) {
     	delay = this.delayEmpty;
     } else {
 		delay = this.delayRendered;
+    }
+    if (disposition === 'always' || (disposition === 'initial' && !this.elementRendered)) {
+       delay = 0;
+       forced = true;
     }
 
     if (delay > 0) {
@@ -218,7 +241,7 @@ prototype.show = function(element, disposition) {
         return false;
     } else {
         // caller wants it to be shown immediately
-        this.update();
+        this.update(forced);
         return true;
     }
 };
@@ -226,7 +249,7 @@ prototype.show = function(element, disposition) {
 /**
  * Rendering the progress element now
  *
- * @param  {Boolean|undefined} force
+ * @param  {Boolean|undefined} forced
  */
 prototype.update = function(forced) {
     this.progressAvailable = true;
@@ -239,6 +262,18 @@ prototype.update = function(forced) {
     }
 };
 
+prototype.finalize = function(element) {
+    if (this.progressPromise) {
+        this.progressPromise.resolve(false);
+    }
+    this.progressElement = undefined;
+    this.progressAvailable = false;
+    this.promisedElement = element;
+    this.promisedAvailable = true;
+    if (this.initial || this.mounted) {
+        this.rerender();
+    }
+};
 
 /**
  * Check if the rendering cycle has been superceded by a new one. If so
@@ -273,6 +308,41 @@ prototype.delay = function(empty, rendered) {
     if (typeof(rendered) === 'number') {
         this.delayRendered = rendered;
     }
+};
+
+/**
+ * Wait for pending show() or transition() to complete
+ *
+ * @return {Promise}
+ */
+prototype.hasRendered = function() {
+    var promise = this.transitionPromise || this.progressPromise;
+    if (!promise) {
+        throw new Error('No pending operation');
+    }
+    return rromise;
+};
+
+/**
+ * Alter the progress element immediately after it's been rendered
+ *
+ * @param  {Object} props
+ */
+prototype.transition = function(props) {
+    var _this = this;
+    this.transitionPromise = this.hasRendered().then(function(shown) {
+        if (!shown) {
+            var clone = _this.options.clone;
+            var element = clone(props, _this.elementRendered);
+            _this.show(element);
+            return _this.progressPromise.then(function(shown) {
+                _this.transitionPromise = undefined;
+                return shown;
+            });
+        } else {
+            return false;
+        }
+    });
 };
 
 /**

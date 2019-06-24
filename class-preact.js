@@ -123,6 +123,16 @@ function compare(prevSet, nextSet) {
     return true;
 }
 
+function clone(element, props) {
+	if (props instanceof Preact.VNode || typeof(props) !== 'object') {
+		return props;
+	} else if (element instanceof Preact.VNode) {
+		return Preact.cloneElement(element, props);
+	} else {
+		return element;
+	}
+}
+
 export {
 	AsyncComponent as default,
 	AsyncComponent,

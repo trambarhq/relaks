@@ -6,7 +6,7 @@ function use(asyncFunc) {
 	var syncFunc = function(props, ref) {
 		var state = useState({});
 		var target = { func: syncFunc, props };
-		var options = { showProgress: true, performCheck: true };
+		var options = { showProgress: true, performCheck: true, clone: clone };
 		var cycle = AsyncRenderingCycle.acquire(state, target, options);
 
 		// cancel current cycle on unmount
@@ -42,7 +42,7 @@ function use(asyncFunc) {
 	syncFunc.renderAsyncEx = function(props) {
 		var state = [ {}, function(v) {} ];
 		var target = { func: syncFunc, props };
-		var options = { performCheck: true };
+		var options = { performCheck: true, clone: clone };
 		var cycle = AsyncRenderingCycle.acquire(state, target, options);
 		var promise = asyncFunc(props);
 		AsyncRenderingCycle.release();
@@ -81,6 +81,16 @@ function forwardRef(asyncFunc, areEqual) {
 	return React.memo(React.forwardRef(syncFunc), areEqual);
 }
 
+function clone(element, props) {
+	if (props instanceof React.ReactElement || typeof(props) !== 'object') {
+		return props;
+	} else if (element instanceof React.ReactElement) {
+		return React.cloneElement(element, props);
+	} else {
+		return element;
+	}
+}
+
 function useProgress(delayEmpty, delayRendered) {
 	// set delays
 	var cycle = AsyncRenderingCycle.need();
@@ -88,6 +98,11 @@ function useProgress(delayEmpty, delayRendered) {
 
 	// return functions (bound in constructor)
 	return [ cycle.show, cycle.check, cycle.delay ];
+}
+
+function useProgressTransition() {
+	var cycle = AsyncRenderingCycle.need();
+	return [ cycle.transition, cycle.hasRendered ];
 }
 
 function useRenderEvent(name, f) {
@@ -199,6 +214,7 @@ export {
 	forwardRef,
 
 	useProgress,
+	useProgressTransition,
 	useRenderEvent,
 	useEventTime,
 	useListener,
