@@ -22,10 +22,29 @@ import Relaks, {
 
 configure({ adapter: new Adapter() });
 
-
 describe('Hooks', function() {
     describe('#useProgress()', function() {
         it ('should render the component', async function() {
+            const Test = Relaks.memo(async (props) => {
+                const [ show ] = useProgress();
+
+                show(<div>Initial</div>);
+                await delay(100);
+                return <div>Done</div>;
+            });
+
+            const props = {};
+            const wrapper = mount(<Test {...props} />);
+
+            // nothing initially
+            expect(wrapper.text()).to.equal('');
+            await update(wrapper, 75);
+            expect(wrapper.text()).to.equal('Initial');
+            await update(wrapper, 250);
+            wrapper.update();
+            expect(wrapper.text()).to.equal('Done');
+        })
+        it ('should render immediately when "initial" is specified', async function() {
             const Test = Relaks.memo(async (props) => {
                 const [ show ] = useProgress();
 
@@ -38,7 +57,7 @@ describe('Hooks', function() {
             const wrapper = mount(<Test {...props} />);
 
             expect(wrapper.text()).to.equal('Initial');
-            await delay(250);
+            await update(wrapper, 250);
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should show last progress when undefined is returned', async function() {
@@ -54,8 +73,32 @@ describe('Hooks', function() {
             const wrapper = mount(<Test {...props} />);
 
             expect(wrapper.text()).to.equal('Initial');
-            await delay(250);
+            await update(wrapper, 250);
             expect(wrapper.text()).to.equal('Done');
+        })
+        it ('should rerender when component receives new props', async function() {
+            const Test = Relaks.memo(async (props) => {
+                const { text } = props;
+                const [ show ] = useProgress();
+
+                show(<div>Initial</div>);
+                await delay(150);
+                show(<div>{text}</div>);
+            });
+
+            const props = { text: 'Good' };
+            const wrapper = mount(<Test {...props} />);
+
+            await update(wrapper, 100);
+            expect(wrapper.text()).to.equal('Initial');
+            await update(wrapper, 250);
+            expect(wrapper.text()).to.equal('Good');
+
+            const newProps = { text: 'Ugly' };
+            wrapper.setProps(newProps);
+            expect(wrapper.text()).to.equal('Good');
+            await update(wrapper, 250);
+            expect(wrapper.text()).to.equal('Ugly');
         })
         it ('should be able handle immediate availability of contents', async function() {
             const Test = Relaks.memo(async (props) => {
@@ -63,11 +106,10 @@ describe('Hooks', function() {
                 show(<div>Done</div>);
             });
 
-            // wrapper span is needed as Enzyme can't seem to handle the immediate update
             const props = {};
-            const wrapper = mount(<span><Test {...props} /></span>);
+            const wrapper = mount(<Test {...props} />);
 
-            await delay(50);
+            await update(wrapper, 50);
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should not render progress when promise resolve quickly', async function() {
@@ -85,7 +127,11 @@ describe('Hooks', function() {
             const wrapper = mount(<Test {...props} />);
 
             expect(wrapper.text()).to.be.equal('Initial');
-            await delay(150);
+            await update(wrapper, 25);
+            expect(wrapper.text()).to.be.equal('Initial');
+            await update(wrapper, 25);
+            expect(wrapper.text()).to.be.equal('Initial');
+            await update(wrapper, 150);
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should render progress when promise resolve slowly', async function() {
@@ -103,9 +149,9 @@ describe('Hooks', function() {
             const wrapper = mount(<Test {...props} />);
 
             expect(wrapper.text()).to.be.equal('Initial');
-            await delay(75);
+            await update(wrapper, 75);
             expect(wrapper.text()).to.be.equal('Progress');
-            await delay(150);
+            await update(wrapper, 150);
             expect(wrapper.text()).to.equal('Done');
         })
         it ('should throw an error when show() is not called', async function () {
@@ -146,11 +192,11 @@ describe('Hooks', function() {
             const props = {};
             const wrapper = mount(<Boundary><Test {...props} /></Boundary>);
 
-            await delay(100);
+            await update(wrapper, 100);
             window.onerror = mochaErrorHandler;
             expect(wrapper.text()).to.equal('ERROR');
         })
-        it ('should error thrown prior to show() to get through', async function () {
+        it ('should let error thrown prior to show() to get through', async function () {
             // suppress Mocha's error handler during test
             let mochaErrorHandler = window.onerror;
             window.onerror = null;
@@ -190,7 +236,7 @@ describe('Hooks', function() {
             const props = {};
             const wrapper = mount(<Boundary><Test {...props} /></Boundary>);
 
-            await delay(100);
+            await update(wrapper, 100);
             window.onerror = mochaErrorHandler;
             expect(wrapper.text()).to.equal('Early error');
         })
@@ -215,7 +261,7 @@ describe('Hooks', function() {
             const props = {};
             const wrapper = mount(<Test {...props} />);
 
-            await delay(150);
+            await update(wrapper, 150);
             expect(wrapper.text()).to.equal('Done');
             expect(events).to.be.an('array').with.lengthOf(3);
             expect(events[1]).to.have.property('target');
@@ -240,7 +286,7 @@ describe('Hooks', function() {
             const props = {};
             const wrapper = mount(<Test {...props} />);
 
-            await delay(150);
+            await update(wrapper, 150);
             expect(wrapper.text()).to.equal('Done');
             expect(events).to.be.an('array').with.lengthOf(1);
             expect(events[0]).to.have.property('target');
@@ -265,7 +311,7 @@ describe('Hooks', function() {
             const props = {};
             const wrapper = mount(<Test {...props} />);
 
-            await delay(150);
+            await update(wrapper, 150);
             expect(wrapper.text()).to.equal('Done');
             expect(events).to.be.an('array').with.lengthOf(1);
             expect(events[0]).to.have.property('target');
@@ -298,7 +344,7 @@ describe('Hooks', function() {
             expect(wrapper.find('input').prop('value')).to.equal(story.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
 
-            await delay(50);
+            await update(wrapper, 50);
             const changes = { title: 'Goodbye cruel world!' };
             draftRef.assign(changes);
             wrapper.update();
@@ -330,11 +376,10 @@ describe('Hooks', function() {
             expect(wrapper.find('input').prop('value')).to.equal(story.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
 
-            await delay(50);
+            await update(wrapper, 50);
             const storyAfter = { title: 'Dingo ate my baby!' };
             wrapper.setProps({ story: storyAfter });
-            await delay(50);
-
+            await update(wrapper, 50);
             expect(wrapper.find('input').prop('value')).to.equal(storyAfter.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
         })
@@ -363,18 +408,17 @@ describe('Hooks', function() {
             expect(wrapper.find('input').prop('value')).to.equal(story.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
 
-            await delay(50);
+            await update(wrapper, 50);
             const changes = { title: 'Goodbye cruel world!' };
             draftRef.assign(changes);
             wrapper.update();
             expect(wrapper.find('input').prop('value')).to.equal(changes.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: true');
 
-            await delay(50);
+            await update(wrapper, 50);
             const storyAfter = { title: 'Dingo ate my baby!' };
             wrapper.setProps({ story: storyAfter });
-            await delay(50);
-
+            await update(wrapper, 50);
             expect(wrapper.find('input').prop('value')).to.equal(storyAfter.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
         })
@@ -410,18 +454,17 @@ describe('Hooks', function() {
             expect(wrapper.find('input').prop('value')).to.equal(storyBefore.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: false');
 
-            await delay(50);
+            await update(wrapper, 50);
             const changes = { title: 'Goodbye cruel world!' };
             draftRef.assign(changes);
             wrapper.update();
             expect(wrapper.find('input').prop('value')).to.equal(changes.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: true');
 
-            await delay(50);
+            await update(wrapper, 50);
             const storyAfter = { title: 'Dingo ate my baby!' };
             wrapper.setProps({ story: storyAfter });
-            await delay(50);
-
+            await update(wrapper, 50);
             expect(wrapper.find('input').prop('value')).to.equal(storyMerged.title);
             expect(wrapper.find('#changed').text()).to.equal('Changed: true');
         })
@@ -670,12 +713,12 @@ describe('Hooks', function() {
             expect(effectCounts).to.deep.equal([ 1 ]);
             expect(cleanupCounts).to.deep.equal([]);
             redrawWithEffect();
-            await delay(25);
+            await update(wrapper, 25);
             // triggered effect
             expect(effectCounts).to.deep.equal([ 1, 2 ]);
             // clean-up function returned initially not yet available
             expect(cleanupCounts).to.deep.equal([]);
-            await delay(100);
+            await update(wrapper, 100);
             // clean-up function became available and was called
             expect(cleanupCounts).to.deep.equal([ 1 ]);
         })
@@ -710,10 +753,10 @@ describe('Hooks', function() {
 
             const wrapper = mount(<Container />);
             expect(wrapper.text()).to.equal('Initial');
-            await delay(100);
+            await update(wrapper, 100);
             expect(wrapper.text()).to.equal('Unchanged');
             test();
-            await delay(100);
+            await update(wrapper, 100);
             expect(wrapper.text()).to.equal('Changed');
         })
     })
@@ -733,14 +776,14 @@ describe('Hooks', function() {
 
             const wrapper = mount(<Test />);
             buffer.set('hello');
-            await delay(50);
+            await update(wrapper, 50);
             expect(saved).to.deep.equal([]);
-            await delay(125);
+            await update(wrapper, 125);
             expect(saved).to.deep.equal([ 'hello' ]);
             buffer.set('world');
-            await delay(50);
+            await update(wrapper, 50);
             expect(saved).to.deep.equal([ 'hello' ]);
-            await delay(125);
+            await update(wrapper, 125);
             expect(saved).to.deep.equal([ 'hello', 'world' ]);
         })
         it ('should cancel saving of earlier changes', async function() {
@@ -758,12 +801,12 @@ describe('Hooks', function() {
 
             const wrapper = mount(<Test />);
             buffer.set('hello');
-            await delay(50);
+            await update(wrapper, 50);
             expect(saved).to.deep.equal([]);
             buffer.set('world');
-            await delay(75);
+            await update(wrapper, 75);
             expect(saved).to.deep.equal([]);
-            await delay(75);
+            await update(wrapper, 75);
             expect(saved).to.deep.equal([ 'world' ]);
         })
         it ('should call save function on unmount', async function() {
@@ -781,7 +824,7 @@ describe('Hooks', function() {
 
             const wrapper = mount(<Test />);
             buffer.set('hello');
-            await delay(50);
+            await update(wrapper, 50);
             expect(saved).to.deep.equal([]);
             wrapper.unmount();
             expect(saved).to.deep.equal([ 'hello' ]);
@@ -885,15 +928,14 @@ describe('Hooks', function() {
                 show(<img className="ready" src={url} onLoad={proxy.load} />);
             });
 
-            const wrapper = mount(<div><Test /></div>);
-            await delay(500);
-            const container = wrapper.instance();
-            const element = container.firstChild;
+            const wrapper = mount(<Test />);
+            await update(wrapper, 500);
+            const [ container ] = wrapper.getDOMNode();
             expect(filterCalled).to.be.true;
             expect(classNameOnLoad).to.equal('loading');
-            expect(element).to.have.property('className', 'ready');
-            expect(element).to.have.property('naturalWidth', 200);
-            expect(element).to.have.property('naturalHeight', 120);
+            expect(container).to.have.property('className', 'ready');
+            expect(container).to.have.property('naturalWidth', 200);
+            expect(container).to.have.property('naturalHeight', 120);
         })
     })
     describe('#useProgressTransition()', function() {
@@ -911,13 +953,14 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = mount(<div><Test {...props} /></div>);
+            const wrapper = mount(<Test {...props} />);
 
             expect(initialPromise).to.be.an.instanceOf(Promise);
             const initial = await initialPromise;
+            wrapper.update();
             expect(initial).to.be.true;
             expect(wrapper.text()).to.equal('Initial');
-            await delay(150);
+            await update(wrapper, 150);
             expect(donePromise).to.be.an.instanceOf(Promise);
             const done = await donePromise;
             expect(done).to.be.true;
@@ -937,12 +980,12 @@ describe('Hooks', function() {
             });
 
             const props = {};
-            const wrapper = mount(<div><Test {...props} /></div>);
+            const wrapper = mount(<Test {...props} />);
 
             expect(initialPromise).to.be.an.instanceOf(Promise);
             const initial = await initialPromise;
             expect(initial).to.be.false;
-            await delay(250);
+            await update(wrapper, 250);
             expect(donePromise).to.be.an.instanceOf(Promise);
             const done = await donePromise;
             expect(done).to.be.true;
@@ -973,7 +1016,7 @@ describe('Hooks', function() {
             const transition = await transitionPromise;
             expect(transition).to.be.true;
             expect(wrapper.text()).to.equal('Transition');
-            await delay(200);
+            await update(wrapper, 200);
             expect(donePromise).to.be.an.instanceOf(Promise);
             const done = await donePromise;
             expect(done).to.be.true;
@@ -1004,7 +1047,7 @@ describe('Hooks', function() {
             const transition = await transitionPromise;
             expect(transition).to.be.true;
             expect(wrapper.instance().firstChild.className).to.equal('transition');
-            await delay(200);
+            await update(wrapper, 200);
             expect(donePromise).to.be.an.instanceOf(Promise);
             const done = await donePromise;
             expect(done).to.be.true;
@@ -1031,15 +1074,15 @@ describe('Hooks', function() {
             let testNode = document.createElement('DIV');
             try {
                 document.body.appendChild(testNode);
-                const wrapper = mount(<div><Test /></div>, { attachTo: testNode });
-                await delay(50);
+                const wrapper = mount(<Test />, { attachTo: testNode });
+                await update(wrapper, 70);
                 expect(wrapper.text()).to.equal('Hello');
-                const container = wrapper.getDOMNode();
-                const opacity = parseFloat(getComputedStyle(container.firstChild).opacity);
+                const [ container ] = wrapper.getDOMNode();
+                const opacity = parseFloat(getComputedStyle(container).opacity);
                 expect(opacity).to.be.above(0);
-                await delay(100);
+                await update(wrapper, 100);
                 expect(wrapper.text()).to.equal('Hello');
-                await delay(200);
+                await update(wrapper, 200);
                 expect(wrapper.text()).to.equal('World');
                 expect(transitionEvent).to.have.property('propertyName', 'opacity');
             } finally {
@@ -1048,3 +1091,8 @@ describe('Hooks', function() {
         })
     })
 })
+
+async function update(wrapper, ms) {
+    await delay(ms);
+    wrapper.update();
+}

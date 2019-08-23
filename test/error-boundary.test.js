@@ -71,7 +71,7 @@ describe('Error boundary test', function() {
 
         const wrapper = mount(<Boundary><Test /></Boundary>);
         expect(wrapper.text()).to.equal('Initial');
-        await delay(250);
+        await update(wrapper, 250);
         expect(wrapper.text()).to.equal('Asynchronous error');
     })
     it ('should catch error in functional component', function() {
@@ -89,7 +89,12 @@ describe('Error boundary test', function() {
         });
 
         const wrapper = mount(<Boundary><Test /></Boundary>);
-        await delay(50);
+        await update(wrapper, 50);
         expect(wrapper.text()).to.equal('Asynchronous error');
     })
 })
+
+async function update(wrapper, ms) {
+    await delay(ms);
+    wrapper.update();
+}

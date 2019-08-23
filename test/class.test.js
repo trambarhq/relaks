@@ -12,7 +12,7 @@ describe('AsyncComponent', function() {
     it ('should render the component', async function() {
         class Test extends AsyncComponent {
             async renderAsync(meanwhile) {
-                meanwhile.show(<div>Initial</div>, 'initial');
+                meanwhile.show(<div>Initial</div>);
                 await delay(100);
                 return <div>Done</div>;
             }
@@ -20,8 +20,10 @@ describe('AsyncComponent', function() {
 
         const wrapper = mount(<Test />);
 
+        expect(wrapper.text()).to.equal('');
+        await update(wrapper, 75);
         expect(wrapper.text()).to.equal('Initial');
-        await delay(250);
+        await update(wrapper, 250);
         expect(wrapper.text()).to.equal('Done');
     })
     it ('should use last progress when renderAsync() returns undefined', async function() {
@@ -36,7 +38,7 @@ describe('AsyncComponent', function() {
         const wrapper = mount(<Test />);
 
         expect(wrapper.text()).to.equal('Initial');
-        await delay(250);
+        await update(wrapper, 250);
         expect(wrapper.text()).to.equal('Done');
     })
     it ('should call componentWillMount()', async function() {
@@ -101,3 +103,8 @@ describe('AsyncComponent', function() {
         expect(mounted).to.be.false;
     })
 })
+
+async function update(wrapper, ms) {
+    await delay(ms);
+    wrapper.update();
+}
