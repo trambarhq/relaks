@@ -49,6 +49,7 @@ function AsyncRenderingCycle(target, prev, options) {
         this.elementRendered = prev.elementRendered;
         this.initial = false;
         this.fulfilled = prev.fulfilled;
+        this.mounted = prev.mounted;
     }
 }
 
@@ -100,7 +101,9 @@ prototype.resolve = function(element) {
             if (this.lastPromise && !this.lastPromise.fulfilled) {
                 if (this.progressElement) {
                     // draw the last progress element
-                    this.update();
+                    this.progressAvailable = true;
+                    this.progressForced = false;
+                    this.rerender();
                 }
                 var _this = this;
                 this.lastPromise.then(function() {

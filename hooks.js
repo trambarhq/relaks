@@ -18,6 +18,7 @@ function use(asyncFunc) {
 				}
 			};
 		}, [ cycle ]);
+		// fulfill promise at the end of rendering cycle
 		useEffect(function() {
 			cycle.fulfill();
 		});
