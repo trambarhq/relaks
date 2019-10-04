@@ -35,7 +35,15 @@ module.exports = function(config) {
                         loader: 'babel-loader',
                         exclude: Path.resolve('./node_modules'),
                         query: {
-                            presets: [ 'es2015', 'react' ]
+                            presets: [
+                                [ '@babel/env', { modules: false } ],
+                                [ '@babel/react' ],
+                            ],
+                            plugins: [
+                                '@babel/transform-regenerator',
+                                '@babel/transform-runtime',
+                                'syntax-async-functions',
+                            ]
                         }
                     }
                 ]
