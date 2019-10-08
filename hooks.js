@@ -168,9 +168,14 @@ function useErrorCatcher(rethrow) {
 		try {
 			var promise = f();
 			if (promise && promise.catch instanceof Function) {
-				promise = promise.catch(function(err) {
+				promise = promise.then(function(result) {
+					setError(undefined);
+					return result;
+				}).catch(function(err) {
 					setError(err);
 				});
+			} else {
+				setError(undefined);
 			}
 			return promise;
 		} catch (err) {
