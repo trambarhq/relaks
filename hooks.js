@@ -177,8 +177,11 @@ function useErrorCatcher(rethrow) {
 			setError(err);
 		}
 	});
+	var clear = useCallback(function(f) {
+		setError(undefined);
+	});
 	useDebugValue(error);
-	return [ error, run ];
+	return [ error, run, clear ];
 }
 
 function useComputed(f, deps) {
