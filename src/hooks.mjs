@@ -3,11 +3,11 @@ import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 function use(asyncFunc) {
 	// create synchronous function wrapper
-	var syncFunc = function(props, ref) {
-		var state = useState({});
-		var target = { func: syncFunc, props };
-		var options = { showProgress: true, performCheck: true, clone: clone };
-		var cycle = AsyncRenderingCycle.acquire(state, target, options);
+	const syncFunc = function(props, ref) {
+		const state = useState({});
+		const target = { func: syncFunc, props };
+		const options = { showProgress: true, performCheck: true, clone: clone };
+		const cycle = AsyncRenderingCycle.acquire(state, target, options);
 
 		// cancel current cycle on unmount
 		useEffect(function() {
@@ -28,30 +28,29 @@ function use(asyncFunc) {
 			return asyncFunc(props, ref);
 		});
 
-        AsyncRenderingCycle.release();
+    AsyncRenderingCycle.release();
 
 		// throw error that had occurred in async code
-		var error = cycle.getError();
-        if (error) {
-        	throw error;
-        }
+		const error = cycle.getError();
+    if (error) {
+    	throw error;
+    }
 
-        // return either the promised element or progress
-		var element = cycle.getElement();
-        return element;
-
+    // return either the promised element or progress
+		const element = cycle.getElement();
+    return element;
 	};
 
 	// attach async function (that returns a promise to the final result)
-	syncFunc.renderAsyncEx = function(props) {
-		var state = [ {}, function(v) {} ];
-		var target = { func: syncFunc, props };
-		var options = { performCheck: true, clone: clone };
-		var cycle = AsyncRenderingCycle.acquire(state, target, options);
-		var promise = asyncFunc(props);
+	syncFunc.renderAsyncEx = (props) => {
+		const state = [ {}, function(v) {} ];
+		const target = { func: syncFunc, props };
+		const options = { performCheck: true, clone: clone };
+		const cycle = AsyncRenderingCycle.acquire(state, target, options);
+		const promise = asyncFunc(props);
 		AsyncRenderingCycle.release();
 		if (promise && typeof(promise.then) === 'function') {
-			return promise.then(function(element) {
+			return promise.then((element) => {
 				if (element === undefined) {
 					element = cycle.progressElement;
 				}
@@ -76,12 +75,12 @@ function use(asyncFunc) {
 }
 
 function memo(asyncFunc, areEqual) {
-	var syncFunc = use(asyncFunc);
+	const syncFunc = use(asyncFunc);
 	return React.memo(syncFunc, areEqual);
 }
 
 function forwardRef(asyncFunc, areEqual) {
-	var syncFunc = use(asyncFunc);
+	const syncFunc = use(asyncFunc);
 	return React.memo(React.forwardRef(syncFunc), areEqual);
 }
 
@@ -97,7 +96,7 @@ function clone(element, props) {
 
 function useProgress(delayEmpty, delayRendered) {
 	// set delays
-	var cycle = AsyncRenderingCycle.need();
+	const cycle = AsyncRenderingCycle.need();
 	cycle.delay(delayEmpty, delayRendered, true);
 
 	// return functions (bound in constructor)
@@ -105,22 +104,22 @@ function useProgress(delayEmpty, delayRendered) {
 }
 
 function useProgressTransition() {
-	var cycle = AsyncRenderingCycle.need();
+	const cycle = AsyncRenderingCycle.need();
 	return [ cycle.transition, cycle.hasRendered ];
 }
 
 function useRenderEvent(name, f) {
 	if (!AsyncRenderingCycle.skip()) {
-		var cycle = AsyncRenderingCycle.need();
+		const cycle = AsyncRenderingCycle.need();
 		cycle.on(name, f);
 	}
 }
 
 function useEventTime() {
-	var state = useState();
-	var date = state[0];
-	var setDate = state[1];
-	var callback = useCallback(function(evt) {
+	const state = useState();
+	const date = state[0];
+	const setDate = state[1];
+	const callback = useCallback(function(evt) {
 		setDate(new Date);
 	});
 	useDebugValue(date);
@@ -128,50 +127,59 @@ function useEventTime() {
 }
 
 function useListener(f) {
-	var ref = useRef({});
+	const ref = useRef({});
 	if (!AsyncRenderingCycle.skip()) {
 		ref.current.f = f;
 	}
 	useDebugValue(f);
-	return useCallback(function () {
+	return useCallback(() => {
 		return ref.current.f.apply(null, arguments);
 	}, []);
 }
 
 function useAsyncEffect(f, deps) {
-	useEffect(function() {
-		var cleanup;
-		var unmounted = false;
-		var promise = f();
-		Promise.resolve(promise).then(function(ret) {
-			cleanup = ret;
-			if (unmounted) {
-				cleanup();
+	useEffect(() => {
+		let cleanUp;
+		let cleanUpDeferred = false;
+    // invoke the callback and wait for promise to get fulfilled
+		let promise = f();
+		Promise.resolve(promise).then((ret) => {
+      // save the clean-up function returned by the callback
+			cleanUp = ret;
+      // if clean-up was requested while we were waiting for the promise to
+      // resolve, perform it now
+			if (cleanUpDeferred) {
+				cleanUp();
 			}
 		});
-		return function() {
-			unmounted = true;
-			if (cleanup) {
-				cleanup();
-			}
+		return () => {
+			if (cleanUp) {
+				cleanUp();
+			} else {
+        // maybe we're still waiting for the promsie to resolve
+        cleanUpDeferred = true;
+      }
 		};
 	}, deps);
 	useDebugValue(f);
 }
 
 function useErrorCatcher(rethrow) {
-	var [ error, setError ] = useState();
+	const [ error, setError ] = useState();
 	if (rethrow && error) {
 		throw error;
 	}
-	var run = useCallback(function(f) {
+	const run = useCallback((f) => {
+    // catch sync exception with try-block
 		try {
-			var promise = f();
+      // invoke the given function
+			let promise = f();
 			if (promise && promise.catch instanceof Function) {
-				promise = promise.then(function(result) {
+        // catch async exception
+				promise = promise.then((result) => {
 					setError(undefined);
 					return result;
-				}).catch(function(err) {
+				}).catch((err) => {
 					setError(err);
 				});
 			} else {
@@ -182,7 +190,7 @@ function useErrorCatcher(rethrow) {
 			setError(err);
 		}
 	});
-	var clear = useCallback(function(f) {
+	const clear = useCallback(function(f) {
 		setError(undefined);
 	});
 	useDebugValue(error);
@@ -190,18 +198,20 @@ function useErrorCatcher(rethrow) {
 }
 
 function useComputed(f, deps) {
-	var pair = useState({});
-	var state = pair[0];
-	var setState = pair[1];
+	const pair = useState({});
+	const state = pair[0];
+	const setState = pair[1];
+  // add state object as dependency of useMemo hook
 	if (deps instanceof Array) {
 		deps = deps.concat(state);
 	} else {
 		deps = [ state ];
 	}
-	var value = useMemo(function() {
+	const value = useMemo(() => {
 		return (state.current = f(state.current));
 	}, deps);
-	var recalc = useCallback(function() {
+	const recalc = useCallback(function() {
+    // force recalculation by changing state
 		setState({ value: state.value });
 	}, []);
 	useDebugValue(value);
@@ -209,11 +219,12 @@ function useComputed(f, deps) {
 }
 
 function useLastAcceptable(value, acceptable) {
-	var ref = useRef();
+	const ref = useRef();
 	if (typeof(acceptable) === 'function') {
 		acceptable = acceptable(value);
 	}
 	if (acceptable) {
+    // set the value only if it's acceptable
 		ref.current = value;
 	}
 	useDebugValue(ref.current);
