@@ -1,5 +1,13 @@
-import React, { useState, useRef, useCallback, useEffect, useDebugValue } from 'react';
-import { AsyncRenderingCycle } from './async-rendering-cycle';
+import React from 'react';
+import { isUpdating } from './async-rendering-cycle';
+
+const {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useDebugValue
+} = React;
 
 class AsyncSaveBuffer {
   constructor() {
@@ -185,7 +193,7 @@ function transformDef(ours) {
 }
 
 function useSaveBuffer(params, customClass) {
-	if (AsyncRenderingCycle.skip()) {
+	if (isUpdating()) {
 		// don't initialize when called during rerendering
 		params = null;
 	} else if (!params) {
@@ -208,7 +216,7 @@ function useAutoSave(saveBuffer, wait, f) {
   // store the callback in a ref so the useEffect hook function will
   // always call the latest version
 	const ref = useRef({});
-	if (!AsyncRenderingCycle.skip()) {
+	if (!isUpdating()) {
 		ref.current.f = f;
 	}
   const save = useCallback((conditional) => {

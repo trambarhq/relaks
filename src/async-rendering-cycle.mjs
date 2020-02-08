@@ -1,5 +1,5 @@
 import { AsyncRenderingInterrupted } from './async-rendering-interrupted.mjs';
-import * as Options from './options.mjs';
+import { get, findSeed } from './options.mjs';
 
 class AsyncRenderingCycle {
   constructor(target, prev, options) {
@@ -15,8 +15,8 @@ class AsyncRenderingCycle {
     this.elementRendered = (prev) ? prev.elementRendered : null;
     this.deferredError = undefined;
     this.showingProgress = false;
-    this.delayEmpty = Options.get('delayWhenEmpty');
-    this.delayRendered = Options.get('delayWhenRendered');
+    this.delayEmpty = get('delayWhenEmpty');
+    this.delayRendered = get('delayWhenRendered');
     this.canceled = false;
     this.completed = false;
     this.checked = false;
@@ -59,7 +59,7 @@ class AsyncRenderingCycle {
   	return this.completed || this.canceled;
   };
 
-  isRerendering() {
+  isUpdating() {
     if (this.hasEnded()) {
       return false;
     }
@@ -73,7 +73,7 @@ class AsyncRenderingCycle {
     }
     this.synchronous = true;
     try {
-      var promise = f();
+      const promise = f();
       if (promise && typeof(promise.then) === 'function') {
         promise.then(this.resolve, this.reject);
       } else {
@@ -119,9 +119,9 @@ class AsyncRenderingCycle {
 
   reject(err) {
   	this.clear();
-      if (!(err instanceof AsyncRenderingInterrupted)) {
-      	if (!this.hasEnded()) {
-  			this.deferredError = err;
+    if (!(err instanceof AsyncRenderingInterrupted)) {
+      if (!this.hasEnded()) {
+  		  this.deferredError = err;
         if (this.mounted) {
           this.rerender();
         }
@@ -136,7 +136,7 @@ class AsyncRenderingCycle {
   mount() {
     this.mounted = true;
     if (this.initial) {
-      if (this.isRerendering()) {
+      if (this.isUpdating()) {
         this.rerender();
       }
     }
@@ -202,12 +202,12 @@ class AsyncRenderingCycle {
     if (this.progressPromise && !this.progressPromise.fulfilled) {
       this.progressPromise.resolve(false);
     }
-    let r;
-    const promise = new Promise(function(resolve) { r = resolve });
+    let resolve;
+    const promise = new Promise((r) => { resolve = r });
     promise.fulfilled = false;
     promise.resolve = (value) => {
       promise.fulfilled = true;
-      r(value);
+      resolve(value);
     };
     this.progressPromise = this.lastPromise = promise;
 
@@ -290,7 +290,7 @@ class AsyncRenderingCycle {
     }
     if (this.synchronous) {
       this.checked = true;
-      if (this.isRerendering()) {
+      if (this.isUpdating()) {
         throw new AsyncRenderingInterrupted;
       }
     }
@@ -334,12 +334,12 @@ class AsyncRenderingCycle {
    * @param  {Object} props
    */
   transition(props) {
-    var promise = this.hasRendered().then(function(shown) {
+    const promise = this.hasRendered().then((shown) => {
       if (shown) {
-        var clone = this.options.clone;
-        var element = clone(this.elementRendered, props);
+        const clone = this.options.clone;
+        const element = clone(this.elementRendered, props);
         this.show(element);
-        return this.progressPromise.then(function(shown) {
+        return this.progressPromise.then((shown) => {
           promise.fulfilled = true;
           return shown;
         });
@@ -414,10 +414,10 @@ class AsyncRenderingCycle {
   }
 
   notify(name) {
-  	var f = this.handlers[name];
+  	const f = this.handlers[name];
   	if (f) {
-  		var elapsed = (new Date) - this.startTime;
-  		var evt = {
+  		const elapsed = (new Date) - this.startTime;
+  		const evt = {
   			type: name,
   			elapsed: elapsed,
   			target: this.target,
@@ -427,6 +427,73 @@ class AsyncRenderingCycle {
   };
 }
 
+let currentState = null;
+
+function acquireCycle(state, target, options) {
+  let cycle = getCurrentCycle(false, state);
+  if (cycle) {
+    if (cycle.hasEnded()) {
+      cycle = undefined;
+    } else if (!cycle.isUpdating()) {
+      // cancel the current cycle
+      cycle.cancel();
+      cycle = undefined;
+    }
+  }
+  if (!cycle) {
+    // start a new cycle
+    const context = state[0];
+  	const prev = context.cycle;
+  	cycle = new AsyncRenderingCycle(target, prev, options);
+  	cycle.context = context;
+  	cycle.setContext = state[1];
+  	context.cycle = cycle;
+
+    // see if the contents has been seeded
+    if (cycle.initial) {
+      const seed = findSeed(target);
+      if (seed) {
+        cycle.substitute(seed);
+      }
+    }
+  }
+  currentState = state;
+  return cycle;
+}
+
+function getCurrentCycle(required, state) {
+  if (!state) {
+    state = currentState;
+  }
+  if (state) {
+    const context = state[0];
+  	const cycle = context.cycle;
+  	if (cycle) {
+  		cycle.context = context;
+  		cycle.setContext = state[1];
+      return cycle;
+  	}
+  }
+  if (required) {
+    throw new Error('Unable to obtain state variable');
+  }
+  return null;
+}
+
+function endCurrentCycle() {
+  currentState = null;
+}
+
+function isUpdating() {
+  const cycle = getCurrentCycle(false);
+  return cycle ? cycle.isUpdating() : false;
+}
+
 export {
-    AsyncRenderingCycle,
+  AsyncRenderingCycle,
+
+  acquireCycle,
+  getCurrentCycle,
+  endCurrentCycle,
+  isUpdating,
 };

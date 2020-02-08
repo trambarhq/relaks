@@ -1,6 +1,8 @@
-import React, { PureComponent } from 'react';
-import * as Options from './options.mjs';
-import { AsyncRenderingCycle } from './async-rendering-cycle.mjs';
+import React from 'react';
+import { get } from './options.mjs';
+import { acquireCycle, endCurrentCycle } from './async-rendering-cycle.mjs';
+
+const { PureComponent } = React;
 
 class AsyncComponent extends PureComponent {
   constructor(props) {
@@ -23,14 +25,14 @@ class AsyncComponent extends PureComponent {
    */
   render() {
     const options = { showProgress: true, clone };
-  	const cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
-  	if (!cycle.isRerendering()) {
+  	const cycle = acquireCycle(this.relaks, this, options);
+  	if (!cycle.isUpdating()) {
   		// call async function
   		cycle.run(() => {
   			return this.renderAsync(cycle);
   		});
   	}
-    AsyncRenderingCycle.release();
+    endCurrentCycle();
     cycle.mounted = true;
 
   	// throw error that had occurred in async code
@@ -39,7 +41,7 @@ class AsyncComponent extends PureComponent {
     	if (parseInt(React.version) >= 16) {
 	    	throw error;
     	} else {
-    		const errorHandler = Options.get('errorHandler');
+    		const errorHandler = get('errorHandler');
         if (errorHandler instanceof Function) {
           errorHandler(error);
         }
@@ -53,9 +55,9 @@ class AsyncComponent extends PureComponent {
 
   renderAsyncEx() {
     const options = { clone };
-    const cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
+    const cycle = acquireCycle(this.relaks, this, options);
     const promise = this.renderAsync(cycle);
-    AsyncRenderingCycle.release();
+    endCurrentCycle();
     if (promise && typeof(promise.then) === 'function') {
       return promise.then((element) => {
         if (element === undefined) {
@@ -72,7 +74,7 @@ class AsyncComponent extends PureComponent {
    * Cancel any outstanding asynchronous rendering cycle on unmount.
    */
   componentWillUnmount() {
-  	const cycle = AsyncRenderingCycle.get(this.relaks);
+  	const cycle = getCurrentCycle(false, this.relaks);
   	if (!cycle.hasEnded()) {
   		cycle.cancel();
   	}
@@ -90,6 +92,5 @@ function clone(element, props) {
 }
 
 export {
-	AsyncComponent as default,
 	AsyncComponent,
 };

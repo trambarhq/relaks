@@ -1,10 +1,15 @@
-import { useMemo, useDebugValue } from 'react';
+import React from 'react';
+
+const {
+  useMemo,
+  useDebugValue
+} = React;
 
 function get(target, key) {
-  const f = target.methods[key] || target.handlers[key];
+  let f = target.methods[key] || target.handlers[key];
   if (!f) {
     let resolve;
-    const promise = new Promise(function(r) { resolve = r });
+    const promise = new Promise((r) => { resolve = r });
     promise.resolve = resolve;
     target.promises[key] = promise;
     target.statuses[key] = false;

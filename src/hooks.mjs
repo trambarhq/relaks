@@ -1,5 +1,15 @@
-import React, { useState, useRef, useMemo, useEffect, useCallback, useDebugValue, ReactElement } from 'react';
-import { AsyncRenderingCycle } from './async-rendering-cycle';
+import React from 'react';
+import { acquireCycle, getCurrentCycle, endCurrentCycle, isUpdating } from './async-rendering-cycle';
+
+const {
+	useState,
+	useRef,
+	useMemo,
+	useEffect,
+	useCallback,
+	useDebugValue,
+	ReactElement
+} = React;
 
 function use(asyncFunc) {
 	// create synchronous function wrapper
@@ -7,28 +17,28 @@ function use(asyncFunc) {
 		const state = useState({});
 		const target = { func: syncFunc, props };
 		const options = { showProgress: true, performCheck: true, clone: clone };
-		const cycle = AsyncRenderingCycle.acquire(state, target, options);
+		const cycle = acquireCycle(state, target, options);
 
 		// cancel current cycle on unmount
-		useEffect(function() {
+		useEffect(() => {
 			cycle.mount();
-			return function() {
+			return () => {
 				if (!cycle.hasEnded()) {
 					cycle.cancel();
 				}
 			};
 		}, [ cycle ]);
 		// fulfill promise at the end of rendering cycle
-		useEffect(function() {
+		useEffect(() => {
 			cycle.fulfill();
 		});
 
 		// call async function
-		cycle.run(function() {
+		cycle.run(() => {
 			return asyncFunc(props, ref);
 		});
 
-    AsyncRenderingCycle.release();
+    endCurrentCycle();
 
 		// throw error that had occurred in async code
 		const error = cycle.getError();
@@ -43,12 +53,12 @@ function use(asyncFunc) {
 
 	// attach async function (that returns a promise to the final result)
 	syncFunc.renderAsyncEx = (props) => {
-		const state = [ {}, function(v) {} ];
+		const state = [ {}, (v) => {} ];
 		const target = { func: syncFunc, props };
 		const options = { performCheck: true, clone: clone };
-		const cycle = AsyncRenderingCycle.acquire(state, target, options);
+		const cycle = acquireCycle(state, target, options);
 		const promise = asyncFunc(props);
-		AsyncRenderingCycle.release();
+		endCurrentCycle();
 		if (promise && typeof(promise.then) === 'function') {
 			return promise.then((element) => {
 				if (element === undefined) {
@@ -96,7 +106,7 @@ function clone(element, props) {
 
 function useProgress(delayEmpty, delayRendered) {
 	// set delays
-	const cycle = AsyncRenderingCycle.need();
+	const cycle = getCurrentCycle(true);
 	cycle.delay(delayEmpty, delayRendered, true);
 
 	// return functions (bound in constructor)
@@ -104,13 +114,13 @@ function useProgress(delayEmpty, delayRendered) {
 }
 
 function useProgressTransition() {
-	const cycle = AsyncRenderingCycle.need();
+	const cycle = getCurrentCycle(true);
 	return [ cycle.transition, cycle.hasRendered ];
 }
 
 function useRenderEvent(name, f) {
-	if (!AsyncRenderingCycle.skip()) {
-		const cycle = AsyncRenderingCycle.need();
+	if (!isUpdating()) {
+		const cycle = getCurrentCycle(true);
 		cycle.on(name, f);
 	}
 }
@@ -119,16 +129,16 @@ function useEventTime() {
 	const state = useState();
 	const date = state[0];
 	const setDate = state[1];
-	const callback = useCallback(function(evt) {
+	const callback = useCallback((evt) => {
 		setDate(new Date);
-	});
+	}, []);
 	useDebugValue(date);
 	return [ date, callback ];
 }
 
 function useListener(f) {
 	const ref = useRef({});
-	if (!AsyncRenderingCycle.skip()) {
+	if (!isUpdating()) {
 		ref.current.f = f;
 	}
 	useDebugValue(f);
@@ -190,9 +200,9 @@ function useErrorCatcher(rethrow) {
 			setError(err);
 		}
 	});
-	const clear = useCallback(function(f) {
+	const clear = useCallback((f) => {
 		setError(undefined);
-	});
+	}, []);
 	useDebugValue(error);
 	return [ error, run, clear ];
 }
@@ -210,7 +220,7 @@ function useComputed(f, deps) {
 	const value = useMemo(() => {
 		return (state.current = f(state.current));
 	}, deps);
-	const recalc = useCallback(function() {
+	const recalc = useCallback(() => {
     // force recalculation by changing state
 		setState({ value: state.value });
 	}, []);

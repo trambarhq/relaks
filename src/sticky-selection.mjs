@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import React from 'react';
+
+const { useEffect } = React;
 
 function useStickySelection(inputRefs) {
   if (!(inputRefs instanceof Array)) {
@@ -16,7 +18,7 @@ function useStickySelection(inputRefs) {
       });
     }
   }
-  useEffect(function() {
+  useEffect(() => {
     for (let input of inputs) {
       const node = input.node;
       const previous = input.value;

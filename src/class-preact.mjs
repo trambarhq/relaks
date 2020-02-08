@@ -1,6 +1,8 @@
-import Preact, { Component } from 'preact';
-import * as Options from './options.mjs';
-import { AsyncRenderingCycle } from './async-rendering-cycle.mjs';
+import Preact from 'preact';
+import { get } from './options.mjs';
+import { acquireCycle, endCurrentCycle } from './async-rendering-cycle.mjs';
+
+const { Component } = Preact;
 
 class AsyncComponent extends Component {
   constructor(props) {
@@ -27,21 +29,21 @@ class AsyncComponent extends Component {
    */
   render(props, state, context) {
     const options = { showProgress: true, clone };
-  	const cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
+  	const cycle = acquireCycle(this.relaks, this, options);
     cycle.noCheck = true;
-  	if (!cycle.isRerendering()) {
+  	if (!cycle.isUpdating()) {
   		// call async function
   		cycle.run(() => {
   			return this.renderAsync(cycle, props, state, context);
   		});
   	}
-    AsyncRenderingCycle.release();
+    endCurrentCycle();
     cycle.mounted = true;
 
   	// throw error that had occurred in async code
   	const error = cycle.getError();
     if (error) {
-      const errorHandler = Options.get('errorHandler');
+      const errorHandler = get('errorHandler');
       if (errorHandler instanceof Function) {
           errorHandler(error);
       }
@@ -54,9 +56,9 @@ class AsyncComponent extends Component {
 
   renderAsyncEx() {
     const options = { clone };
-    const cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
+    const cycle = acquireCycle(this.relaks, this, options);
     const promise = this.renderAsync(cycle, this.props, this.state, this.context);
-    AsyncRenderingCycle.release();
+    endCurrentCycle();
     if (promise && typeof(promise.then) === 'function') {
       return promise.then((element) => {
         if (element === undefined) {
@@ -88,7 +90,7 @@ class AsyncComponent extends Component {
    * Cancel any outstanding asynchronous rendering cycle on unmount.
    */
   componentWillUnmount() {
-  	const cycle = AsyncRenderingCycle.get(this.relaks);
+  	const cycle = getCurrentCycle(false, this.relaks);
   	if (!cycle.hasEnded()) {
   		cycle.cancel();
   	}
