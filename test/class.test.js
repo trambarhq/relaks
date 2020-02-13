@@ -6,9 +6,10 @@ import Adapter from 'enzyme-adapter-react-16';
 
 import { AsyncComponent } from '../src/react.mjs';
 
-configure({ adapter: new Adapter() });
-
 describe('AsyncComponent', function() {
+  beforeEach(() => {
+    configure({ adapter: new Adapter() });
+  })
   it ('should render the component', async function() {
     class Test extends AsyncComponent {
       async renderAsync(meanwhile) {

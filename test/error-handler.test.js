@@ -8,18 +8,19 @@ import Adapter from 'enzyme-adapter-preact-pure';
 
 import Relaks, { AsyncComponent } from '../src/preact.mjs';
 
-configure({ adapter: new Adapter() });
-
 describe('Error handler test', function() {
   // suppress Mocha's error handler during test
   let mochaErrorHandler;
   before(function() {
     mochaErrorHandler = window.onerror;
     window.onerror = null;
-  });
+  })
   after(function() {
     window.onerror = mochaErrorHandler;
-  });
+  })
+  beforeEach(() => {
+    configure({ adapter: new Adapter() });
+  })
 
   it ('should be called when error occurs in synchronous code of async component', function() {
     class Test extends AsyncComponent {

@@ -20,9 +20,10 @@ import Relaks, {
   useEventProxy,
 } from '../src/react.mjs';
 
-configure({ adapter: new Adapter() });
-
 describe('Hooks', function() {
+  beforeEach(() => {
+    configure({ adapter: new Adapter() });
+  })
   describe('#useProgress()', function() {
     it ('should render the component', async function() {
       const Test = Relaks.memo(async (props) => {

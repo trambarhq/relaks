@@ -8,9 +8,10 @@ import Adapter from 'enzyme-adapter-preact-pure';
 
 import { AsyncComponent } from '../src/preact.mjs';
 
-configure({ adapter: new Adapter() });
-
 describe('AsyncComponent (Preact)', function() {
+  beforeEach(() => {
+    configure({ adapter: new Adapter() });
+  })
   it ('should render the component', async function() {
     class Test extends AsyncComponent {
       async renderAsync(meanwhile, props) {
@@ -27,7 +28,7 @@ describe('AsyncComponent (Preact)', function() {
     await delay(250);
     expect(wrapper.text()).to.equal('Done');
   })
-  it ('should call componentWillMount()', async function() {
+  it ('should call componentDidMount()', async function() {
     class Test extends AsyncComponent {
       async renderAsync(meanwhile, props) {
         meanwhile.show(<div>Initial</div>, 'initial');
@@ -56,6 +57,7 @@ describe('AsyncComponent (Preact)', function() {
     let mounted;
     const onMount = () => { mounted = true };
     const wrapper = mount(<Test onMount={onMount} />);
+    await delay(0);
     expect(wrapper.state('mounted')).to.be.true;
     expect(mounted).to.be.true;
   })
@@ -89,9 +91,10 @@ describe('AsyncComponent (Preact)', function() {
     const onMount = () => { mounted = true };
     const onUnmount = () => { mounted = false };
     const wrapper = mount(<Test onMount={onMount} onUnmount={onUnmount} />);
+    await delay(0);
     expect(wrapper.state('mounted')).to.be.true;
     expect(mounted).to.be.true;
-    wrapper.render(null);
+    wrapper.unmount();
     expect(mounted).to.be.false;
   })
 })

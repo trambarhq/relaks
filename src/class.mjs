@@ -10,7 +10,7 @@ class AsyncComponent extends PureComponent {
 
     const state = [
     	{},
-    	function (context) {
+    	(context) => {
     		state[0] = context;
     		this.forceUpdate();
     	}

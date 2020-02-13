@@ -6,8 +6,6 @@ import Adapter from 'enzyme-adapter-react-16';
 
 import Relaks, { AsyncComponent, useProgress } from '../src/react.mjs';
 
-configure({ adapter: new Adapter() });
-
 class Boundary extends Component {
   constructor(props) {
     super(props);
@@ -30,6 +28,9 @@ class Boundary extends Component {
 }
 
 describe('Error boundary test', function() {
+  beforeEach(() => {
+    configure({ adapter: new Adapter() });
+  })
   it ('should catch error in synchronous code', function() {
     class Test extends Component {
       render() {
