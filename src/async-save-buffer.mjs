@@ -1,5 +1,5 @@
 import React from 'react';
-import { isUpdating } from './async-rendering-cycle';
+import { AsyncRenderingCycle } from './async-rendering-cycle';
 
 const {
   useState,
@@ -153,22 +153,22 @@ class AsyncSaveBuffer {
   		this.preserve(base, null);
   	}
   }
-}
 
-function acquire(state, params, bufferClass) {
-	if (!bufferClass) {
-		bufferClass = AsyncSaveBuffer;
-	}
-	const context = state[0];
-	let buffer = context.buffer;
-	if (!buffer) {
-		buffer = context.buffer = new bufferClass;
-		buffer.setContext = state[1];
-	}
-	if (params) {
-		buffer.use(params);
-	}
-	return buffer;
+  static acquire(state, params, bufferClass) {
+  	if (!bufferClass) {
+  		bufferClass = this;
+  	}
+  	const context = state[0];
+  	let buffer = context.buffer;
+  	if (!buffer) {
+  		buffer = context.buffer = new bufferClass;
+  		buffer.setContext = state[1];
+  	}
+  	if (params) {
+  		buffer.use(params);
+  	}
+  	return buffer;
+  }
 }
 
 function compareDef(ours, theirs) {
@@ -193,14 +193,14 @@ function transformDef(ours) {
 }
 
 function useSaveBuffer(params, customClass) {
-	if (isUpdating()) {
+	if (AsyncRenderingCycle.isUpdating()) {
 		// don't initialize when called during rerendering
 		params = null;
 	} else if (!params) {
 		params = {};
 	}
 	const state = useState({});
-	const buffer = acquire(state, params, customClass);
+	const buffer = AsyncSaveBuffer.acquire(state, params, customClass);
 	useEffect(() => {
     // let the buffer know that the component associated with it
     // has been unmounted
@@ -216,7 +216,7 @@ function useAutoSave(saveBuffer, wait, f) {
   // store the callback in a ref so the useEffect hook function will
   // always call the latest version
 	const ref = useRef({});
-	if (!isUpdating()) {
+	if (!AsyncRenderingCycle.isUpdating()) {
 		ref.current.f = f;
 	}
   const save = useCallback((conditional) => {

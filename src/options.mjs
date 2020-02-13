@@ -2,7 +2,7 @@ let delayWhenEmpty = 50;
 let delayWhenRendered = Infinity;
 let seeds = [];
 let errorHandler = function(err) {
-    console.error(err);
+  console.error(err);
 };
 
 function get(name) {

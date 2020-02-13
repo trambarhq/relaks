@@ -1,6 +1,6 @@
-var requireTest = require.context('./test', true, /\.test\.js$/);
-var files = requireTest.keys();
+const requireTest = require.context('./test', true, /\.test\.js$/);
+const files = requireTest.keys();
 // run each of them
 files.forEach((file) => {
-    return requireTest(file);
+  return requireTest(file);
 });

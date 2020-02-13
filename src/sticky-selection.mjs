@@ -53,5 +53,5 @@ function findNewPosition(index, previous, current) {
 }
 
 export {
-    useStickySelection
+  useStickySelection
 };

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useDebugValue, useRef, useEffect, useMemo, PureComponent } from 'react';
+import React from 'react';
 
 var delayWhenEmpty = 50;
 var delayWhenRendered = Infinity;
@@ -227,10 +227,6 @@ function _possibleConstructorReturn(self, call) {
   return _assertThisInitialized(self);
 }
 
-function _readOnlyError(name) {
-  throw new Error("\"" + name + "\" is read-only");
-}
-
 function _slicedToArray(arr, i) {
   return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest();
 }
@@ -283,8 +279,9 @@ function (_Error) {
 
     _classCallCheck(this, AsyncRenderingInterrupted);
 
+    _this = _possibleConstructorReturn(this, _getPrototypeOf(AsyncRenderingInterrupted).call(this));
     _this.message = 'Async rendering interrupted';
-    return _possibleConstructorReturn(_this);
+    return _this;
   }
 
   return AsyncRenderingInterrupted;
@@ -355,8 +352,8 @@ function () {
       return this.completed || this.canceled;
     }
   }, {
-    key: "isRerendering",
-    value: function isRerendering() {
+    key: "isUpdating",
+    value: function isUpdating() {
       if (this.hasEnded()) {
         return false;
       }
@@ -449,7 +446,7 @@ function () {
       this.mounted = true;
 
       if (this.initial) {
-        if (this.isRerendering()) {
+        if (this.isUpdating()) {
           this.rerender();
         }
       }
@@ -528,15 +525,15 @@ function () {
         this.progressPromise.resolve(false);
       }
 
-      var r;
-      var promise = new Promise(function (resolve) {
-        r = resolve;
+      var resolve;
+      var promise = new Promise(function (r) {
+        resolve = r;
       });
       promise.fulfilled = false;
 
       promise.resolve = function (value) {
         promise.fulfilled = true;
-        r(value);
+        resolve(value);
       };
 
       this.progressPromise = this.lastPromise = promise;
@@ -632,7 +629,7 @@ function () {
       if (this.synchronous) {
         this.checked = true;
 
-        if (this.isRerendering()) {
+        if (this.isUpdating()) {
           throw new AsyncRenderingInterrupted();
         }
       }
@@ -686,12 +683,16 @@ function () {
   }, {
     key: "transition",
     value: function transition(props) {
+      var _this5 = this;
+
       var promise = this.hasRendered().then(function (shown) {
         if (shown) {
-          var clone = this.options.clone;
-          var element = clone(this.elementRendered, props);
-          this.show(element);
-          return this.progressPromise.then(function (shown) {
+          var clone = _this5.options.clone;
+          var element = clone(_this5.elementRendered, props);
+
+          _this5.show(element);
+
+          return _this5.progressPromise.then(function (shown) {
             promise.fulfilled = true;
             return shown;
           });
@@ -799,6 +800,83 @@ function () {
   return AsyncRenderingCycle;
 }();
 
+var currentState = null;
+
+function acquireCycle(state, target, options) {
+  var cycle = getCurrentCycle$1(false, state);
+
+  if (cycle) {
+    if (cycle.hasEnded()) {
+      cycle = undefined;
+    } else if (!cycle.isUpdating()) {
+      // cancel the current cycle
+      cycle.cancel();
+      cycle = undefined;
+    }
+  }
+
+  if (!cycle) {
+    // start a new cycle
+    var context = state[0];
+    var prev = context.cycle;
+    cycle = new AsyncRenderingCycle(target, prev, options);
+    cycle.context = context;
+    cycle.setContext = state[1];
+    context.cycle = cycle; // see if the contents has been seeded
+
+    if (cycle.initial) {
+      var seed = findSeed(target);
+
+      if (seed) {
+        cycle.substitute(seed);
+      }
+    }
+  }
+
+  currentState = state;
+  return cycle;
+}
+
+function getCurrentCycle$1(required, state) {
+  if (!state) {
+    state = currentState;
+  }
+
+  if (state) {
+    var context = state[0];
+    var cycle = context.cycle;
+
+    if (cycle) {
+      cycle.context = context;
+      cycle.setContext = state[1];
+      return cycle;
+    }
+  }
+
+  if (required) {
+    throw new Error('Unable to obtain state variable');
+  }
+
+  return null;
+}
+
+function endCurrentCycle() {
+  currentState = null;
+}
+
+function isUpdating() {
+  var cycle = getCurrentCycle$1(false);
+  return cycle ? cycle.isUpdating() : false;
+}
+
+var useState = React.useState,
+    useRef = React.useRef,
+    useMemo = React.useMemo,
+    useEffect = React.useEffect,
+    useCallback = React.useCallback,
+    useDebugValue = React.useDebugValue,
+    ReactElement = React.ReactElement;
+
 function use(asyncFunc) {
   // create synchronous function wrapper
   var syncFunc = function syncFunc(props, ref) {
@@ -812,7 +890,7 @@ function use(asyncFunc) {
       performCheck: true,
       clone: clone
     };
-    var cycle = AsyncRenderingCycle.acquire(state, target, options); // cancel current cycle on unmount
+    var cycle = acquireCycle(state, target, options); // cancel current cycle on unmount
 
     useEffect(function () {
       cycle.mount();
@@ -830,7 +908,7 @@ function use(asyncFunc) {
     cycle.run(function () {
       return asyncFunc(props, ref);
     });
-    AsyncRenderingCycle.release(); // throw error that had occurred in async code
+    endCurrentCycle(); // throw error that had occurred in async code
 
     var error = cycle.getError();
 
@@ -854,9 +932,9 @@ function use(asyncFunc) {
       performCheck: true,
       clone: clone
     };
-    var cycle = AsyncRenderingCycle.acquire(state, target, options);
+    var cycle = acquireCycle(state, target, options);
     var promise = asyncFunc(props);
-    AsyncRenderingCycle.release();
+    endCurrentCycle();
 
     if (promise && typeof promise.then === 'function') {
       return promise.then(function (element) {
@@ -908,20 +986,20 @@ function clone(element, props) {
 
 function useProgress(delayEmpty, delayRendered) {
   // set delays
-  var cycle = AsyncRenderingCycle.need();
+  var cycle = getCurrentCycle$1(true);
   cycle.delay(delayEmpty, delayRendered, true); // return functions (bound in constructor)
 
   return [cycle.show, cycle.check, cycle.delay];
 }
 
 function useProgressTransition() {
-  var cycle = AsyncRenderingCycle.need();
+  var cycle = getCurrentCycle$1(true);
   return [cycle.transition, cycle.hasRendered];
 }
 
 function useRenderEvent(name, f) {
-  if (!AsyncRenderingCycle.skip()) {
-    var cycle = AsyncRenderingCycle.need();
+  if (!isUpdating()) {
+    var cycle = getCurrentCycle$1(true);
     cycle.on(name, f);
   }
 }
@@ -932,7 +1010,7 @@ function useEventTime() {
   var setDate = state[1];
   var callback = useCallback(function (evt) {
     setDate(new Date());
-  });
+  }, []);
   useDebugValue(date);
   return [date, callback];
 }
@@ -941,7 +1019,7 @@ function useListener(f) {
   var _arguments = arguments;
   var ref = useRef({});
 
-  if (!AsyncRenderingCycle.skip()) {
+  if (!isUpdating()) {
     ref.current.f = f;
   }
 
@@ -1013,7 +1091,7 @@ function useErrorCatcher(rethrow) {
   });
   var clear = useCallback(function (f) {
     setError(undefined);
-  });
+  }, []);
   useDebugValue(error);
   return [error, run, clear];
 }
@@ -1058,6 +1136,8 @@ function useLastAcceptable(value, acceptable) {
   return ref.current;
 }
 
+var PureComponent = React.PureComponent;
+
 var AsyncComponent =
 /*#__PURE__*/
 function (_PureComponent) {
@@ -1092,16 +1172,16 @@ function (_PureComponent) {
         showProgress: true,
         clone: clone$1
       };
-      var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
+      var cycle = acquireCycle(this.relaks, this, options);
 
-      if (!cycle.isRerendering()) {
+      if (!cycle.isUpdating()) {
         // call async function
         cycle.run(function () {
           return _this2.renderAsync(cycle);
         });
       }
 
-      AsyncRenderingCycle.release();
+      endCurrentCycle();
       cycle.mounted = true; // throw error that had occurred in async code
 
       var error = cycle.getError();
@@ -1128,9 +1208,9 @@ function (_PureComponent) {
       var options = {
         clone: clone$1
       };
-      var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
+      var cycle = acquireCycle(this.relaks, this, options);
       var promise = this.renderAsync(cycle);
-      AsyncRenderingCycle.release();
+      endCurrentCycle();
 
       if (promise && typeof promise.then === 'function') {
         return promise.then(function (element) {
@@ -1151,7 +1231,7 @@ function (_PureComponent) {
   }, {
     key: "componentWillUnmount",
     value: function componentWillUnmount() {
-      var cycle = AsyncRenderingCycle.get(this.relaks);
+      var cycle = getCurrentCycle(false, this.relaks);
 
       if (!cycle.hasEnded()) {
         cycle.cancel();
@@ -1171,6 +1251,12 @@ function clone$1(element, props) {
     return null;
   }
 }
+
+var useState$1 = React.useState,
+    useRef$1 = React.useRef,
+    useCallback$1 = React.useCallback,
+    useEffect$1 = React.useEffect,
+    useDebugValue$1 = React.useDebugValue;
 
 var AsyncSaveBuffer =
 /*#__PURE__*/
@@ -1400,36 +1486,36 @@ function transformDef(ours) {
 }
 
 function useSaveBuffer(params, customClass) {
-  if (AsyncRenderingCycle.skip()) {
+  if (isUpdating()) {
     // don't initialize when called during rerendering
     params = null;
   } else if (!params) {
     params = {};
   }
 
-  var state = useState({});
+  var state = useState$1({});
   var buffer = acquire(state, params, customClass);
-  useEffect(function () {
+  useEffect$1(function () {
     // let the buffer know that the component associated with it
     // has been unmounted
     return function () {
       buffer.setContext = null;
     };
   }, []);
-  useDebugValue(buffer.current);
+  useDebugValue$1(buffer.current);
   return buffer;
 }
 
 function useAutoSave(saveBuffer, wait, f) {
   // store the callback in a ref so the useEffect hook function will
   // always call the latest version
-  var ref = useRef({});
+  var ref = useRef$1({});
 
-  if (!AsyncRenderingCycle.skip()) {
+  if (!isUpdating()) {
     ref.current.f = f;
   }
 
-  var save = useCallback(function (conditional) {
+  var save = useCallback$1(function (conditional) {
     if (conditional) {
       if (!saveBuffer.changed || ref.current.saved === saveBuffer.current) {
         return;
@@ -1439,7 +1525,7 @@ function useAutoSave(saveBuffer, wait, f) {
     ref.current.saved = saveBuffer.current;
     ref.current.f();
   }, []);
-  useEffect(function () {
+  useEffect$1(function () {
     if (saveBuffer.changed && typeof wait === 'number') {
       var timeout = setTimeout(function () {
         // make sure save() don't get called after timeout is cancelled
@@ -1454,15 +1540,18 @@ function useAutoSave(saveBuffer, wait, f) {
       };
     }
   }, [saveBuffer.current]);
-  useEffect(function () {
+  useEffect$1(function () {
     // save unsaved changes on unmount
     return function () {
       save(true);
     };
   }, []);
-  useDebugValue(wait);
+  useDebugValue$1(wait);
   return save;
 }
+
+var useMemo$1 = React.useMemo,
+    useDebugValue$2 = React.useDebugValue;
 
 function get$1(target, key) {
   var f = target.methods[key] || target.handlers[key];
@@ -1475,7 +1564,7 @@ function get$1(target, key) {
     promise.resolve = resolve;
     target.promises[key] = promise;
     target.statuses[key] = false;
-    target.handlers[key] = f = (_readOnlyError("f"), handle.bind(target, key));
+    target.handlers[key] = f = handle.bind(target, key);
   }
 
   return f;
@@ -1630,10 +1719,10 @@ function AsyncEventProxy() {
 }
 
 function useEventProxy(deps) {
-  var proxy = useMemo(function () {
+  var proxy = useMemo$1(function () {
     return new AsyncEventProxy();
   }, deps);
-  useDebugValue(proxy, formatDebugValue);
+  useDebugValue$2(proxy, formatDebugValue);
   return proxy;
 }
 
@@ -1669,6 +1758,8 @@ function formatDebugValue(proxy) {
 
   return fired.join(' ');
 }
+
+var useEffect$2 = React.useEffect;
 
 function useStickySelection(inputRefs) {
   if (!(inputRefs instanceof Array)) {
@@ -1709,7 +1800,7 @@ function useStickySelection(inputRefs) {
     }
   }
 
-  useEffect(function () {
+  useEffect$2(function () {
     var _iteratorNormalCompletion2 = true;
     var _didIteratorError2 = false;
     var _iteratorError2 = undefined;
@@ -1778,4 +1869,4 @@ var react = {
 };
 
 export default react;
-export { AsyncComponent, AsyncEventProxy, AsyncRenderingCycle, AsyncRenderingInterrupted, AsyncSaveBuffer, findSeed, forwardRef, get, memo, plant, set, use, useAsyncEffect, useAutoSave, useComputed, useErrorCatcher, useEventProxy, useEventTime, useLastAcceptable, useListener, useProgress, useProgressTransition, useRenderEvent, useSaveBuffer, useStickySelection };
+export { AsyncComponent, AsyncEventProxy, AsyncRenderingCycle, AsyncRenderingInterrupted, AsyncSaveBuffer, acquireCycle, endCurrentCycle, findSeed, forwardRef, get, getCurrentCycle$1 as getCurrentCycle, isUpdating, memo, plant, set, use, useAsyncEffect, useAutoSave, useComputed, useErrorCatcher, useEventProxy, useEventTime, useLastAcceptable, useListener, useProgress, useProgressTransition, useRenderEvent, useSaveBuffer, useStickySelection };

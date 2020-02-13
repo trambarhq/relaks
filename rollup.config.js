@@ -1,6 +1,4 @@
 const Babel = require('rollup-plugin-babel');
-const Resolve = require('@rollup/plugin-node-resolve');
-const CommonJS = require('@rollup/plugin-commonjs');
 
 module.exports = [
   'react',
@@ -11,7 +9,8 @@ module.exports = [
     output: {
       file: `./${name}.js`,
       format: 'umd',
-      name: 'markGor',
+      name: 'Relaks',
+      exports: 'named',
       globals: {
         react: 'React',
         preact: 'Preact',
@@ -22,13 +21,8 @@ module.exports = [
         presets: [
           '@babel/env',
         ],
-        plugins: [
-        ]
       }),
-      Resolve({
-        only: [ 'marked' ],
-      }),
-      CommonJS(),
-    ]
+    ],
+    external: [ 'react', 'preact' ],
   };
 });

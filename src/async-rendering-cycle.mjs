@@ -425,75 +425,70 @@ class AsyncRenderingCycle {
   		f(evt);
   	}
   };
+
+  static acquire(state, target, options) {
+    let cycle = this.get(false, state);
+    if (cycle) {
+      if (cycle.hasEnded()) {
+        cycle = undefined;
+      } else if (!cycle.isUpdating()) {
+        // cancel the current cycle
+        cycle.cancel();
+        cycle = undefined;
+      }
+    }
+    if (!cycle) {
+      // start a new cycle
+      const context = state[0];
+    	const prev = context.cycle;
+    	cycle = new AsyncRenderingCycle(target, prev, options);
+    	cycle.context = context;
+    	cycle.setContext = state[1];
+    	context.cycle = cycle;
+
+      // see if the contents has been seeded
+      if (cycle.initial) {
+        const seed = findSeed(target);
+        if (seed) {
+          cycle.substitute(seed);
+        }
+      }
+    }
+    currentState = state;
+    return cycle;
+  }
+
+  static get(required, state) {
+    if (!state) {
+      state = currentState;
+    }
+    if (state) {
+      const context = state[0];
+    	const cycle = context.cycle;
+    	if (cycle) {
+    		cycle.context = context;
+    		cycle.setContext = state[1];
+        return cycle;
+    	}
+    }
+    if (required) {
+      throw new Error('Unable to obtain state variable');
+    }
+    return null;
+  }
+
+  static end() {
+    currentState = null;
+  }
+
+  static isUpdating() {
+    const cycle = this.get(false);
+    return cycle ? cycle.isUpdating() : false;
+  }
 }
 
 let currentState = null;
 
-function acquireCycle(state, target, options) {
-  let cycle = getCurrentCycle(false, state);
-  if (cycle) {
-    if (cycle.hasEnded()) {
-      cycle = undefined;
-    } else if (!cycle.isUpdating()) {
-      // cancel the current cycle
-      cycle.cancel();
-      cycle = undefined;
-    }
-  }
-  if (!cycle) {
-    // start a new cycle
-    const context = state[0];
-  	const prev = context.cycle;
-  	cycle = new AsyncRenderingCycle(target, prev, options);
-  	cycle.context = context;
-  	cycle.setContext = state[1];
-  	context.cycle = cycle;
-
-    // see if the contents has been seeded
-    if (cycle.initial) {
-      const seed = findSeed(target);
-      if (seed) {
-        cycle.substitute(seed);
-      }
-    }
-  }
-  currentState = state;
-  return cycle;
-}
-
-function getCurrentCycle(required, state) {
-  if (!state) {
-    state = currentState;
-  }
-  if (state) {
-    const context = state[0];
-  	const cycle = context.cycle;
-  	if (cycle) {
-  		cycle.context = context;
-  		cycle.setContext = state[1];
-      return cycle;
-  	}
-  }
-  if (required) {
-    throw new Error('Unable to obtain state variable');
-  }
-  return null;
-}
-
-function endCurrentCycle() {
-  currentState = null;
-}
-
-function isUpdating() {
-  const cycle = getCurrentCycle(false);
-  return cycle ? cycle.isUpdating() : false;
-}
-
 export {
   AsyncRenderingCycle,
-
-  acquireCycle,
-  getCurrentCycle,
-  endCurrentCycle,
-  isUpdating,
 };

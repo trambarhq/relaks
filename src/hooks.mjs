@@ -1,5 +1,5 @@
 import React from 'react';
-import { acquireCycle, getCurrentCycle, endCurrentCycle, isUpdating } from './async-rendering-cycle';
+import { AsyncRenderingCycle } from './async-rendering-cycle.mjs';
 
 const {
 	useState,
@@ -8,7 +8,6 @@ const {
 	useEffect,
 	useCallback,
 	useDebugValue,
-	ReactElement
 } = React;
 
 function use(asyncFunc) {
@@ -17,7 +16,7 @@ function use(asyncFunc) {
 		const state = useState({});
 		const target = { func: syncFunc, props };
 		const options = { showProgress: true, performCheck: true, clone: clone };
-		const cycle = acquireCycle(state, target, options);
+		const cycle = AsyncRenderingCycle.acquire(state, target, options);
 
 		// cancel current cycle on unmount
 		useEffect(() => {
@@ -38,7 +37,7 @@ function use(asyncFunc) {
 			return asyncFunc(props, ref);
 		});
 
-    endCurrentCycle();
+    AsyncRenderingCycle.end();
 
 		// throw error that had occurred in async code
 		const error = cycle.getError();
@@ -56,9 +55,9 @@ function use(asyncFunc) {
 		const state = [ {}, (v) => {} ];
 		const target = { func: syncFunc, props };
 		const options = { performCheck: true, clone: clone };
-		const cycle = acquireCycle(state, target, options);
+		const cycle = AsyncRenderingCycle.acquire(state, target, options);
 		const promise = asyncFunc(props);
-		endCurrentCycle();
+		AsyncRenderingCycle.end();
 		if (promise && typeof(promise.then) === 'function') {
 			return promise.then((element) => {
 				if (element === undefined) {
@@ -106,7 +105,7 @@ function clone(element, props) {
 
 function useProgress(delayEmpty, delayRendered) {
 	// set delays
-	const cycle = getCurrentCycle(true);
+	const cycle = AsyncRenderingCycle.get(true);
 	cycle.delay(delayEmpty, delayRendered, true);
 
 	// return functions (bound in constructor)
@@ -114,13 +113,13 @@ function useProgress(delayEmpty, delayRendered) {
 }
 
 function useProgressTransition() {
-	const cycle = getCurrentCycle(true);
+	const cycle = AsyncRenderingCycle.get(true);
 	return [ cycle.transition, cycle.hasRendered ];
 }
 
 function useRenderEvent(name, f) {
-	if (!isUpdating()) {
-		const cycle = getCurrentCycle(true);
+	if (!AsyncRenderingCycle.isUpdating()) {
+		const cycle = AsyncRenderingCycle.get(true);
 		cycle.on(name, f);
 	}
 }
@@ -138,7 +137,7 @@ function useEventTime() {
 
 function useListener(f) {
 	const ref = useRef({});
-	if (!isUpdating()) {
+	if (!AsyncRenderingCycle.isUpdating()) {
 		ref.current.f = f;
 	}
 	useDebugValue(f);

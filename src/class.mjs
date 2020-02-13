@@ -1,6 +1,6 @@
 import React from 'react';
+import { AsyncRenderingCycle } from './async-rendering-cycle.mjs';
 import { get } from './options.mjs';
-import { acquireCycle, endCurrentCycle } from './async-rendering-cycle.mjs';
 
 const { PureComponent } = React;
 
@@ -25,14 +25,14 @@ class AsyncComponent extends PureComponent {
    */
   render() {
     const options = { showProgress: true, clone };
-  	const cycle = acquireCycle(this.relaks, this, options);
+  	const cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
   	if (!cycle.isUpdating()) {
   		// call async function
   		cycle.run(() => {
   			return this.renderAsync(cycle);
   		});
   	}
-    endCurrentCycle();
+    AsyncRenderingCycle.end();
     cycle.mounted = true;
 
   	// throw error that had occurred in async code
@@ -55,9 +55,9 @@ class AsyncComponent extends PureComponent {
 
   renderAsyncEx() {
     const options = { clone };
-    const cycle = acquireCycle(this.relaks, this, options);
+    const cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
     const promise = this.renderAsync(cycle);
-    endCurrentCycle();
+    AsyncRenderingCycle.end();
     if (promise && typeof(promise.then) === 'function') {
       return promise.then((element) => {
         if (element === undefined) {
@@ -74,7 +74,7 @@ class AsyncComponent extends PureComponent {
    * Cancel any outstanding asynchronous rendering cycle on unmount.
    */
   componentWillUnmount() {
-  	const cycle = getCurrentCycle(false, this.relaks);
+  	const cycle = AsyncRenderingCycle.get(false, this.relaks);
   	if (!cycle.hasEnded()) {
   		cycle.cancel();
   	}

@@ -1,4 +1,4 @@
-import Preact, { Component } from 'preact';
+import Preact from 'preact';
 
 var delayWhenEmpty = 50;
 var delayWhenRendered = Infinity;
@@ -237,8 +237,9 @@ function (_Error) {
 
     _classCallCheck(this, AsyncRenderingInterrupted);
 
+    _this = _possibleConstructorReturn(this, _getPrototypeOf(AsyncRenderingInterrupted).call(this));
     _this.message = 'Async rendering interrupted';
-    return _possibleConstructorReturn(_this);
+    return _this;
   }
 
   return AsyncRenderingInterrupted;
@@ -309,8 +310,8 @@ function () {
       return this.completed || this.canceled;
     }
   }, {
-    key: "isRerendering",
-    value: function isRerendering() {
+    key: "isUpdating",
+    value: function isUpdating() {
       if (this.hasEnded()) {
         return false;
       }
@@ -403,7 +404,7 @@ function () {
       this.mounted = true;
 
       if (this.initial) {
-        if (this.isRerendering()) {
+        if (this.isUpdating()) {
           this.rerender();
         }
       }
@@ -482,15 +483,15 @@ function () {
         this.progressPromise.resolve(false);
       }
 
-      var r;
-      var promise = new Promise(function (resolve) {
-        r = resolve;
+      var resolve;
+      var promise = new Promise(function (r) {
+        resolve = r;
       });
       promise.fulfilled = false;
 
       promise.resolve = function (value) {
         promise.fulfilled = true;
-        r(value);
+        resolve(value);
       };
 
       this.progressPromise = this.lastPromise = promise;
@@ -586,7 +587,7 @@ function () {
       if (this.synchronous) {
         this.checked = true;
 
-        if (this.isRerendering()) {
+        if (this.isUpdating()) {
           throw new AsyncRenderingInterrupted();
         }
       }
@@ -640,12 +641,16 @@ function () {
   }, {
     key: "transition",
     value: function transition(props) {
+      var _this5 = this;
+
       var promise = this.hasRendered().then(function (shown) {
         if (shown) {
-          var clone = this.options.clone;
-          var element = clone(this.elementRendered, props);
-          this.show(element);
-          return this.progressPromise.then(function (shown) {
+          var clone = _this5.options.clone;
+          var element = clone(_this5.elementRendered, props);
+
+          _this5.show(element);
+
+          return _this5.progressPromise.then(function (shown) {
             promise.fulfilled = true;
             return shown;
           });
@@ -753,6 +758,77 @@ function () {
   return AsyncRenderingCycle;
 }();
 
+var currentState = null;
+
+function acquireCycle(state, target, options) {
+  var cycle = getCurrentCycle$1(false, state);
+
+  if (cycle) {
+    if (cycle.hasEnded()) {
+      cycle = undefined;
+    } else if (!cycle.isUpdating()) {
+      // cancel the current cycle
+      cycle.cancel();
+      cycle = undefined;
+    }
+  }
+
+  if (!cycle) {
+    // start a new cycle
+    var context = state[0];
+    var prev = context.cycle;
+    cycle = new AsyncRenderingCycle(target, prev, options);
+    cycle.context = context;
+    cycle.setContext = state[1];
+    context.cycle = cycle; // see if the contents has been seeded
+
+    if (cycle.initial) {
+      var seed = findSeed(target);
+
+      if (seed) {
+        cycle.substitute(seed);
+      }
+    }
+  }
+
+  currentState = state;
+  return cycle;
+}
+
+function getCurrentCycle$1(required, state) {
+  if (!state) {
+    state = currentState;
+  }
+
+  if (state) {
+    var context = state[0];
+    var cycle = context.cycle;
+
+    if (cycle) {
+      cycle.context = context;
+      cycle.setContext = state[1];
+      return cycle;
+    }
+  }
+
+  if (required) {
+    throw new Error('Unable to obtain state variable');
+  }
+
+  return null;
+}
+
+function endCurrentCycle() {
+  currentState = null;
+}
+
+function isUpdating() {
+  var cycle = getCurrentCycle$1(false);
+  return cycle ? cycle.isUpdating() : false;
+}
+
+var Component = Preact.Component;
+
 var AsyncComponent =
 /*#__PURE__*/
 function (_Component) {
@@ -792,17 +868,17 @@ function (_Component) {
         showProgress: true,
         clone: clone
       };
-      var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
+      var cycle = acquireCycle(this.relaks, this, options);
       cycle.noCheck = true;
 
-      if (!cycle.isRerendering()) {
+      if (!cycle.isUpdating()) {
         // call async function
         cycle.run(function () {
           return _this2.renderAsync(cycle, props, state, context);
         });
       }
 
-      AsyncRenderingCycle.release();
+      endCurrentCycle();
       cycle.mounted = true; // throw error that had occurred in async code
 
       var error = cycle.getError();
@@ -825,9 +901,9 @@ function (_Component) {
       var options = {
         clone: clone
       };
-      var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
+      var cycle = acquireCycle(this.relaks, this, options);
       var promise = this.renderAsync(cycle, this.props, this.state, this.context);
-      AsyncRenderingCycle.release();
+      endCurrentCycle();
 
       if (promise && typeof promise.then === 'function') {
         return promise.then(function (element) {
@@ -866,7 +942,7 @@ function (_Component) {
   }, {
     key: "componentWillUnmount",
     value: function componentWillUnmount() {
-      var cycle = AsyncRenderingCycle.get(this.relaks);
+      var cycle = getCurrentCycle(false, this.relaks);
 
       if (!cycle.hasEnded()) {
         cycle.cancel();
@@ -924,4 +1000,4 @@ var preact = {
 };
 
 export default preact;
-export { AsyncComponent, AsyncRenderingCycle, findSeed, get, plant, set };
+export { AsyncComponent, AsyncRenderingCycle, acquireCycle, endCurrentCycle, findSeed, get, getCurrentCycle$1 as getCurrentCycle, isUpdating, plant, set };
