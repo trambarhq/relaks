@@ -23,6 +23,13 @@
     "react",
     "preact"
   ],
+  "files": [
+    "src/",
+    "preact.js",
+    "preact.mjs",
+    "react.js",
+    "react.mjs",
+  ],
   "scripts": {
     "test": "./node_modules/karma/bin/karma start --single-run --",
     "test:watch": "./node_modules/karma/bin/karma start --",
