@@ -6,96 +6,6 @@
 
   React = React && React.hasOwnProperty('default') ? React['default'] : React;
 
-  var delayWhenEmpty = 50;
-  var delayWhenRendered = Infinity;
-  var seeds = [];
-
-  var errorHandler = function errorHandler(err) {
-    console.error(err);
-  };
-
-  function get(name) {
-    switch (name) {
-      case 'errorHandler':
-        return errorHandler;
-
-      case 'delayWhenEmpty':
-        return delayWhenEmpty;
-
-      case 'delayWhenRendered':
-        return delayWhenRendered;
-
-      case 'seeds':
-        plant(value);
-        break;
-    }
-  }
-
-  function set(name, value) {
-    switch (name) {
-      case 'errorHandler':
-        errorHandler = value;
-        break;
-
-      case 'delayWhenEmpty':
-        delayWhenEmpty = value;
-        break;
-
-      case 'delayWhenRendered':
-        delayWhenRendered = value;
-        break;
-
-      case 'seeds':
-        plant(value);
-        break;
-    }
-  }
-
-  function plant(list) {
-    if (!(list instanceof Array)) {
-      throw new Error('Seeds must be an array of object. Are you calling harvest() with the options { seeds: true }?');
-    }
-
-    seeds = list;
-  }
-
-  function findSeed(target) {
-    var type = target.func || target.constructor;
-    var props = target.props;
-    var index = -1;
-    var best = -1;
-
-    for (var i = 0; i < seeds.length; i++) {
-      var seed = seeds[i];
-
-      if (seed.type === type) {
-        // the props aren't going to match up exactly due to object
-        // recreations; just find the one that is closest
-        var count = 0;
-
-        if (props && seed.props) {
-          for (var key in props) {
-            if (seed.props[key] === props[key]) {
-              count++;
-            }
-          }
-        }
-
-        if (count > best) {
-          // choose this one
-          index = i;
-          best = count;
-        }
-      }
-    }
-
-    if (index != -1) {
-      var match = seeds[index];
-      seeds.splice(index, 1);
-      return match.result;
-    }
-  }
-
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
@@ -293,6 +203,15 @@
     return AsyncRenderingInterrupted;
   }(_wrapNativeSuper(Error));
 
+  var delayWhenEmpty = 50;
+  var delayWhenRendered = Infinity;
+  var currentState = null;
+  var currentSeeds = [];
+
+  var errorHandler = function errorHandler(err) {
+    console.error(err);
+  };
+
   var AsyncRenderingCycle =
   /*#__PURE__*/
   function () {
@@ -311,8 +230,8 @@
       this.elementRendered = prev ? prev.elementRendered : null;
       this.deferredError = undefined;
       this.showingProgress = false;
-      this.delayEmpty = get('delayWhenEmpty');
-      this.delayRendered = get('delayWhenRendered');
+      this.delayEmpty = delayWhenEmpty;
+      this.delayRendered = delayWhenRendered;
       this.canceled = false;
       this.completed = false;
       this.checked = false;
@@ -605,6 +524,13 @@
           this.rerender();
         }
       }
+      /**
+       * Finalize the rendering cycle, called when the final contents have been
+       * rendered
+       *
+       * @param  {ReactElement|VNode} element
+       */
+
     }, {
       key: "finalize",
       value: function finalize(element) {
@@ -787,6 +713,12 @@
           }
         }
       }
+      /**
+       * Trigger diagnostic callback
+       *
+       * @param  {String} name
+       */
+
     }, {
       key: "notify",
       value: function notify(name) {
@@ -804,6 +736,17 @@
       }
     }], [{
       key: "acquire",
+
+      /**
+       * Get the current rendering cycle, creating a new one if necessary.
+       * Made the provided state the current state.
+       *
+       * @param  {Array} state
+       * @param  {Object} target
+       * @param  {Objext|undefined} options
+       *
+       * @return {AsyncRenderingCycle}
+       */
       value: function acquire(state, target, options) {
         var cycle = this.get(false, state);
 
@@ -838,6 +781,15 @@
         currentState = state;
         return cycle;
       }
+      /**
+       * Get the current cycle, stored in the current state or the one provided
+       *
+       * @param  {Boolean} required
+       * @param  {Array|undefined} state
+       *
+       * @return {AsyncRenderingCycle}
+       */
+
     }, {
       key: "get",
       value: function get(required, state) {
@@ -862,30 +814,146 @@
 
         return null;
       }
+      /**
+       * Called when we're done working with the current component
+       */
+
     }, {
       key: "end",
       value: function end() {
         currentState = null;
       }
+      /**
+       * Indicate whether a component is being updated
+       * (i.e. rendered content is being delivered to React)
+       *
+       * @return {Boolean}
+       */
+
     }, {
       key: "isUpdating",
       value: function isUpdating() {
         var cycle = this.get(false);
         return cycle ? cycle.isUpdating() : false;
       }
+      /**
+       * Set delay before progressive contents appears when the component is
+       * completely empty
+       *
+       * @param {Number} ms
+       */
+
+    }, {
+      key: "setInitialDelay",
+      value: function setInitialDelay(ms) {
+        delayWhenEmpty = ms;
+      }
+      /**
+       * Get delay before progressive contents appears when the component is
+       * completely empty
+       *
+       * @return {Number}
+       */
+
+    }, {
+      key: "getInitialDelay",
+      value: function getInitialDelay() {
+        return delayWhenEmpty;
+      }
+      /**
+       * Set delay before progressive contents appears after some contents have
+       * rendered
+       *
+       * @param {Number} ms
+       */
+
+    }, {
+      key: "setSubsequentDelay",
+      value: function setSubsequentDelay(ms) {
+        delayWhenRendered = ms;
+      }
+      /**
+       * Get delay before progressive contents appears after some contents have
+       * rendered
+       *
+       * @return {Number}
+       */
+
+    }, {
+      key: "getSubsequentDelay",
+      value: function getSubsequentDelay() {
+        return delayWhenRendered;
+      }
+    }, {
+      key: "getErrorHandler",
+      value: function getErrorHandler() {
+        return errorHandler;
+      }
+    }, {
+      key: "setErrorHandler",
+      value: function setErrorHandler(f) {
+        errorHandler = f;
+      }
+    }, {
+      key: "callErrorHandler",
+      value: function callErrorHandler(err) {
+        if (errorHandler instanceof Function) {
+          errorHandler(err);
+        }
+      }
+    }, {
+      key: "plantSeeds",
+      value: function plantSeeds(list) {
+        if (!(list instanceof Array)) {
+          throw new Error('Seeds must be an array of object. Are you calling harvest() with the options { seeds: true }?');
+        }
+
+        currentSeeds = list;
+      }
     }]);
 
     return AsyncRenderingCycle;
   }();
 
-  var currentState = null;
+  function findSeed(target) {
+    var type = target.func || target.constructor;
+    var props = target.props;
+    var index = -1;
+    var best = -1;
+
+    for (var i = 0; i < currentSeeds.length; i++) {
+      var seed = currentSeeds[i];
+
+      if (seed.type === type) {
+        // the props aren't going to match up exactly due to object
+        // recreations; just find the one that is closest
+        var count = 0;
+
+        if (props && seed.props) {
+          for (var key in props) {
+            if (seed.props[key] === props[key]) {
+              count++;
+            }
+          }
+        }
+
+        if (count > best) {
+          // choose this one
+          index = i;
+          best = count;
+        }
+      }
+    }
+
+    if (index != -1) {
+      var match = currentSeeds[index];
+      currentSeeds.splice(index, 1);
+      return match.result;
+    }
+  }
 
   var useState = React.useState,
-      useRef = React.useRef,
-      useMemo = React.useMemo,
-      useEffect = React.useEffect,
-      useCallback = React.useCallback,
-      useDebugValue = React.useDebugValue;
+      useEffect = React.useEffect;
 
   function use(asyncFunc) {
     // create synchronous function wrapper
@@ -994,157 +1062,49 @@
     }
   }
 
-  function useProgress(delayEmpty, delayRendered) {
-    // set delays
-    var cycle = AsyncRenderingCycle.get(true);
-    cycle.delay(delayEmpty, delayRendered, true); // return functions (bound in constructor)
+  function get(name) {
+    switch (name) {
+      case 'errorHandler':
+        return AsyncRenderingCycle.getErrorHandler();
 
-    return [cycle.show, cycle.check, cycle.delay];
-  }
+      case 'delayWhenEmpty':
+        return AsyncRenderingCycle.getInitialDelay();
 
-  function useProgressTransition() {
-    var cycle = AsyncRenderingCycle.get(true);
-    return [cycle.transition, cycle.hasRendered];
-  }
-
-  function useRenderEvent(name, f) {
-    if (!AsyncRenderingCycle.isUpdating()) {
-      var cycle = AsyncRenderingCycle.get(true);
-      cycle.on(name, f);
+      case 'delayWhenRendered':
+        return AsyncRenderingCycle.getSubsequentDelay();
     }
   }
 
-  function useEventTime() {
-    var state = useState();
-    var date = state[0];
-    var setDate = state[1];
-    var callback = useCallback(function (evt) {
-      setDate(new Date());
-    }, []);
-    useDebugValue(date);
-    return [date, callback];
+  function set(name, value) {
+    switch (name) {
+      case 'errorHandler':
+        return AsyncRenderingCycle.setErrorHandler(value);
+
+      case 'delayWhenEmpty':
+        return AsyncRenderingCycle.setInitialDelay(value);
+
+      case 'delayWhenRendered':
+        return AsyncRenderingCycle.setSubsequentDelay(value);
+    }
   }
 
-  function useListener(f) {
-    var _arguments = arguments;
-    var ref = useRef({});
-
-    if (!AsyncRenderingCycle.isUpdating()) {
-      ref.current.f = f;
+  function plant(list) {
+    if (!(list instanceof Array)) {
+      throw new Error('Seeds must be an array of object. Are you calling harvest() with the options { seeds: true }?');
     }
 
-    useDebugValue(f);
-    return useCallback(function () {
-      return ref.current.f.apply(null, _arguments);
-    }, []);
+    AsyncRenderingCycle.plantSeeds(list);
   }
 
-  function useAsyncEffect(f, deps) {
-    useEffect(function () {
-      var cleanUp;
-      var cleanUpDeferred = false; // invoke the callback and wait for promise to get fulfilled
-
-      var promise = f();
-      Promise.resolve(promise).then(function (ret) {
-        // save the clean-up function returned by the callback
-        cleanUp = ret; // if clean-up was requested while we were waiting for the promise to
-        // resolve, perform it now
-
-        if (cleanUpDeferred) {
-          cleanUp();
-        }
-      });
-      return function () {
-        if (cleanUp) {
-          cleanUp();
-        } else {
-          // maybe we're still waiting for the promsie to resolve
-          cleanUpDeferred = true;
-        }
-      };
-    }, deps);
-    useDebugValue(f);
-  }
-
-  function useErrorCatcher(rethrow) {
-    var _useState = useState(),
-        _useState2 = _slicedToArray(_useState, 2),
-        error = _useState2[0],
-        setError = _useState2[1];
-
-    if (rethrow && error) {
-      throw error;
-    }
-
-    var run = useCallback(function (f) {
-      // catch sync exception with try-block
-      try {
-        // invoke the given function
-        var promise = f();
-
-        if (promise && promise["catch"] instanceof Function) {
-          // catch async exception
-          promise = promise.then(function (result) {
-            setError(undefined);
-            return result;
-          })["catch"](function (err) {
-            setError(err);
-          });
-        } else {
-          setError(undefined);
-        }
-
-        return promise;
-      } catch (err) {
-        setError(err);
-      }
-    });
-    var clear = useCallback(function (f) {
-      setError(undefined);
-    }, []);
-    useDebugValue(error);
-    return [error, run, clear];
-  }
-
-  function useComputed(f, deps) {
-    var pair = useState({});
-    var state = pair[0];
-    var setState = pair[1]; // add state object as dependency of useMemo hook
-
-    if (deps instanceof Array) {
-      deps = deps.concat(state);
-    } else {
-      deps = [state];
-    }
-
-    var value = useMemo(function () {
-      return state.current = f(state.current);
-    }, deps);
-    var recalc = useCallback(function () {
-      // force recalculation by changing state
-      setState({
-        value: state.value
-      });
-    }, []);
-    useDebugValue(value);
-    return [value, recalc];
-  }
-
-  function useLastAcceptable(value, acceptable) {
-    var ref = useRef();
-
-    if (typeof acceptable === 'function') {
-      acceptable = acceptable(value);
-    }
-
-    if (acceptable) {
-      // set the value only if it's acceptable
-      ref.current = value;
-    }
-
-    useDebugValue(ref.current);
-    return ref.current;
-  }
+  var functions = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    use: use,
+    memo: memo,
+    forwardRef: forwardRef,
+    get: get,
+    set: set,
+    plant: plant
+  });
 
   var PureComponent = React.PureComponent;
 
@@ -1201,11 +1161,7 @@
           if (parseInt(React.version) >= 16) {
             throw error;
           } else {
-            var errorHandler = get('errorHandler');
-
-            if (errorHandler instanceof Function) {
-              errorHandler(error);
-            }
+            AsyncRenderingCycle.callErrorHandler(error);
           }
         } // return either the promised element or progress
 
@@ -1263,11 +1219,25 @@
     }
   }
 
-  var useState$1 = React.useState,
-      useRef$1 = React.useRef,
-      useCallback$1 = React.useCallback,
-      useEffect$1 = React.useEffect,
-      useDebugValue$1 = React.useDebugValue;
+  function useProgress(delayEmpty, delayRendered) {
+    // set delays
+    var cycle = AsyncRenderingCycle.get(true);
+    cycle.delay(delayEmpty, delayRendered, true); // return functions (bound in constructor)
+
+    return [cycle.show, cycle.check, cycle.delay];
+  }
+
+  function useProgressTransition() {
+    var cycle = AsyncRenderingCycle.get(true);
+    return [cycle.transition, cycle.hasRendered];
+  }
+
+  function useRenderEvent(name, f) {
+    if (!AsyncRenderingCycle.isUpdating()) {
+      var cycle = AsyncRenderingCycle.get(true);
+      cycle.on(name, f);
+    }
+  }
 
   var AsyncSaveBuffer =
   /*#__PURE__*/
@@ -1497,6 +1467,12 @@
     return ours;
   }
 
+  var useState$1 = React.useState,
+      useRef = React.useRef,
+      useCallback = React.useCallback,
+      useEffect$1 = React.useEffect,
+      useDebugValue = React.useDebugValue;
+
   function useSaveBuffer(params, customClass) {
     if (AsyncRenderingCycle.isUpdating()) {
       // don't initialize when called during rerendering
@@ -1514,20 +1490,20 @@
         buffer.setContext = null;
       };
     }, []);
-    useDebugValue$1(buffer.current);
+    useDebugValue(buffer.current);
     return buffer;
   }
 
   function useAutoSave(saveBuffer, wait, f) {
     // store the callback in a ref so the useEffect hook function will
     // always call the latest version
-    var ref = useRef$1({});
+    var ref = useRef({});
 
     if (!AsyncRenderingCycle.isUpdating()) {
       ref.current.f = f;
     }
 
-    var save = useCallback$1(function (conditional) {
+    var save = useCallback(function (conditional) {
       if (conditional) {
         if (!saveBuffer.changed || ref.current.saved === saveBuffer.current) {
           return;
@@ -1558,12 +1534,43 @@
         save(true);
       };
     }, []);
-    useDebugValue$1(wait);
+    useDebugValue(wait);
     return save;
   }
 
-  var useMemo$1 = React.useMemo,
-      useDebugValue$2 = React.useDebugValue;
+  var AsyncEventProxy = function AsyncEventProxy() {
+    _classCallCheck(this, AsyncEventProxy);
+
+    var target = {
+      methods: {},
+      handlers: {},
+      promises: {},
+      statuses: {},
+      filters: {}
+    };
+
+    for (var name in methods) {
+      target.methods[name] = methods[name].bind(target);
+    }
+
+    this.__proto__ = new Proxy(target, traps);
+  };
+
+  var traps = {
+    get: get$1,
+    set: set$1
+  };
+  var methods = {
+    one: one,
+    all: all,
+    some: some,
+    match: match,
+    race: race,
+    filter: filter,
+    list: list,
+    isFulfilled: isFulfilled,
+    isPending: isPending
+  };
 
   function get$1(target, key) {
     var f = target.methods[key] || target.handlers[key];
@@ -1698,72 +1705,43 @@
     return this.statuses[key] === false;
   }
 
-  var traps = {
-    get: get$1,
-    set: set$1
-  };
-  var methods = {
-    one: one,
-    all: all,
-    some: some,
-    match: match,
-    race: race,
-    filter: filter,
-    list: list,
-    isFulfilled: isFulfilled,
-    isPending: isPending
-  };
-
-  function AsyncEventProxy() {
-    var target = {
-      methods: {},
-      handlers: {},
-      promises: {},
-      statuses: {},
-      filters: {}
-    };
-
-    for (var name in methods) {
-      target.methods[name] = methods[name].bind(target);
-    }
-
-    this.__proto__ = new Proxy(target, traps);
-  }
+  var useMemo = React.useMemo,
+      useDebugValue$1 = React.useDebugValue;
 
   function useEventProxy(deps) {
-    var proxy = useMemo$1(function () {
+    var proxy = useMemo(function () {
       return new AsyncEventProxy();
     }, deps);
-    useDebugValue$2(proxy, formatDebugValue);
+    useDebugValue$1(proxy, formatDebugValue);
     return proxy;
   }
 
   function formatDebugValue(proxy) {
     var keys = proxy.list();
     var fired = [];
-    var _iteratorNormalCompletion2 = true;
-    var _didIteratorError2 = false;
-    var _iteratorError2 = undefined;
+    var _iteratorNormalCompletion = true;
+    var _didIteratorError = false;
+    var _iteratorError = undefined;
 
     try {
-      for (var _iterator2 = keys[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-        var key = _step2.value;
+      for (var _iterator = keys[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        var key = _step.value;
 
         if (proxy.isFulfilled(key)) {
           fired.push(key);
         }
       }
     } catch (err) {
-      _didIteratorError2 = true;
-      _iteratorError2 = err;
+      _didIteratorError = true;
+      _iteratorError = err;
     } finally {
       try {
-        if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
-          _iterator2["return"]();
+        if (!_iteratorNormalCompletion && _iterator["return"] != null) {
+          _iterator["return"]();
         }
       } finally {
-        if (_didIteratorError2) {
-          throw _iteratorError2;
+        if (_didIteratorError) {
+          throw _iteratorError;
         }
       }
     }
@@ -1771,7 +1749,144 @@
     return fired.join(' ');
   }
 
-  var useEffect$2 = React.useEffect;
+  var useState$2 = React.useState,
+      useRef$1 = React.useRef,
+      useMemo$1 = React.useMemo,
+      useEffect$2 = React.useEffect,
+      useCallback$1 = React.useCallback,
+      useDebugValue$2 = React.useDebugValue;
+
+  function useEventTime() {
+    var state = useState$2();
+    var date = state[0];
+    var setDate = state[1];
+    var callback = useCallback$1(function (evt) {
+      setDate(new Date());
+    }, []);
+    useDebugValue$2(date);
+    return [date, callback];
+  }
+
+  function useListener(f) {
+    var _arguments = arguments;
+    var ref = useRef$1({});
+
+    if (!AsyncRenderingCycle.isUpdating()) {
+      ref.current.f = f;
+    }
+
+    useDebugValue$2(f);
+    return useCallback$1(function () {
+      return ref.current.f.apply(null, _arguments);
+    }, []);
+  }
+
+  function useAsyncEffect(f, deps) {
+    useEffect$2(function () {
+      var cleanUp;
+      var cleanUpDeferred = false; // invoke the callback and wait for promise to get fulfilled
+
+      var promise = f();
+      Promise.resolve(promise).then(function (ret) {
+        // save the clean-up function returned by the callback
+        cleanUp = ret; // if clean-up was requested while we were waiting for the promise to
+        // resolve, perform it now
+
+        if (cleanUpDeferred) {
+          cleanUp();
+        }
+      });
+      return function () {
+        if (cleanUp) {
+          cleanUp();
+        } else {
+          // maybe we're still waiting for the promsie to resolve
+          cleanUpDeferred = true;
+        }
+      };
+    }, deps);
+    useDebugValue$2(f);
+  }
+
+  function useErrorCatcher(rethrow) {
+    var _useState = useState$2(),
+        _useState2 = _slicedToArray(_useState, 2),
+        error = _useState2[0],
+        setError = _useState2[1];
+
+    if (rethrow && error) {
+      throw error;
+    }
+
+    var run = useCallback$1(function (f) {
+      // catch sync exception with try-block
+      try {
+        // invoke the given function
+        var promise = f();
+
+        if (promise && promise["catch"] instanceof Function) {
+          // catch async exception
+          promise = promise.then(function (result) {
+            setError(undefined);
+            return result;
+          })["catch"](function (err) {
+            setError(err);
+          });
+        } else {
+          setError(undefined);
+        }
+
+        return promise;
+      } catch (err) {
+        setError(err);
+      }
+    });
+    var clear = useCallback$1(function (f) {
+      setError(undefined);
+    }, []);
+    useDebugValue$2(error);
+    return [error, run, clear];
+  }
+
+  function useComputed(f, deps) {
+    var pair = useState$2({});
+    var state = pair[0];
+    var setState = pair[1]; // add state object as dependency of useMemo hook
+
+    if (deps instanceof Array) {
+      deps = deps.concat(state);
+    } else {
+      deps = [state];
+    }
+
+    var value = useMemo$1(function () {
+      return state.current = f(state.current);
+    }, deps);
+    var recalc = useCallback$1(function () {
+      // force recalculation by changing state
+      setState({
+        value: state.value
+      });
+    }, []);
+    useDebugValue$2(value);
+    return [value, recalc];
+  }
+
+  function useLastAcceptable(value, acceptable) {
+    var ref = useRef$1();
+
+    if (typeof acceptable === 'function') {
+      acceptable = acceptable(value);
+    }
+
+    if (acceptable) {
+      // set the value only if it's acceptable
+      ref.current = value;
+    }
+
+    useDebugValue$2(ref.current);
+    return ref.current;
+  }
 
   function useStickySelection(inputRefs) {
     if (!(inputRefs instanceof Array)) {
@@ -1871,22 +1986,12 @@
     }
   }
 
-  var react = {
-    get: get,
-    set: set,
-    plant: plant,
-    use: use,
-    memo: memo,
-    forwardRef: forwardRef
-  };
-
   exports.AsyncComponent = AsyncComponent;
   exports.AsyncEventProxy = AsyncEventProxy;
   exports.AsyncRenderingCycle = AsyncRenderingCycle;
   exports.AsyncRenderingInterrupted = AsyncRenderingInterrupted;
   exports.AsyncSaveBuffer = AsyncSaveBuffer;
-  exports.default = react;
-  exports.findSeed = findSeed;
+  exports.default = functions;
   exports.forwardRef = forwardRef;
   exports.get = get;
   exports.memo = memo;

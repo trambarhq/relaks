@@ -3,7 +3,7 @@
   "description": "Asychronous React component",
   "author": "Chung Leong",
   "version": "2.1.0",
-  "main": "./react.js",
+  "main": "./react",
   "module": "./react.mjs",
   "preferGlobal": false,
   "sideEffects": false,

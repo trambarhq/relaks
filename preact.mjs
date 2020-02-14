@@ -1,95 +1,5 @@
 import Preact from 'preact';
 
-var delayWhenEmpty = 50;
-var delayWhenRendered = Infinity;
-var seeds = [];
-
-var errorHandler = function errorHandler(err) {
-  console.error(err);
-};
-
-function get(name) {
-  switch (name) {
-    case 'errorHandler':
-      return errorHandler;
-
-    case 'delayWhenEmpty':
-      return delayWhenEmpty;
-
-    case 'delayWhenRendered':
-      return delayWhenRendered;
-
-    case 'seeds':
-      plant(value);
-      break;
-  }
-}
-
-function set(name, value) {
-  switch (name) {
-    case 'errorHandler':
-      errorHandler = value;
-      break;
-
-    case 'delayWhenEmpty':
-      delayWhenEmpty = value;
-      break;
-
-    case 'delayWhenRendered':
-      delayWhenRendered = value;
-      break;
-
-    case 'seeds':
-      plant(value);
-      break;
-  }
-}
-
-function plant(list) {
-  if (!(list instanceof Array)) {
-    throw new Error('Seeds must be an array of object. Are you calling harvest() with the options { seeds: true }?');
-  }
-
-  seeds = list;
-}
-
-function findSeed(target) {
-  var type = target.func || target.constructor;
-  var props = target.props;
-  var index = -1;
-  var best = -1;
-
-  for (var i = 0; i < seeds.length; i++) {
-    var seed = seeds[i];
-
-    if (seed.type === type) {
-      // the props aren't going to match up exactly due to object
-      // recreations; just find the one that is closest
-      var count = 0;
-
-      if (props && seed.props) {
-        for (var key in props) {
-          if (seed.props[key] === props[key]) {
-            count++;
-          }
-        }
-      }
-
-      if (count > best) {
-        // choose this one
-        index = i;
-        best = count;
-      }
-    }
-  }
-
-  if (index != -1) {
-    var match = seeds[index];
-    seeds.splice(index, 1);
-    return match.result;
-  }
-}
-
 function _classCallCheck(instance, Constructor) {
   if (!(instance instanceof Constructor)) {
     throw new TypeError("Cannot call a class as a function");
@@ -245,6 +155,15 @@ function (_Error) {
   return AsyncRenderingInterrupted;
 }(_wrapNativeSuper(Error));
 
+var delayWhenEmpty = 50;
+var delayWhenRendered = Infinity;
+var currentState = null;
+var currentSeeds = [];
+
+var errorHandler = function errorHandler(err) {
+  console.error(err);
+};
+
 var AsyncRenderingCycle =
 /*#__PURE__*/
 function () {
@@ -263,8 +182,8 @@ function () {
     this.elementRendered = prev ? prev.elementRendered : null;
     this.deferredError = undefined;
     this.showingProgress = false;
-    this.delayEmpty = get('delayWhenEmpty');
-    this.delayRendered = get('delayWhenRendered');
+    this.delayEmpty = delayWhenEmpty;
+    this.delayRendered = delayWhenRendered;
     this.canceled = false;
     this.completed = false;
     this.checked = false;
@@ -557,6 +476,13 @@ function () {
         this.rerender();
       }
     }
+    /**
+     * Finalize the rendering cycle, called when the final contents have been
+     * rendered
+     *
+     * @param  {ReactElement|VNode} element
+     */
+
   }, {
     key: "finalize",
     value: function finalize(element) {
@@ -739,6 +665,12 @@ function () {
         }
       }
     }
+    /**
+     * Trigger diagnostic callback
+     *
+     * @param  {String} name
+     */
+
   }, {
     key: "notify",
     value: function notify(name) {
@@ -756,6 +688,17 @@ function () {
     }
   }], [{
     key: "acquire",
+
+    /**
+     * Get the current rendering cycle, creating a new one if necessary.
+     * Made the provided state the current state.
+     *
+     * @param  {Array} state
+     * @param  {Object} target
+     * @param  {Objext|undefined} options
+     *
+     * @return {AsyncRenderingCycle}
+     */
     value: function acquire(state, target, options) {
       var cycle = this.get(false, state);
 
@@ -790,6 +733,15 @@ function () {
       currentState = state;
       return cycle;
     }
+    /**
+     * Get the current cycle, stored in the current state or the one provided
+     *
+     * @param  {Boolean} required
+     * @param  {Array|undefined} state
+     *
+     * @return {AsyncRenderingCycle}
+     */
+
   }, {
     key: "get",
     value: function get(required, state) {
@@ -814,23 +766,180 @@ function () {
 
       return null;
     }
+    /**
+     * Called when we're done working with the current component
+     */
+
   }, {
     key: "end",
     value: function end() {
       currentState = null;
     }
+    /**
+     * Indicate whether a component is being updated
+     * (i.e. rendered content is being delivered to React)
+     *
+     * @return {Boolean}
+     */
+
   }, {
     key: "isUpdating",
     value: function isUpdating() {
       var cycle = this.get(false);
       return cycle ? cycle.isUpdating() : false;
     }
+    /**
+     * Set delay before progressive contents appears when the component is
+     * completely empty
+     *
+     * @param {Number} ms
+     */
+
+  }, {
+    key: "setInitialDelay",
+    value: function setInitialDelay(ms) {
+      delayWhenEmpty = ms;
+    }
+    /**
+     * Get delay before progressive contents appears when the component is
+     * completely empty
+     *
+     * @return {Number}
+     */
+
+  }, {
+    key: "getInitialDelay",
+    value: function getInitialDelay() {
+      return delayWhenEmpty;
+    }
+    /**
+     * Set delay before progressive contents appears after some contents have
+     * rendered
+     *
+     * @param {Number} ms
+     */
+
+  }, {
+    key: "setSubsequentDelay",
+    value: function setSubsequentDelay(ms) {
+      delayWhenRendered = ms;
+    }
+    /**
+     * Get delay before progressive contents appears after some contents have
+     * rendered
+     *
+     * @return {Number}
+     */
+
+  }, {
+    key: "getSubsequentDelay",
+    value: function getSubsequentDelay() {
+      return delayWhenRendered;
+    }
+  }, {
+    key: "getErrorHandler",
+    value: function getErrorHandler() {
+      return errorHandler;
+    }
+  }, {
+    key: "setErrorHandler",
+    value: function setErrorHandler(f) {
+      errorHandler = f;
+    }
+  }, {
+    key: "callErrorHandler",
+    value: function callErrorHandler(err) {
+      if (errorHandler instanceof Function) {
+        errorHandler(err);
+      }
+    }
+  }, {
+    key: "plantSeeds",
+    value: function plantSeeds(list) {
+      if (!(list instanceof Array)) {
+        throw new Error('Seeds must be an array of object. Are you calling harvest() with the options { seeds: true }?');
+      }
+
+      currentSeeds = list;
+    }
   }]);
 
   return AsyncRenderingCycle;
 }();
 
-var currentState = null;
+function findSeed(target) {
+  var type = target.func || target.constructor;
+  var props = target.props;
+  var index = -1;
+  var best = -1;
+
+  for (var i = 0; i < currentSeeds.length; i++) {
+    var seed = currentSeeds[i];
+
+    if (seed.type === type) {
+      // the props aren't going to match up exactly due to object
+      // recreations; just find the one that is closest
+      var count = 0;
+
+      if (props && seed.props) {
+        for (var key in props) {
+          if (seed.props[key] === props[key]) {
+            count++;
+          }
+        }
+      }
+
+      if (count > best) {
+        // choose this one
+        index = i;
+        best = count;
+      }
+    }
+  }
+
+  if (index != -1) {
+    var match = currentSeeds[index];
+    currentSeeds.splice(index, 1);
+    return match.result;
+  }
+}
+
+function get(name) {
+  switch (name) {
+    case 'errorHandler':
+      return AsyncRenderingCycle.getErrorHandler();
+
+    case 'delayWhenEmpty':
+      return AsyncRenderingCycle.getInitialDelay();
+
+    case 'delayWhenRendered':
+      return AsyncRenderingCycle.getSubsequentDelay();
+  }
+}
+
+function set(name, value) {
+  switch (name) {
+    case 'errorHandler':
+      return AsyncRenderingCycle.setErrorHandler(value);
+
+    case 'delayWhenEmpty':
+      return AsyncRenderingCycle.setInitialDelay(value);
+
+    case 'delayWhenRendered':
+      return AsyncRenderingCycle.setSubsequentDelay(value);
+  }
+}
+
+function plant(list) {
+  AsyncRenderingCycle.plantSeeds(list);
+}
+
+var functions = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  get: get,
+  set: set,
+  plant: plant
+});
 
 var Component = Preact.Component;
 
@@ -889,11 +998,7 @@ function (_Component) {
       var error = cycle.getError();
 
       if (error) {
-        var errorHandler = get('errorHandler');
-
-        if (errorHandler instanceof Function) {
-          errorHandler(error);
-        }
+        AsyncRenderingCycle.callErrorHandler(error);
       } // return either the promised element or progress
 
 
@@ -998,11 +1103,5 @@ function clone(element, props) {
   }
 }
 
-var preact = {
-  get: get,
-  set: set,
-  plant: plant
-};
-
-export default preact;
-export { AsyncComponent, AsyncRenderingCycle, findSeed, get, plant, set };
+export default functions;
+export { AsyncComponent, AsyncRenderingCycle, get, plant, set };

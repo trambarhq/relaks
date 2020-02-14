@@ -1,5 +1,10 @@
 import { AsyncRenderingInterrupted } from './async-rendering-interrupted.mjs';
-import { get, findSeed } from './options.mjs';
+
+let delayWhenEmpty = 50;
+let delayWhenRendered = Infinity;
+let currentState = null;
+let currentSeeds = [];
+let errorHandler = (err) => { console.error(err) };
 
 class AsyncRenderingCycle {
   constructor(target, prev, options) {
@@ -15,8 +20,8 @@ class AsyncRenderingCycle {
     this.elementRendered = (prev) ? prev.elementRendered : null;
     this.deferredError = undefined;
     this.showingProgress = false;
-    this.delayEmpty = get('delayWhenEmpty');
-    this.delayRendered = get('delayWhenRendered');
+    this.delayEmpty = delayWhenEmpty;
+    this.delayRendered = delayWhenRendered;
     this.canceled = false;
     this.completed = false;
     this.checked = false;
@@ -268,6 +273,12 @@ class AsyncRenderingCycle {
     }
   }
 
+  /**
+   * Finalize the rendering cycle, called when the final contents have been
+   * rendered
+   *
+   * @param  {ReactElement|VNode} element
+   */
   finalize(element) {
     if (this.progressPromise) {
       this.progressPromise.resolve(false);
@@ -414,6 +425,11 @@ class AsyncRenderingCycle {
     }
   }
 
+  /**
+   * Trigger diagnostic callback
+   *
+   * @param  {String} name
+   */
   notify(name) {
     const f = this.handlers[name];
     if (f) {
@@ -427,6 +443,16 @@ class AsyncRenderingCycle {
     }
   };
 
+  /**
+   * Get the current rendering cycle, creating a new one if necessary.
+   * Made the provided state the current state.
+   *
+   * @param  {Array} state
+   * @param  {Object} target
+   * @param  {Objext|undefined} options
+   *
+   * @return {AsyncRenderingCycle}
+   */
   static acquire(state, target, options) {
     let cycle = this.get(false, state);
     if (cycle) {
@@ -459,6 +485,14 @@ class AsyncRenderingCycle {
     return cycle;
   }
 
+  /**
+   * Get the current cycle, stored in the current state or the one provided
+   *
+   * @param  {Boolean} required
+   * @param  {Array|undefined} state
+   *
+   * @return {AsyncRenderingCycle}
+   */
   static get(required, state) {
     if (!state) {
       state = currentState;
@@ -478,17 +512,117 @@ class AsyncRenderingCycle {
     return null;
   }
 
+  /**
+   * Called when we're done working with the current component
+   */
   static end() {
     currentState = null;
   }
 
+  /**
+   * Indicate whether a component is being updated
+   * (i.e. rendered content is being delivered to React)
+   *
+   * @return {Boolean}
+   */
   static isUpdating() {
     const cycle = this.get(false);
     return cycle ? cycle.isUpdating() : false;
   }
+
+  /**
+   * Set delay before progressive contents appears when the component is
+   * completely empty
+   *
+   * @param {Number} ms
+   */
+  static setInitialDelay(ms) {
+    delayWhenEmpty = ms;
+  }
+
+  /**
+   * Get delay before progressive contents appears when the component is
+   * completely empty
+   *
+   * @return {Number}
+   */
+  static getInitialDelay() {
+    return delayWhenEmpty;
+  }
+
+  /**
+   * Set delay before progressive contents appears after some contents have
+   * rendered
+   *
+   * @param {Number} ms
+   */
+  static setSubsequentDelay(ms) {
+    delayWhenRendered = ms;
+  }
+
+  /**
+   * Get delay before progressive contents appears after some contents have
+   * rendered
+   *
+   * @return {Number}
+   */
+  static getSubsequentDelay() {
+    return delayWhenRendered;
+  }
+
+  static getErrorHandler() {
+    return errorHandler;
+  }
+
+  static setErrorHandler(f) {
+    errorHandler = f;
+  }
+
+  static callErrorHandler(err) {
+    if (errorHandler instanceof Function) {
+      errorHandler(err);
+    }
+  }
+
+  static plantSeeds(list) {
+    if (!(list instanceof Array)) {
+      throw new Error('Seeds must be an array of object. Are you calling harvest() with the options { seeds: true }?');
+    }
+    currentSeeds = list;
+  }
 }
 
-let currentState = null;
+function findSeed(target) {
+  const type = target.func || target.constructor;
+  const props = target.props;
+  let index = -1;
+  let best = -1;
+  for (let i = 0; i < currentSeeds.length; i++) {
+    const seed = currentSeeds[i];
+    if (seed.type === type) {
+      // the props aren't going to match up exactly due to object
+      // recreations; just find the one that is closest
+      let count = 0;
+      if (props && seed.props) {
+        for (var key in props) {
+          if (seed.props[key] === props[key]) {
+            count++;
+          }
+        }
+      }
+      if (count > best) {
+        // choose this one
+        index = i;
+        best = count;
+      }
+    }
+  }
+  if (index != -1) {
+    const match = currentSeeds[index];
+    currentSeeds.splice(index, 1);
+    return match.result;
+  }
+}
 
 export {
   AsyncRenderingCycle,

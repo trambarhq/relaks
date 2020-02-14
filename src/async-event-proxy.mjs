@@ -1,9 +1,35 @@
-import React from 'react';
+class AsyncEventProxy {
+  constructor() {
+    const target = {
+      methods: {},
+      handlers: {},
+      promises: {},
+      statuses: {},
+      filters: {},
+    };
+    for (let name in methods) {
+      target.methods[name] = methods[name].bind(target);
+    }
+    this.__proto__ = new Proxy(target, traps);
+  }
+}
 
-const {
-  useMemo,
-  useDebugValue
-} = React;
+const traps = {
+  get,
+  set,
+};
+
+const methods = {
+  one,
+  all,
+  some,
+  match,
+  race,
+  filter,
+  list,
+  isFulfilled,
+  isPending,
+};
 
 function get(target, key) {
   let f = target.methods[key] || target.handlers[key];
@@ -100,57 +126,6 @@ function isPending(key) {
   return (this.statuses[key] === false);
 }
 
-const traps = {
-  get,
-  set,
-};
-
-const methods = {
-  one,
-  all,
-  some,
-  match,
-  race,
-  filter,
-  list,
-  isFulfilled,
-  isPending,
-};
-
-function AsyncEventProxy() {
-  const target = {
-    methods: {},
-    handlers: {},
-    promises: {},
-    statuses: {},
-    filters: {},
-  };
-  for (let name in methods) {
-    target.methods[name] = methods[name].bind(target);
-  }
-  this.__proto__ = new Proxy(target, traps);
-}
-
-function useEventProxy(deps) {
-  const proxy = useMemo(() => {
-    return new AsyncEventProxy;
-  }, deps);
-  useDebugValue(proxy, formatDebugValue);
-  return proxy;
-}
-
-function formatDebugValue(proxy) {
-  const keys = proxy.list();
-  const fired = [];
-  for (let key of keys) {
-    if (proxy.isFulfilled(key)) {
-      fired.push(key);
-    }
-  }
-  return fired.join(' ');
-}
-
 export {
   AsyncEventProxy,
-  useEventProxy,
 };

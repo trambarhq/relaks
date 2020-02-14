@@ -1,6 +1,5 @@
 import React from 'react';
 import { AsyncRenderingCycle } from './async-rendering-cycle.mjs';
-import { get } from './options.mjs';
 
 const { PureComponent } = React;
 
@@ -41,10 +40,7 @@ class AsyncComponent extends PureComponent {
       if (parseInt(React.version) >= 16) {
         throw error;
       } else {
-        const errorHandler = get('errorHandler');
-        if (errorHandler instanceof Function) {
-          errorHandler(error);
-        }
+        AsyncRenderingCycle.callErrorHandler(error);
       }
     }
 
