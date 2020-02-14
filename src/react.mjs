@@ -2,13 +2,13 @@ import { get, set, plant } from './options.mjs';
 import { use, memo, forwardRef } from './hooks.mjs';
 
 export default {
-	get,
-	set,
-	plant,
+  get,
+  set,
+  plant,
 
-	use,
-	memo,
-	forwardRef,
+  use,
+  memo,
+  forwardRef,
 };
 
 export * from './options.mjs';

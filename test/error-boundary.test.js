@@ -1,10 +1,11 @@
 import { delay } from 'bluebird';
 import React, { Component } from 'react';
-import { expect } from 'chai';
+import Chai, { expect } from 'chai';
+import ChaiSpies from 'chai-spies'; Chai.use(ChaiSpies);
 import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import Relaks, { AsyncComponent, useProgress } from '../src/react.mjs';
+import Relaks, { AsyncComponent, useProgress } from '../react.mjs';
 
 class Boundary extends Component {
   constructor(props) {
@@ -28,8 +29,15 @@ class Boundary extends Component {
 }
 
 describe('Error boundary test', function() {
-  beforeEach(() => {
+  beforeEach(function() {
     configure({ adapter: new Adapter() });
+
+    // suppress Mocha's error handler during test
+    Chai.spy.on(window, 'onerror', () => {});
+    Chai.spy.on(console, 'error', () => {});
+  })
+  afterEach(function() {
+    Chai.spy.restore();
   })
   it ('should catch error in synchronous code', function() {
     class Test extends Component {
@@ -37,7 +45,6 @@ describe('Error boundary test', function() {
         throw new Error('Synchronous error');
       }
     }
-
     const wrapper = mount(<Boundary><Test /></Boundary>);
     expect(wrapper.text()).to.equal('Synchronous error');
   })

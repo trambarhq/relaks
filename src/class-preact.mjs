@@ -9,11 +9,11 @@ class AsyncComponent extends Component {
     super(props);
 
     var state = [
-    	{},
-    	(context) => {
-    		state[0] = context;
-    		this.forceUpdate();
-    	}
+      {},
+      (context) => {
+        state[0] = context;
+        this.forceUpdate();
+      }
     ];
     this.relaks = state;
   }
@@ -29,19 +29,19 @@ class AsyncComponent extends Component {
    */
   render(props, state, context) {
     const options = { showProgress: true, clone };
-  	const cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
+    const cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
     cycle.noCheck = true;
-  	if (!cycle.isUpdating()) {
-  		// call async function
-  		cycle.run(() => {
-  			return this.renderAsync(cycle, props, state, context);
-  		});
-  	}
+    if (!cycle.isUpdating()) {
+      // call async function
+      cycle.run(() => {
+        return this.renderAsync(cycle, props, state, context);
+      });
+    }
     AsyncRenderingCycle.end();
     cycle.mounted = true;
 
-  	// throw error that had occurred in async code
-  	const error = cycle.getError();
+    // throw error that had occurred in async code
+    const error = cycle.getError();
     if (error) {
       const errorHandler = get('errorHandler');
       if (errorHandler instanceof Function) {
@@ -50,7 +50,7 @@ class AsyncComponent extends Component {
     }
 
     // return either the promised element or progress
-  	const element = cycle.getElement();
+    const element = cycle.getElement();
     return element;
   }
 
@@ -90,10 +90,10 @@ class AsyncComponent extends Component {
    * Cancel any outstanding asynchronous rendering cycle on unmount.
    */
   componentWillUnmount() {
-  	const cycle = AsyncRenderingCycle.get(false, this.relaks);
-  	if (!cycle.hasEnded()) {
-  		cycle.cancel();
-  	}
+    const cycle = AsyncRenderingCycle.get(false, this.relaks);
+    if (!cycle.hasEnded()) {
+      cycle.cancel();
+    }
   }
 }
 
@@ -123,15 +123,15 @@ function compare(prevSet, nextSet) {
 }
 
 function clone(element, props) {
-	if (Preact.isValidElement(props)) {
-		return props;
-	} else if (Peact.isValidElement(element)) {
-		return Preact.cloneElement(element, props);
-	} else {
-		return null;
-	}
+  if (Preact.isValidElement(props)) {
+    return props;
+  } else if (Peact.isValidElement(element)) {
+    return Preact.cloneElement(element, props);
+  } else {
+    return null;
+  }
 }
 
 export {
-	AsyncComponent,
+  AsyncComponent,
 };

@@ -2,7 +2,7 @@ import _ from 'lodash';
 import { delay } from 'bluebird';
 import { expect } from 'chai';
 
-import { AsyncEventProxy } from '../src/react.mjs';
+import { AsyncEventProxy } from '../react.mjs';
 
 describe('Event Proxy', function() {
   it ('should automatically create handlers', function() {

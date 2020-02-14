@@ -6,10 +6,10 @@ import Adapter from 'enzyme-adapter-preact-pure';
 
 /** @jsx h */
 
-import { AsyncComponent } from '../src/preact.mjs';
+import { AsyncComponent } from '../preact.mjs';
 
 describe('AsyncComponent (Preact)', function() {
-  beforeEach(() => {
+  beforeEach(function() {
     configure({ adapter: new Adapter() });
   })
   it ('should render the component', async function() {

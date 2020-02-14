@@ -56,7 +56,7 @@ class AsyncRenderingCycle {
   }
 
   hasEnded() {
-  	return this.completed || this.canceled;
+    return this.completed || this.canceled;
   };
 
   isUpdating() {
@@ -88,7 +88,7 @@ class AsyncRenderingCycle {
   resolve(element) {
     this.clear();
     this.fulfilled = true;
-  	if (!this.hasEnded()) {
+    if (!this.hasEnded()) {
       if (!this.checked) {
         if (this.options.performCheck) {
           this.reject(new Error('Missing call to show() prior to await'));
@@ -114,23 +114,23 @@ class AsyncRenderingCycle {
       } else {
         this.finalize(element);
       }
-  	}
+    }
   }
 
   reject(err) {
-  	this.clear();
+    this.clear();
     if (!(err instanceof AsyncRenderingInterrupted)) {
       if (!this.hasEnded()) {
-  		  this.deferredError = err;
+        this.deferredError = err;
         if (this.mounted) {
           this.rerender();
         }
-  		} else {
+      } else {
         if (process.env.NODE_ENV !== 'production') {
           console.error(err);
         }
       }
-  	}
+    }
   }
 
   mount() {
@@ -151,12 +151,12 @@ class AsyncRenderingCycle {
   }
 
   getElement() {
-  	if (this.promisedAvailable) {
-  		this.elementRendered = this.promisedElement;
-  		this.promisedElement = undefined;
-  		this.promisedAvailable = false;
-  		this.complete();
-  	} else if (this.progressAvailable) {
+    if (this.promisedAvailable) {
+      this.elementRendered = this.promisedElement;
+      this.promisedElement = undefined;
+      this.promisedAvailable = false;
+      this.complete();
+    } else if (this.progressAvailable) {
       this.elementRendered = this.progressElement;
       this.progressElement = undefined;
       this.progressAvailable = false;
@@ -166,20 +166,21 @@ class AsyncRenderingCycle {
   }
 
   getError() {
-  	if (this.deferredError) {
-  		const error = this.deferredError;
-  		this.deferredError = undefined;
-  		this.cancel();
-  		return error;
-  	}
+    if (this.deferredError) {
+      const error = this.deferredError;
+      this.deferredError = undefined;
+      this.mounted = false;
+      this.cancel();
+      return error;
+    }
   }
 
   getPrevProps(asyncCycle) {
-  	return asyncCycle ? this.prevPropsAsync : this.prevProps;
+    return asyncCycle ? this.prevPropsAsync : this.prevProps;
   }
 
   substitute(element) {
-  	this.promisedElement = element;
+    this.promisedElement = element;
     this.promisedAvailable = true;
 
     // schedule immediate rerendering so refs, callbacks are correct
@@ -189,7 +190,7 @@ class AsyncRenderingCycle {
   }
 
   on(name, f) {
-  	this.handlers[name] = f;
+    this.handlers[name] = f;
   }
 
   show(element, disposition) {
@@ -217,11 +218,11 @@ class AsyncRenderingCycle {
 
     let delay, forced = false;
     if (this.showingProgress) {
-    	delay = 0;
+      delay = 0;
     } else if (!this.fulfilled) {
-    	delay = this.delayEmpty;
+      delay = this.delayEmpty;
     } else {
-		  delay = this.delayRendered;
+      delay = this.delayRendered;
     }
     if (disposition === 'always' || (disposition === 'initial' && !this.elementRendered)) {
       delay = 0;
@@ -358,7 +359,7 @@ class AsyncRenderingCycle {
     this.clear();
     if (!this.canceled) {
       this.canceled = true;
-		  this.notify('cancel');
+      this.notify('cancel');
     }
   }
 
@@ -368,8 +369,8 @@ class AsyncRenderingCycle {
   complete() {
     this.clear();
     if (!this.completed) {
-    	this.completed = true;
-		  this.notify('complete');
+      this.completed = true;
+      this.notify('complete');
     }
   }
 
@@ -377,12 +378,12 @@ class AsyncRenderingCycle {
    * Indicate that progress is being shown and trigger progress handler
    */
   progress() {
-  	if (!this.showingProgress) {
-  		if (!this.progressForced) {
-  			this.showingProgress = true;
-  		}
-  	}
-  	this.notify('progress');
+    if (!this.showingProgress) {
+      if (!this.progressForced) {
+        this.showingProgress = true;
+      }
+    }
+    this.notify('progress');
   }
 
   /**
@@ -407,23 +408,23 @@ class AsyncRenderingCycle {
     }
 
     if (!this.hasEnded()) {
-  		if (this.context.cycle === this) {
+      if (this.context.cycle === this && this.mounted) {
         this.setContext({ cycle: this });
-  		}
-  	}
+      }
+    }
   }
 
   notify(name) {
-  	const f = this.handlers[name];
-  	if (f) {
-  		const elapsed = (new Date) - this.startTime;
-  		const evt = {
-  			type: name,
-  			elapsed: elapsed,
-  			target: this.target,
-  		};
-  		f(evt);
-  	}
+    const f = this.handlers[name];
+    if (f) {
+      const elapsed = (new Date) - this.startTime;
+      const evt = {
+        type: name,
+        elapsed: elapsed,
+        target: this.target,
+      };
+      f(evt);
+    }
   };
 
   static acquire(state, target, options) {
@@ -440,11 +441,11 @@ class AsyncRenderingCycle {
     if (!cycle) {
       // start a new cycle
       const context = state[0];
-    	const prev = context.cycle;
-    	cycle = new AsyncRenderingCycle(target, prev, options);
-    	cycle.context = context;
-    	cycle.setContext = state[1];
-    	context.cycle = cycle;
+      const prev = context.cycle;
+      cycle = new AsyncRenderingCycle(target, prev, options);
+      cycle.context = context;
+      cycle.setContext = state[1];
+      context.cycle = cycle;
 
       // see if the contents has been seeded
       if (cycle.initial) {
@@ -464,12 +465,12 @@ class AsyncRenderingCycle {
     }
     if (state) {
       const context = state[0];
-    	const cycle = context.cycle;
-    	if (cycle) {
-    		cycle.context = context;
-    		cycle.setContext = state[1];
+      const cycle = context.cycle;
+      if (cycle) {
+        cycle.context = context;
+        cycle.setContext = state[1];
         return cycle;
-    	}
+      }
     }
     if (required) {
       throw new Error('Unable to obtain state variable');

@@ -1,27 +1,25 @@
 import { delay } from 'bluebird';
 import { h } from 'preact'
-import { expect } from 'chai';
+import Chai, { expect } from 'chai';
+import ChaiSpies from 'chai-spies'; Chai.use(ChaiSpies);
 import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-preact-pure';
 
 /** @jsx h */
 
-import Relaks, { AsyncComponent } from '../src/preact.mjs';
+import Relaks, { AsyncComponent } from '../preact.mjs';
 
 describe('Error handler test', function() {
-  // suppress Mocha's error handler during test
-  let mochaErrorHandler;
-  before(function() {
-    mochaErrorHandler = window.onerror;
-    window.onerror = null;
-  })
-  after(function() {
-    window.onerror = mochaErrorHandler;
-  })
-  beforeEach(() => {
+  beforeEach(function() {
     configure({ adapter: new Adapter() });
-  })
 
+    // suppress Mocha's error handler during test
+    Chai.spy.on(window, 'onerror', () => {});
+    Chai.spy.on(console, 'error', () => {});
+  })
+  afterEach(function() {
+    Chai.spy.restore();
+  })
   it ('should be called when error occurs in synchronous code of async component', function() {
     class Test extends AsyncComponent {
       renderAsync(meanwhile) {

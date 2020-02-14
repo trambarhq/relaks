@@ -78,6 +78,6 @@ function findSeed(target) {
 export {
   get,
   set,
-	plant,
-	findSeed,
+  plant,
+  findSeed,
 };

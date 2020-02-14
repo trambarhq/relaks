@@ -4,10 +4,10 @@ import { expect } from 'chai';
 import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
-import { AsyncComponent } from '../src/react.mjs';
+import { AsyncComponent } from '../react.mjs';
 
 describe('AsyncComponent', function() {
-  beforeEach(() => {
+  beforeEach(function() {
     configure({ adapter: new Adapter() });
   })
   it ('should render the component', async function() {

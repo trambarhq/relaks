@@ -447,6 +447,7 @@
         if (this.deferredError) {
           var error = this.deferredError;
           this.deferredError = undefined;
+          this.mounted = false;
           this.cancel();
           return error;
         }
@@ -737,7 +738,7 @@
         }
 
         if (!this.hasEnded()) {
-          if (this.context.cycle === this) {
+          if (this.context.cycle === this && this.mounted) {
             this.setContext({
               cycle: this
             });
@@ -759,79 +760,83 @@
           f(evt);
         }
       }
+    }], [{
+      key: "acquire",
+      value: function acquire(state, target, options) {
+        var cycle = this.get(false, state);
+
+        if (cycle) {
+          if (cycle.hasEnded()) {
+            cycle = undefined;
+          } else if (!cycle.isUpdating()) {
+            // cancel the current cycle
+            cycle.cancel();
+            cycle = undefined;
+          }
+        }
+
+        if (!cycle) {
+          // start a new cycle
+          var context = state[0];
+          var prev = context.cycle;
+          cycle = new AsyncRenderingCycle(target, prev, options);
+          cycle.context = context;
+          cycle.setContext = state[1];
+          context.cycle = cycle; // see if the contents has been seeded
+
+          if (cycle.initial) {
+            var seed = findSeed(target);
+
+            if (seed) {
+              cycle.substitute(seed);
+            }
+          }
+        }
+
+        currentState = state;
+        return cycle;
+      }
+    }, {
+      key: "get",
+      value: function get(required, state) {
+        if (!state) {
+          state = currentState;
+        }
+
+        if (state) {
+          var context = state[0];
+          var cycle = context.cycle;
+
+          if (cycle) {
+            cycle.context = context;
+            cycle.setContext = state[1];
+            return cycle;
+          }
+        }
+
+        if (required) {
+          throw new Error('Unable to obtain state variable');
+        }
+
+        return null;
+      }
+    }, {
+      key: "end",
+      value: function end() {
+        currentState = null;
+      }
+    }, {
+      key: "isUpdating",
+      value: function isUpdating() {
+        var cycle = this.get(false);
+        return cycle ? cycle.isUpdating() : false;
+      }
     }]);
 
     return AsyncRenderingCycle;
   }();
 
   var currentState = null;
-
-  function acquireCycle(state, target, options) {
-    var cycle = getCurrentCycle$1(false, state);
-
-    if (cycle) {
-      if (cycle.hasEnded()) {
-        cycle = undefined;
-      } else if (!cycle.isUpdating()) {
-        // cancel the current cycle
-        cycle.cancel();
-        cycle = undefined;
-      }
-    }
-
-    if (!cycle) {
-      // start a new cycle
-      var context = state[0];
-      var prev = context.cycle;
-      cycle = new AsyncRenderingCycle(target, prev, options);
-      cycle.context = context;
-      cycle.setContext = state[1];
-      context.cycle = cycle; // see if the contents has been seeded
-
-      if (cycle.initial) {
-        var seed = findSeed(target);
-
-        if (seed) {
-          cycle.substitute(seed);
-        }
-      }
-    }
-
-    currentState = state;
-    return cycle;
-  }
-
-  function getCurrentCycle$1(required, state) {
-    if (!state) {
-      state = currentState;
-    }
-
-    if (state) {
-      var context = state[0];
-      var cycle = context.cycle;
-
-      if (cycle) {
-        cycle.context = context;
-        cycle.setContext = state[1];
-        return cycle;
-      }
-    }
-
-    if (required) {
-      throw new Error('Unable to obtain state variable');
-    }
-
-    return null;
-  }
-
-  function endCurrentCycle() {
-    currentState = null;
-  }
-
-  function isUpdating() {
-    var cycle = getCurrentCycle$1(false);
-    return cycle ? cycle.isUpdating() : false;
-  }
 
   var Component = Preact.Component;
 
@@ -874,7 +879,7 @@
           showProgress: true,
           clone: clone
         };
-        var cycle = acquireCycle(this.relaks, this, options);
+        var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
         cycle.noCheck = true;
 
         if (!cycle.isUpdating()) {
@@ -884,7 +889,7 @@
           });
         }
 
-        endCurrentCycle();
+        AsyncRenderingCycle.end();
         cycle.mounted = true; // throw error that had occurred in async code
 
         var error = cycle.getError();
@@ -907,9 +912,9 @@
         var options = {
           clone: clone
         };
-        var cycle = acquireCycle(this.relaks, this, options);
+        var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
         var promise = this.renderAsync(cycle, this.props, this.state, this.context);
-        endCurrentCycle();
+        AsyncRenderingCycle.end();
 
         if (promise && typeof promise.then === 'function') {
           return promise.then(function (element) {
@@ -948,7 +953,7 @@
     }, {
       key: "componentWillUnmount",
       value: function componentWillUnmount() {
-        var cycle = getCurrentCycle(false, this.relaks);
+        var cycle = AsyncRenderingCycle.get(false, this.relaks);
 
         if (!cycle.hasEnded()) {
           cycle.cancel();
@@ -1007,13 +1012,9 @@
 
   exports.AsyncComponent = AsyncComponent;
   exports.AsyncRenderingCycle = AsyncRenderingCycle;
-  exports.acquireCycle = acquireCycle;
   exports.default = preact;
-  exports.endCurrentCycle = endCurrentCycle;
   exports.findSeed = findSeed;
   exports.get = get;
-  exports.getCurrentCycle = getCurrentCycle$1;
-  exports.isUpdating = isUpdating;
   exports.plant = plant;
   exports.set = set;
 

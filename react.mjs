@@ -483,6 +483,7 @@ function () {
       if (this.deferredError) {
         var error = this.deferredError;
         this.deferredError = undefined;
+        this.mounted = false;
         this.cancel();
         return error;
       }
@@ -773,7 +774,7 @@ function () {
       }
 
       if (!this.hasEnded()) {
-        if (this.context.cycle === this) {
+        if (this.context.cycle === this && this.mounted) {
           this.setContext({
             cycle: this
           });
@@ -795,6 +796,77 @@ function () {
         f(evt);
       }
     }
+  }], [{
+    key: "acquire",
+    value: function acquire(state, target, options) {
+      var cycle = this.get(false, state);
+
+      if (cycle) {
+        if (cycle.hasEnded()) {
+          cycle = undefined;
+        } else if (!cycle.isUpdating()) {
+          // cancel the current cycle
+          cycle.cancel();
+          cycle = undefined;
+        }
+      }
+
+      if (!cycle) {
+        // start a new cycle
+        var context = state[0];
+        var prev = context.cycle;
+        cycle = new AsyncRenderingCycle(target, prev, options);
+        cycle.context = context;
+        cycle.setContext = state[1];
+        context.cycle = cycle; // see if the contents has been seeded
+
+        if (cycle.initial) {
+          var seed = findSeed(target);
+
+          if (seed) {
+            cycle.substitute(seed);
+          }
+        }
+      }
+
+      currentState = state;
+      return cycle;
+    }
+  }, {
+    key: "get",
+    value: function get(required, state) {
+      if (!state) {
+        state = currentState;
+      }
+
+      if (state) {
+        var context = state[0];
+        var cycle = context.cycle;
+
+        if (cycle) {
+          cycle.context = context;
+          cycle.setContext = state[1];
+          return cycle;
+        }
+      }
+
+      if (required) {
+        throw new Error('Unable to obtain state variable');
+      }
+
+      return null;
+    }
+  }, {
+    key: "end",
+    value: function end() {
+      currentState = null;
+    }
+  }, {
+    key: "isUpdating",
+    value: function isUpdating() {
+      var cycle = this.get(false);
+      return cycle ? cycle.isUpdating() : false;
+    }
   }]);
 
   return AsyncRenderingCycle;
@@ -802,80 +874,12 @@ function () {
 
 var currentState = null;
 
-function acquireCycle(state, target, options) {
-  var cycle = getCurrentCycle$1(false, state);
-
-  if (cycle) {
-    if (cycle.hasEnded()) {
-      cycle = undefined;
-    } else if (!cycle.isUpdating()) {
-      // cancel the current cycle
-      cycle.cancel();
-      cycle = undefined;
-    }
-  }
-
-  if (!cycle) {
-    // start a new cycle
-    var context = state[0];
-    var prev = context.cycle;
-    cycle = new AsyncRenderingCycle(target, prev, options);
-    cycle.context = context;
-    cycle.setContext = state[1];
-    context.cycle = cycle; // see if the contents has been seeded
-
-    if (cycle.initial) {
-      var seed = findSeed(target);
-
-      if (seed) {
-        cycle.substitute(seed);
-      }
-    }
-  }
-
-  currentState = state;
-  return cycle;
-}
-
-function getCurrentCycle$1(required, state) {
-  if (!state) {
-    state = currentState;
-  }
-
-  if (state) {
-    var context = state[0];
-    var cycle = context.cycle;
-
-    if (cycle) {
-      cycle.context = context;
-      cycle.setContext = state[1];
-      return cycle;
-    }
-  }
-
-  if (required) {
-    throw new Error('Unable to obtain state variable');
-  }
-
-  return null;
-}
-
-function endCurrentCycle() {
-  currentState = null;
-}
-
-function isUpdating() {
-  var cycle = getCurrentCycle$1(false);
-  return cycle ? cycle.isUpdating() : false;
-}
-
 var useState = React.useState,
     useRef = React.useRef,
     useMemo = React.useMemo,
     useEffect = React.useEffect,
     useCallback = React.useCallback,
-    useDebugValue = React.useDebugValue,
-    ReactElement = React.ReactElement;
+    useDebugValue = React.useDebugValue;
 
 function use(asyncFunc) {
   // create synchronous function wrapper
@@ -890,7 +894,7 @@ function use(asyncFunc) {
       performCheck: true,
       clone: clone
     };
-    var cycle = acquireCycle(state, target, options); // cancel current cycle on unmount
+    var cycle = AsyncRenderingCycle.acquire(state, target, options); // cancel current cycle on unmount
 
     useEffect(function () {
       cycle.mount();
@@ -908,7 +912,7 @@ function use(asyncFunc) {
     cycle.run(function () {
       return asyncFunc(props, ref);
     });
-    endCurrentCycle(); // throw error that had occurred in async code
+    AsyncRenderingCycle.end(); // throw error that had occurred in async code
 
     var error = cycle.getError();
 
@@ -932,9 +936,9 @@ function use(asyncFunc) {
       performCheck: true,
       clone: clone
     };
-    var cycle = acquireCycle(state, target, options);
+    var cycle = AsyncRenderingCycle.acquire(state, target, options);
     var promise = asyncFunc(props);
-    endCurrentCycle();
+    AsyncRenderingCycle.end();
 
     if (promise && typeof promise.then === 'function') {
       return promise.then(function (element) {
@@ -986,20 +990,20 @@ function clone(element, props) {
 
 function useProgress(delayEmpty, delayRendered) {
   // set delays
-  var cycle = getCurrentCycle$1(true);
+  var cycle = AsyncRenderingCycle.get(true);
   cycle.delay(delayEmpty, delayRendered, true); // return functions (bound in constructor)
 
   return [cycle.show, cycle.check, cycle.delay];
 }
 
 function useProgressTransition() {
-  var cycle = getCurrentCycle$1(true);
+  var cycle = AsyncRenderingCycle.get(true);
   return [cycle.transition, cycle.hasRendered];
 }
 
 function useRenderEvent(name, f) {
-  if (!isUpdating()) {
-    var cycle = getCurrentCycle$1(true);
+  if (!AsyncRenderingCycle.isUpdating()) {
+    var cycle = AsyncRenderingCycle.get(true);
     cycle.on(name, f);
   }
 }
@@ -1019,7 +1023,7 @@ function useListener(f) {
   var _arguments = arguments;
   var ref = useRef({});
 
-  if (!isUpdating()) {
+  if (!AsyncRenderingCycle.isUpdating()) {
     ref.current.f = f;
   }
 
@@ -1151,7 +1155,8 @@ function (_PureComponent) {
     _this = _possibleConstructorReturn(this, _getPrototypeOf(AsyncComponent).call(this, props));
     var state = [{}, function (context) {
       state[0] = context;
-      this.forceUpdate();
+
+      _this.forceUpdate();
     }];
     _this.relaks = state;
     return _this;
@@ -1172,7 +1177,7 @@ function (_PureComponent) {
         showProgress: true,
         clone: clone$1
       };
-      var cycle = acquireCycle(this.relaks, this, options);
+      var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
 
       if (!cycle.isUpdating()) {
         // call async function
@@ -1181,7 +1186,7 @@ function (_PureComponent) {
         });
       }
 
-      endCurrentCycle();
+      AsyncRenderingCycle.end();
       cycle.mounted = true; // throw error that had occurred in async code
 
       var error = cycle.getError();
@@ -1208,9 +1213,9 @@ function (_PureComponent) {
       var options = {
         clone: clone$1
       };
-      var cycle = acquireCycle(this.relaks, this, options);
+      var cycle = AsyncRenderingCycle.acquire(this.relaks, this, options);
       var promise = this.renderAsync(cycle);
-      endCurrentCycle();
+      AsyncRenderingCycle.end();
 
       if (promise && typeof promise.then === 'function') {
         return promise.then(function (element) {
@@ -1231,7 +1236,7 @@ function (_PureComponent) {
   }, {
     key: "componentWillUnmount",
     value: function componentWillUnmount() {
-      var cycle = getCurrentCycle(false, this.relaks);
+      var cycle = AsyncRenderingCycle.get(false, this.relaks);
 
       if (!cycle.hasEnded()) {
         cycle.cancel();
@@ -1442,30 +1447,31 @@ function () {
         this.preserve(base, null);
       }
     }
+  }], [{
+    key: "acquire",
+    value: function acquire(state, params, bufferClass) {
+      if (!bufferClass) {
+        bufferClass = this;
+      }
+
+      var context = state[0];
+      var buffer = context.buffer;
+
+      if (!buffer) {
+        buffer = context.buffer = new bufferClass();
+        buffer.setContext = state[1];
+      }
+
+      if (params) {
+        buffer.use(params);
+      }
+
+      return buffer;
+    }
   }]);
 
   return AsyncSaveBuffer;
 }();
-
-function acquire(state, params, bufferClass) {
-  if (!bufferClass) {
-    bufferClass = AsyncSaveBuffer;
-  }
-
-  var context = state[0];
-  var buffer = context.buffer;
-
-  if (!buffer) {
-    buffer = context.buffer = new bufferClass();
-    buffer.setContext = state[1];
-  }
-
-  if (params) {
-    buffer.use(params);
-  }
-
-  return buffer;
-}
 
 function compareDef(ours, theirs) {
   return ours === theirs;
@@ -1486,7 +1492,7 @@ function transformDef(ours) {
 }
 
 function useSaveBuffer(params, customClass) {
-  if (isUpdating()) {
+  if (AsyncRenderingCycle.isUpdating()) {
     // don't initialize when called during rerendering
     params = null;
   } else if (!params) {
@@ -1494,7 +1500,7 @@ function useSaveBuffer(params, customClass) {
   }
 
   var state = useState$1({});
-  var buffer = acquire(state, params, customClass);
+  var buffer = AsyncSaveBuffer.acquire(state, params, customClass);
   useEffect$1(function () {
     // let the buffer know that the component associated with it
     // has been unmounted
@@ -1511,7 +1517,7 @@ function useAutoSave(saveBuffer, wait, f) {
   // always call the latest version
   var ref = useRef$1({});
 
-  if (!isUpdating()) {
+  if (!AsyncRenderingCycle.isUpdating()) {
     ref.current.f = f;
   }
 
@@ -1869,4 +1875,4 @@ var react = {
 };
 
 export default react;
-export { AsyncComponent, AsyncEventProxy, AsyncRenderingCycle, AsyncRenderingInterrupted, AsyncSaveBuffer, acquireCycle, endCurrentCycle, findSeed, forwardRef, get, getCurrentCycle$1 as getCurrentCycle, isUpdating, memo, plant, set, use, useAsyncEffect, useAutoSave, useComputed, useErrorCatcher, useEventProxy, useEventTime, useLastAcceptable, useListener, useProgress, useProgressTransition, useRenderEvent, useSaveBuffer, useStickySelection };
+export { AsyncComponent, AsyncEventProxy, AsyncRenderingCycle, AsyncRenderingInterrupted, AsyncSaveBuffer, findSeed, forwardRef, get, memo, plant, set, use, useAsyncEffect, useAutoSave, useComputed, useErrorCatcher, useEventProxy, useEventTime, useLastAcceptable, useListener, useProgress, useProgressTransition, useRenderEvent, useSaveBuffer, useStickySelection };

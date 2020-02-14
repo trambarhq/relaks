@@ -1,9 +1,9 @@
 import { get, set, plant } from './options.mjs';
 
 export default {
-	get,
-	set,
-	plant,
+  get,
+  set,
+  plant,
 };
 
 export * from './options.mjs';

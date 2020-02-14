@@ -1,7 +1,8 @@
 import _ from 'lodash';
 import { delay } from 'bluebird';
 import React, { useState, useRef, useImperativeHandle, Component } from 'react';
-import { expect } from 'chai';
+import Chai, { expect } from 'chai';
+import ChaiSpies from 'chai-spies'; Chai.use(ChaiSpies);
 import { configure, mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
@@ -18,10 +19,10 @@ import Relaks, {
   useComputed,
   useLastAcceptable,
   useEventProxy,
-} from '../src/react.mjs';
+} from '../react.mjs';
 
 describe('Hooks', function() {
-  beforeEach(() => {
+  beforeEach(function() {
     configure({ adapter: new Adapter() });
   })
   describe('#useProgress()', function() {
@@ -156,10 +157,6 @@ describe('Hooks', function() {
       expect(wrapper.text()).to.equal('Done');
     })
     it ('should throw an error when show() is not called', async function () {
-      // suppress Mocha's error handler during test
-      let mochaErrorHandler = window.onerror;
-      window.onerror = null;
-
       class Boundary extends Component {
         constructor(props) {
           super(props);
@@ -190,18 +187,20 @@ describe('Hooks', function() {
         show(<div>Done</div>);
       });
 
-      const props = {};
-      const wrapper = mount(<Boundary><Test {...props} /></Boundary>);
+      try {
+        // suppress Mocha's error handler during test
+        Chai.spy.on(window, 'onerror', () => {});
+        Chai.spy.on(console, 'error', () => {});
 
-      await update(wrapper, 100);
-      window.onerror = mochaErrorHandler;
-      expect(wrapper.text()).to.equal('ERROR');
+        const props = {};
+        const wrapper = mount(<Boundary><Test {...props} /></Boundary>);
+        await update(wrapper, 100);
+        expect(wrapper.text()).to.equal('ERROR');
+      } finally {
+        Chai.spy.restore();
+      }
     })
     it ('should let error thrown prior to show() to get through', async function () {
-      // suppress Mocha's error handler during test
-      let mochaErrorHandler = window.onerror;
-      window.onerror = null;
-
       class Boundary extends Component {
         constructor(props) {
           super(props);
@@ -234,12 +233,18 @@ describe('Hooks', function() {
         show(<div>Done</div>);
       });
 
-      const props = {};
-      const wrapper = mount(<Boundary><Test {...props} /></Boundary>);
+      try {
+        // suppress Mocha's error handler during test
+        Chai.spy.on(window, 'onerror', () => {});
+        Chai.spy.on(console, 'error', () => {});
 
-      await update(wrapper, 100);
-      window.onerror = mochaErrorHandler;
-      expect(wrapper.text()).to.equal('Early error');
+        const props = {};
+        const wrapper = mount(<Boundary><Test {...props} /></Boundary>);
+        await update(wrapper, 100);
+        expect(wrapper.text()).to.equal('Early error');
+      } finally {
+        Chai.spy.restore();
+      }
     })
   })
   describe('#useRenderEvent()', function() {
