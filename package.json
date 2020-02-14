@@ -28,7 +28,7 @@
     "preact.js",
     "preact.mjs",
     "react.js",
-    "react.mjs",
+    "react.mjs"
   ],
   "scripts": {
     "test": "./node_modules/karma/bin/karma start --single-run --",
