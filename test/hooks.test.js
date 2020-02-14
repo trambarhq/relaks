@@ -617,6 +617,31 @@ describe('Hooks', function() {
       expect(counts).to.deep.equal([ 1, 2, 3 ]);
       expect(_.size(_.uniq(funcs))).to.equal(1);
     })
+    it ('should return a function that passes the given arguments', function() {
+      let test;
+      let args = [];
+      const Test = (props) => {
+        const [ count, setCount ] = useState(1);
+        const f = useListener((arg) => {
+          args.push(arg);
+        });
+
+        test = (arg) => {
+          f(arg);
+          setCount(count + 1);
+        };
+
+        return <div>{count}</div>;
+      };
+      const wrapper = mount(<Test />);
+      expect(wrapper.text()).to.equal('1');
+      test('Hello');
+      expect(wrapper.text()).to.equal('2');
+      test('World');
+      expect(wrapper.text()).to.equal('3');
+      test('Nice');
+      expect(args).to.deep.equal([ 'Hello', 'World', 'Nice' ]);
+    })
   });
   describe('#useAsyncEffect', function() {
     it ('should call function on dependecy change', async function() {

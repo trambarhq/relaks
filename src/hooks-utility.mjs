@@ -27,7 +27,8 @@ function useListener(f) {
     ref.current.f = f;
   }
   useDebugValue(f);
-  return useCallback(() => {
+  // can't use arrow function here since we want to use arguments
+  return useCallback(function() {
     return ref.current.f.apply(null, arguments);
   }, []);
 }

@@ -1762,16 +1762,16 @@ function useEventTime() {
 }
 
 function useListener(f) {
-  var _arguments = arguments;
   var ref = useRef$1({});
 
   if (!AsyncRenderingCycle.isUpdating()) {
     ref.current.f = f;
   }
 
-  useDebugValue$2(f);
+  useDebugValue$2(f); // can't use arrow function here since we want to use arguments
+
   return useCallback$1(function () {
-    return ref.current.f.apply(null, _arguments);
+    return ref.current.f.apply(null, arguments);
   }, []);
 }
 
