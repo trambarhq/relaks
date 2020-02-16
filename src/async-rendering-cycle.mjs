@@ -190,7 +190,7 @@ class AsyncRenderingCycle {
 
     // schedule immediate rerendering so refs, callbacks are correct
     setTimeout(() => {
-      this.setContext({ cycle: _this });
+      this.setContext({ cycle: this });
     }, 0);
   }
 

@@ -270,7 +270,7 @@
     }, {
       key: "resolve",
       value: function resolve(element) {
-        var _this2 = this;
+        var _this = this;
 
         this.clear();
         this.fulfilled = true;
@@ -294,7 +294,7 @@
               }
 
               this.lastPromise.then(function () {
-                _this2.complete();
+                _this.complete();
               });
             } else {
               this.complete();
@@ -379,14 +379,14 @@
     }, {
       key: "substitute",
       value: function substitute(element) {
-        var _this3 = this;
+        var _this2 = this;
 
         this.promisedElement = element;
         this.promisedAvailable = true; // schedule immediate rerendering so refs, callbacks are correct
 
         setTimeout(function () {
-          _this3.setContext({
-            cycle: _this
+          _this2.setContext({
+            cycle: _this2
           });
         }, 0);
       }
@@ -398,7 +398,7 @@
     }, {
       key: "show",
       value: function show(element, disposition) {
-        var _this4 = this;
+        var _this3 = this;
 
         // make sure the rendering cycle is still current
         this.check(); // save the element so it can be rendered eventually
@@ -451,8 +451,8 @@
                 // if the timeout is 0, then clearTimeout() was called on it
                 // this function might still run on occasion afterward, due to
                 // the way timeouts are scheduled
-                if (_this4.updateTimeout !== 0) {
-                  _this4.update();
+                if (_this3.updateTimeout !== 0) {
+                  _this3.update();
                 }
               }, delay);
             }
@@ -574,16 +574,16 @@
     }, {
       key: "transition",
       value: function transition(props) {
-        var _this5 = this;
+        var _this4 = this;
 
         var promise = this.hasRendered().then(function (shown) {
           if (shown) {
-            var clone = _this5.options.clone;
-            var element = clone(_this5.elementRendered, props);
+            var clone = _this4.options.clone;
+            var element = clone(_this4.elementRendered, props);
 
-            _this5.show(element);
+            _this4.show(element);
 
-            return _this5.progressPromise.then(function (shown) {
+            return _this4.progressPromise.then(function (shown) {
               promise.fulfilled = true;
               return shown;
             });
