@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2.1.4
+
+* Added relaks-transform-memo plugin.
+
+## 2.1.0
+
+* Migrated to ES6 and Rollup.
+* Added numerous helper hooks.
+
 ## 2.0.2
 
 * Disabled check for show() call in class-based component.

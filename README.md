@@ -68,7 +68,7 @@ export {
 
 A Relaks component is an asynchronous function that uses the `useProgress` hook. The hook provides `show()`, a function for updating the component. In the code above, the task of rendering the page contents is delegated to the inner function `render()`. It uses variables declared outside it. Initially, they're all undefined. Accordingly, the function renders a loading animation. `FilmPage()` then requests the film object and wait for it to arrive. When it does, `render()` is called again to display the newly available information. Then a request for the character list is made. When this list arrives, `render()` is called again. And so on, until everything becomes available.
 
-At the bottom, we call `Relaks.memo()` to create something that looks like a normal functional component to React and export it.  
+At the bottom, we call `Relaks.memo()` to create something that looks like a normal functional component to React and export it. This can be omitted from the code when the [relaks-transform-memo](https://github.com/trambarhq/relaks-transform-memo) is used.
 
 You can see the code in action [here](https://trambar.io/examples/starwars-v/#/films/1/).
 

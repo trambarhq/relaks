@@ -66,5 +66,8 @@
     "rollup": "^1.31.1",
     "rollup-plugin-babel": "^4.3.3",
     "webpack": "^4.41.6"
+  },
+  "dependencies": {
+    "relaks-transform-memo": "^2.0.0"
   }
 }
