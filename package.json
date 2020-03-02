@@ -29,7 +29,7 @@
     "preact.mjs",
     "react.js",
     "react.mjs",
-    "transform-memo"
+    "transform-memo.js"
   ],
   "scripts": {
     "test": "./node_modules/karma/bin/karma start --single-run --",
