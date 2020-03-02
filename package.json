@@ -39,10 +39,10 @@
     "rollup:esm": "rollup -c rollup.config.esm.js"
   },
   "devDependencies": {
-    "@babel/core": "^7.8.4",
+    "@babel/core": "^7.8.6",
     "@babel/plugin-transform-regenerator": "^7.8.3",
     "@babel/plugin-transform-runtime": "^7.8.3",
-    "@babel/preset-env": "^7.8.4",
+    "@babel/preset-env": "^7.8.6",
     "@babel/preset-react": "^7.8.3",
     "@babel/runtime": "^7.8.4",
     "babel-loader": "^8.0.6",
@@ -60,15 +60,15 @@
     "karma-mocha": "^1.3.0",
     "karma-sourcemap-loader": "^0.3.7",
     "karma-webpack": "^4.0.2",
-    "mocha": "^7.0.1",
-    "preact": "^10.3.2",
-    "react": "^16.12.0",
-    "react-dom": "^16.12.0",
-    "rollup": "^1.31.1",
+    "mocha": "^7.1.0",
+    "preact": "^10.3.3",
+    "react": "^16.13.0",
+    "react-dom": "^16.13.0",
+    "rollup": "^1.32.0",
     "rollup-plugin-babel": "^4.3.3",
-    "webpack": "^4.41.6"
+    "webpack": "^4.42.0"
   },
   "dependencies": {
-    "relaks-transform-memo": "^2.0.0"
+    "relaks-transform-memo": "^2.0.1"
   }
 }
