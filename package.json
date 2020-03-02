@@ -2,7 +2,7 @@
   "name": "relaks",
   "description": "Asychronous React component",
   "author": "Chung Leong",
-  "version": "2.1.6",
+  "version": "2.1.7",
   "main": "./react",
   "module": "./react.mjs",
   "preferGlobal": false,
