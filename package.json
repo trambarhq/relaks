@@ -69,6 +69,6 @@
     "webpack": "^4.42.0"
   },
   "dependencies": {
-    "relaks-transform-memo": "^2.0.2"
+    "relaks-transform-memo": "^2.0.3"
   }
 }
