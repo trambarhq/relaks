@@ -137,9 +137,7 @@ function _possibleConstructorReturn(self, call) {
   return _assertThisInitialized(self);
 }
 
-var AsyncRenderingInterrupted =
-/*#__PURE__*/
-function (_Error) {
+var AsyncRenderingInterrupted = /*#__PURE__*/function (_Error) {
   _inherits(AsyncRenderingInterrupted, _Error);
 
   function AsyncRenderingInterrupted() {
@@ -153,7 +151,7 @@ function (_Error) {
   }
 
   return AsyncRenderingInterrupted;
-}(_wrapNativeSuper(Error));
+}( /*#__PURE__*/_wrapNativeSuper(Error));
 
 var delayWhenEmpty = 50;
 var delayWhenRendered = Infinity;
@@ -164,9 +162,7 @@ var errorHandler = function errorHandler(err) {
   console.error(err);
 };
 
-var AsyncRenderingCycle =
-/*#__PURE__*/
-function () {
+var AsyncRenderingCycle = /*#__PURE__*/function () {
   function AsyncRenderingCycle(target, prev, options) {
     _classCallCheck(this, AsyncRenderingCycle);
 
@@ -943,9 +939,7 @@ var functions = /*#__PURE__*/Object.freeze({
 
 var Component = Preact.Component;
 
-var AsyncComponent =
-/*#__PURE__*/
-function (_Component) {
+var AsyncComponent = /*#__PURE__*/function (_Component) {
   _inherits(AsyncComponent, _Component);
 
   function AsyncComponent(props) {

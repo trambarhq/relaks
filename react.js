@@ -185,9 +185,7 @@
     throw new TypeError("Invalid attempt to destructure non-iterable instance");
   }
 
-  var AsyncRenderingInterrupted =
-  /*#__PURE__*/
-  function (_Error) {
+  var AsyncRenderingInterrupted = /*#__PURE__*/function (_Error) {
     _inherits(AsyncRenderingInterrupted, _Error);
 
     function AsyncRenderingInterrupted() {
@@ -201,7 +199,7 @@
     }
 
     return AsyncRenderingInterrupted;
-  }(_wrapNativeSuper(Error));
+  }( /*#__PURE__*/_wrapNativeSuper(Error));
 
   var delayWhenEmpty = 50;
   var delayWhenRendered = Infinity;
@@ -212,9 +210,7 @@
     console.error(err);
   };
 
-  var AsyncRenderingCycle =
-  /*#__PURE__*/
-  function () {
+  var AsyncRenderingCycle = /*#__PURE__*/function () {
     function AsyncRenderingCycle(target, prev, options) {
       _classCallCheck(this, AsyncRenderingCycle);
 
@@ -956,7 +952,15 @@
       useEffect = React.useEffect;
 
   function use(asyncFunc) {
-    // create synchronous function wrapper
+    if (typeof asyncFunc !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Non-function given to Relaks.use():', asyncFunc);
+      }
+
+      return asyncFunc;
+    } // create synchronous function wrapper
+
+
     var syncFunc = function syncFunc(props, ref) {
       var state = useState({});
       var target = {
@@ -1038,7 +1042,13 @@
     } // set display name
 
 
-    syncFunc.displayName = asyncFunc.displayName || asyncFunc.name;
+    if (asyncFunc.name) {
+      Object.defineProperty(syncFunc, 'name', {
+        value: asyncFunc.name,
+        writable: false
+      });
+    }
+
     return syncFunc;
   }
 
@@ -1108,9 +1118,7 @@
 
   var PureComponent = React.PureComponent;
 
-  var AsyncComponent =
-  /*#__PURE__*/
-  function (_PureComponent) {
+  var AsyncComponent = /*#__PURE__*/function (_PureComponent) {
     _inherits(AsyncComponent, _PureComponent);
 
     function AsyncComponent(props) {
@@ -1239,9 +1247,7 @@
     }
   }
 
-  var AsyncSaveBuffer =
-  /*#__PURE__*/
-  function () {
+  var AsyncSaveBuffer = /*#__PURE__*/function () {
     function AsyncSaveBuffer() {
       _classCallCheck(this, AsyncSaveBuffer);
 

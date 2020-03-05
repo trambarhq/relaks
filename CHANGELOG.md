@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2.1.9
+
+* Added warning when non-function is passed to Relaks.use().
+* Fixed display name of components.
+
 ## 2.1.4
 
 * Added relaks-transform-memo plugin.

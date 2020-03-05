@@ -7,6 +7,12 @@ const {
 } = React;
 
 function use(asyncFunc) {
+  if (typeof(asyncFunc) !== 'function') {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Non-function given to Relaks.use():', asyncFunc);
+    }
+    return asyncFunc;
+  }
   // create synchronous function wrapper
   const syncFunc = function(props, ref) {
     const state = useState({});
@@ -75,7 +81,12 @@ function use(asyncFunc) {
     syncFunc.defaultProps = asyncFunc.defaultProps;
   }
   // set display name
-  syncFunc.displayName = asyncFunc.displayName || asyncFunc.name;
+  if (asyncFunc.name) {
+    Object.defineProperty(syncFunc, 'name', {
+      value: asyncFunc.name,
+      writable: false
+    });
+  }
   return syncFunc;
 }
 
