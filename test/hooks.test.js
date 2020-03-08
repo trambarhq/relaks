@@ -588,7 +588,7 @@ describe('Hooks', function() {
       expect(await test2()).to.equal(2);
     })
   });
-  describe('#useListener', function() {
+  describe('#useListener()', function() {
     it ('should always return the same function', function() {
       let test;
       let counts = [];
@@ -643,7 +643,7 @@ describe('Hooks', function() {
       expect(args).to.deep.equal([ 'Hello', 'World', 'Nice' ]);
     })
   });
-  describe('#useAsyncEffect', function() {
+  describe('#useAsyncEffect()', function() {
     it ('should call function on dependecy change', async function() {
       let redrawNoEffect;
       let redrawWithEffect;
@@ -791,7 +791,7 @@ describe('Hooks', function() {
       expect(wrapper.text()).to.equal('Changed');
     })
   })
-  describe('#useAutoSave', function() {
+  describe('#useAutoSave()', function() {
     it ('should invoke save function after some time', async function() {
       let buffer;
       let saved = [];
@@ -861,7 +861,7 @@ describe('Hooks', function() {
       expect(saved).to.deep.equal([ 'hello' ]);
     })
   })
-  describe('#useLastAcceptable', function() {
+  describe('#useLastAcceptable()', function() {
     it ('should return the last acceptable value', function() {
       const Test = (props) => {
         const { name, acceptable } = props;
@@ -893,7 +893,7 @@ describe('Hooks', function() {
       expect(wrapper.text()).to.equal('Charlie');
     })
   })
-  describe('#useComputed', function() {
+  describe('#useComputed()', function() {
     it ('should not rerun function when dependencies are unchanged', function() {
       let counterA = 0, counterB = 0;
       const Test = (props) => {
@@ -938,7 +938,7 @@ describe('Hooks', function() {
       expect(counterB).to.equal(2);
     })
   })
-  describe('#useEventProxy', function() {
+  describe('#useEventProxy()', function() {
     it ('should create an event handler that fulfills a promise', async function() {
       let filterCalled = false;
       let classNameOnLoad = '';
