@@ -1,6 +1,6 @@
-var Path = require('path');
+const { resolve } = require('path');
 
-module.exports = function(config) {
+module.exports = (config) => {
   config.set({
     port: 9876,
     logLevel: config.LOG_WARNING,
@@ -34,7 +34,7 @@ module.exports = function(config) {
           {
             test: /\.(js|jsx|mjs)$/,
             loader: 'babel-loader',
-            exclude: Path.resolve('./node_modules'),
+            exclude: resolve('./node_modules'),
             query: {
               presets: [
                 '@babel/env',
@@ -58,8 +58,8 @@ module.exports = function(config) {
 };
 
 function parseTestPattern(argv) {
-  var index = argv.indexOf('--');
-  var patterns = (index !== -1) ? argv.slice(index + 1) : [];
+  const index = argv.indexOf('--');
+  const patterns = (index !== -1) ? argv.slice(index + 1) : [];
   if (patterns.length > 0) {
     return [ '--grep' ].concat(patterns);
   } else {

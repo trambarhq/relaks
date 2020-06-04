@@ -1,6 +1,6 @@
-const Babel = require('rollup-plugin-babel');
+import Babel from 'rollup-plugin-babel';
 
-module.exports = [
+export default [
   'react',
   'preact',
 ].map((name) => {
